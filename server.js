@@ -17,6 +17,7 @@ const activeBots = {};
 
 app.use(express.static('public'));
 app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
 
 if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
 
@@ -31,13 +32,12 @@ setInterval(() => {
     const total = os.totalmem() / 1024 / 1024;
     io.emit('sys_stats', {
         ram: `${Math.round(used)} MB`,
-        total: `${Math.round(total / 1024)} GB`,
-        platform: os.platform()
+        total: `${Math.round(total / 1024)} GB`
     });
 }, 2000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] Panel Connected. Ready to deploy.\x1b[0m\n');
+    socket.emit('log', '\x1b[36m[SYSTEM] Connected to Railway Server.\x1b[0m\n');
     emitStatus();
 });
 
@@ -64,7 +64,7 @@ app.post('/start', (req, res) => {
     child.stdout.on('data', (d) => io.emit('log', d.toString()));
     child.stderr.on('data', (d) => io.emit('log', `\x1b[31m[ERROR] ${d}\x1b[0m`));
     child.on('close', (c) => {
-        io.emit('log', `\n\x1b[33m[STOPPED] ${filename} exited with code ${c}\x1b[0m\n`);
+        io.emit('log', `\n\x1b[33m[STOPPED] ${filename} exited code ${c}\x1b[0m\n`);
         delete activeBots[filename];
         emitStatus();
     });
@@ -86,7 +86,7 @@ app.post('/stop', (req, res) => {
 });
 
 app.post('/upload', upload.single('scriptFile'), (req, res) => {
-    io.emit('log', `\n\x1b[36m[UPLOAD] ${req.file.originalname} received.\x1b[0m\n`);
+    if(req.file) io.emit('log', `\n\x1b[36m[UPLOAD] ${req.file.originalname} success.\x1b[0m\n`);
     res.redirect('/');
 });
 
@@ -121,4 +121,4 @@ app.post('/save', (req, res) => {
     });
 });
 
-server.listen(PORT, () => console.log(`Dashboard running on port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

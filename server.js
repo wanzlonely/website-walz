@@ -26,6 +26,8 @@ let isRunning = false;
 let startTime = null;
 let bot = null;
 
+const TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
+
 function loadTokens() {
   try {
     if (fs.existsSync(DB_FILE)) {
@@ -40,16 +42,13 @@ function loadTokens() {
 function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
-  } catch (e) {
-    console.error('[DB] Gagal menyimpan tokens:', e.message);
-  }
+  } catch (e) {}
 }
 
 function generateToken(len = 10) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let res = 'WL-';
   for (let i = 0; i < len; i++) {
-    res += chars.charAt(Math.floor(Math.random() * chars.length));
+    res += TOKEN_CHARS.charAt(Math.floor(Math.random() * TOKEN_CHARS.length));
   }
   return res;
 }
@@ -90,8 +89,9 @@ app.use(express.static(PUBLIC_DIR));
 const checkAuth = (req, res, next) => {
   let token = req.headers['authorization'];
   if (!token) return res.status(401).json({ success: false, msg: 'No token provided' });
-  token = token.trim().toUpperCase();
+  token = token.trim();
   if (token === ADMIN_PASS) return next();
+  token = token.toUpperCase();
   loadTokens();
   if (!activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
   if (Date.now() > activeTokens[token]) {
@@ -108,11 +108,12 @@ app.get('/', (req, res) => {
 
 app.post('/login', (req, res) => {
   let { token } = req.body;
-  token = String(token || '').trim().toUpperCase();
-  loadTokens();
+  token = String(token || '').trim();
   if (token === ADMIN_PASS) {
     return res.json({ success: true, role: 'OWNER', expired: null });
   }
+  token = token.toUpperCase();
+  loadTokens();
   if (activeTokens[token]) {
     if (Date.now() < activeTokens[token]) {
       res.json({ success: true, role: 'PREMIUM', expired: activeTokens[token] });

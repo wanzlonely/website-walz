@@ -158,7 +158,9 @@ app.post('/files', checkAuth, (req, res) => {
 
     data.sort((a, b) => b.isDir - a.isDir);
     res.json({ success: true, data, currentPath: reqPath });
-  } catch { res.json({ success: false, data: [] }); }
+  } catch {
+    res.json({ success: false, data: [] });
+  }
 });
 
 app.post('/read', checkAuth, (req, res) => {
@@ -166,7 +168,9 @@ app.post('/read', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.path);
     if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
     res.json({ success: true, content: fs.readFileSync(target, 'utf8') });
-  } catch { res.json({ success: false }); }
+  } catch {
+    res.json({ success: false });
+  }
 });
 
 app.post('/save', checkAuth, (req, res) => {
@@ -175,7 +179,9 @@ app.post('/save', checkAuth, (req, res) => {
     if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
     fs.writeFileSync(target, req.body.content);
     res.json({ success: true });
-  } catch { res.json({ success: false }); }
+  } catch {
+    res.json({ success: false });
+  }
 });
 
 app.post('/delete', checkAuth, (req, res) => {
@@ -184,24 +190,33 @@ app.post('/delete', checkAuth, (req, res) => {
     if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
     fs.rmSync(target, { recursive: true, force: true });
     res.json({ success: true });
-  } catch { res.json({ success: false }); }
+  } catch {
+    res.json({ success: false });
+  }
 });
 
-const upload = multer({ storage: multer.diskStorage({
-  destination: (req, file, cb) => cb(null, uploadDir),
-  filename: (req, file, cb) => cb(null, file.originalname)
-})});
+const upload = multer({
+  storage: multer.diskStorage({
+    destination: (req, file, cb) => cb(null, uploadDir),
+    filename: (req, file, cb) => cb(null, file.originalname)
+  })
+});
 
-app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
+app.post('/upload', upload.single('file'), (req, res) => {
+  res.json({ success: true });
+});
 
 app.post('/unzip', checkAuth, (req, res) => {
   try {
     const target = path.join(uploadDir, req.body.filename);
+    if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error('Invalid path');
     const zip = new AdmZip(target);
     zip.extractAllTo(path.dirname(target), true);
     fs.unlinkSync(target);
-    res.json({ success: true });
-  } catch (e) { res.json({ success: false, msg: e.message }); }
+    res.json({ success: true, msg: 'Extract completed' });
+  } catch (e) {
+    res.json({ success: false, msg: e.message });
+  }
 });
 
 app.post('/start', checkAuth, (req, res) => {
@@ -255,7 +270,7 @@ app.post('/start', checkAuth, (req, res) => {
   } else {
     startProcess(entry, workingDir);
   }
-  res.json({ success: true });
+  res.json({ success: true, msg: 'Memulai bot...' });
 });
 
 function startProcess(file, cwd) {

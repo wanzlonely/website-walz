@@ -4,273 +4,196 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pterodactyl Console</title>
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
             --bg: #0e0e12;
             --panel: #16181d;
             --blue: #10529e;
-            --blue-hover: #0d4280;
             --red: #f54336;
-            --red-hover: #d32f2f;
-            --grey: #4b5563;
             --text: #ffffff;
-            --subtext: #9ca3af;
-            --term-bg: #101014;
+            --sub: #9ca3af;
+            --border: #2d3039;
         }
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; }
-        
-        nav {
-            background: var(--panel); height: 60px; padding: 0 20px;
-            display: flex; align-items: center; justify-content: space-between;
-            border-bottom: 1px solid #2d3039;
-        }
-        .nav-logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
-        .nav-tabs { display: flex; gap: 20px; height: 100%; }
-        .tab { 
-            display: flex; align-items: center; height: 100%; color: var(--subtext); 
-            font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; 
-        }
-        .tab.active { color: var(--text); border-bottom: 2px solid var(--blue); }
-
-        .container { flex: 1; padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 15px; }
-
-        .control-bar { 
-            background: var(--panel); padding: 15px; border-radius: 6px; 
-            display: flex; justify-content: space-between; align-items: center;
-        }
-        .btn-group { display: flex; gap: 10px; }
-        .btn { 
-            padding: 10px 20px; border-radius: 4px; font-weight: 600; font-size: 14px; 
-            border: none; cursor: pointer; color: white; transition: 0.2s; 
-        }
-        .btn-start { background: var(--blue); }
-        .btn-start:hover { background: var(--blue-hover); }
-        .btn-restart { background: var(--grey); }
-        .btn-stop { background: var(--red); }
-        .btn-stop:hover { background: var(--red-hover); }
-        
-        .server-status { font-weight: 600; color: var(--subtext); font-size: 14px; }
-        .status-badge { color: #fbbf24; }
-
-        .terminal-wrapper {
-            flex: 1; background: var(--term-bg); border-radius: 6px; 
-            display: flex; flex-direction: column; overflow: hidden;
-            border: 1px solid #2d3039;
-        }
-        .terminal-log {
-            flex: 1; padding: 15px; font-family: 'JetBrains Mono', monospace; 
-            font-size: 13px; color: #d1d5db; overflow-y: auto; white-space: pre-wrap;
-        }
-        .input-area {
-            display: flex; background: #1f2129; padding: 10px; align-items: center;
-        }
-        .prompt { color: var(--text); font-weight: bold; margin-right: 10px; }
-        .cmd-input {
-            flex: 1; background: transparent; border: none; color: white;
-            font-family: 'JetBrains Mono'; font-size: 13px;
-        }
-
-        .stats-grid {
-            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;
-        }
-        .stat-card {
-            background: var(--panel); padding: 15px; border-radius: 6px;
-            display: flex; flex-direction: column; border: 1px solid #2d3039;
-        }
-        .stat-title { font-size: 12px; color: var(--subtext); font-weight: 600; margin-bottom: 5px; text-transform: uppercase; }
-        .stat-value { font-size: 15px; font-weight: 600; color: var(--text); }
-        .stat-sub { font-size: 11px; color: var(--subtext); margin-top: 3px; }
-
-        .file-select {
-            padding: 10px; background: #1f2129; border: 1px solid #2d3039; 
-            color: white; border-radius: 4px; margin-bottom: 10px;
-        }
-
-        #login-overlay {
-            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 99;
-            display: flex; align-items: center; justify-content: center; flex-direction: column;
-        }
-        .auth-box { background: var(--panel); padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
-        .auth-inp { width: 100%; padding: 10px; margin: 15px 0; background: var(--bg); border: 1px solid #333; color: white; text-align: center; }
-
-        .ansi-red { color: #f87171; } .ansi-green { color: #4ade80; } .ansi-yellow { color: #facc15; } .ansi-blue { color: #60a5fa; }
+        #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; justify-content: center; align-items: center; }
+        .auth-box { background: var(--panel); padding: 30px; border-radius: 8px; width: 300px; text-align: center; border: 1px solid var(--border); }
+        .auth-input { width: 100%; padding: 10px; margin: 15px 0; background: var(--bg); border: 1px solid var(--border); color: white; text-align: center; }
+        nav { height: 60px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; padding: 0 20px; align-items: center; justify-content: space-between; }
+        .logo { font-weight: 700; font-size: 16px; }
+        .tabs { display: flex; gap: 20px; height: 100%; }
+        .tab { display: flex; align-items: center; height: 100%; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; }
+        .tab.active { color: white; border-bottom-color: var(--blue); }
+        .page { display: none; padding: 20px; flex: 1; overflow: hidden; max-width: 1200px; margin: 0 auto; width: 100%; flex-direction: column; gap: 15px; }
+        .page.active { display: flex; }
+        .controls { background: var(--panel); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .btns { display: flex; gap: 10px; }
+        .btn { padding: 8px 20px; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn-start { background: var(--blue); } .btn-start:hover { opacity: 0.8; }
+        .btn-stop { background: var(--red); } .btn-stop:hover { opacity: 0.8; }
+        .btn-res { background: #4b5563; }
+        .status-pill { background: #fbbf24; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        .status-pill.online { background: #22c55e; color: #fff; }
+        .terminal { flex: 1; background: #101014; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; }
+        .logs { flex: 1; padding: 15px; font-family: 'JetBrains Mono'; font-size: 12px; overflow-y: auto; white-space: pre-wrap; color: #d1d5db; }
+        .input-wrapper { display: flex; border-top: 1px solid var(--border); background: #1f2129; padding: 10px; }
+        .cmd-in { flex: 1; background: transparent; border: none; color: white; font-family: 'JetBrains Mono'; font-size: 13px; }
+        .file-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
+        .file-list { background: var(--panel); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
+        .file-row { display: flex; padding: 12px 15px; border-bottom: 1px solid var(--border); align-items: center; }
+        .file-row:last-child { border-bottom: none; }
+        .file-name { flex: 1; font-family: 'JetBrains Mono'; font-size: 13px; font-weight: 500; }
+        .file-size { width: 100px; color: var(--sub); font-size: 12px; }
+        .file-act { width: 100px; display: flex; gap: 5px; justify-content: flex-end; }
+        .btn-sm { padding: 4px 8px; font-size: 11px; border-radius: 3px; cursor: pointer; border: none; color: white; }
+        .btn-unzip { background: var(--blue); }
+        .btn-del { background: var(--red); }
+        .ansi-red { color: #ef4444; } .ansi-green { color: #22c55e; } .ansi-yellow { color: #eab308; } .ansi-blue { color: #3b82f6; }
     </style>
 </head>
 <body>
 
-    <div id="login-overlay">
+    <div id="auth-overlay">
         <div class="auth-box">
-            <h3>Console Access</h3>
-            <input type="password" id="pass" class="auth-inp" placeholder="Admin Password">
-            <button onclick="auth()" class="btn btn-start" style="width:100%">Login</button>
+            <h3>Login Panel</h3>
+            <input type="password" id="pass" class="auth-input" placeholder="Password">
+            <button onclick="login()" class="btn btn-start" style="width:100%">Enter</button>
         </div>
     </div>
 
     <nav>
-        <div class="nav-logo">
-            <span>☁️</span> Pterodactyl Panel
-        </div>
-        <div class="nav-tabs">
-            <div class="tab active">Console</div>
-            <div class="tab" onclick="alert('Use Console to Upload')">Files</div>
-            <div class="tab">Databases</div>
-            <div class="tab">Schedules</div>
+        <div class="logo">Pterodactyl</div>
+        <div class="tabs">
+            <div class="tab active" onclick="switchTab('console')">Console</div>
+            <div class="tab" onclick="switchTab('files')">Files</div>
         </div>
     </nav>
 
-    <div class="container">
-        
-        <select id="file-selector" class="file-select" onchange="switchBot()">
-            <option value="">-- Select Bot Folder --</option>
-        </select>
-
-        <div class="control-bar">
-            <div class="btn-group">
-                <button class="btn btn-start" onclick="startBot()">Start</button>
-                <button class="btn btn-restart" onclick="restartBot()">Restart</button>
-                <button class="btn btn-stop" onclick="stopBot()">Stop</button>
+    <div id="p-console" class="page active">
+        <div class="controls">
+            <div class="btns">
+                <button class="btn btn-start" onclick="act('/start')">Start</button>
+                <button class="btn btn-res" onclick="act('/restart'); setTimeout(()=>act('/start'), 2000)">Restart</button>
+                <button class="btn btn-stop" onclick="act('/stop')">Stop</button>
             </div>
-            <div class="server-status">
-                Status: <span id="status-text" class="status-badge">Offline</span>
+            <div class="stats">
+                RAM: <span id="ram">0 MB</span> | CPU: <span id="cpu">0%</span> | <span id="status" class="status-pill">Offline</span>
             </div>
         </div>
-
-        <div class="terminal-wrapper">
-            <div class="terminal-log" id="term">
-                container@pterodactyl~ Server marked as offline...
+        <div class="terminal">
+            <div class="logs" id="logs">
+                [SYSTEM] Ready to connect...
             </div>
-            <div class="input-area">
-                <span class="prompt">></span>
-                <input type="text" id="cmd-in" class="cmd-input" placeholder="Type a command..." autocomplete="off">
-            </div>
-        </div>
-
-        <div class="stats-grid">
-            <div class="stat-card">
-                <div class="stat-title">Address</div>
-                <div class="stat-value">RAILWAY:3000</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Uptime</div>
-                <div class="stat-value" id="val-uptime">Offline</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">CPU Load</div>
-                <div class="stat-value" id="val-cpu">0%</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Memory</div>
-                <div class="stat-value" id="val-ram">0 MB</div>
-                <div class="stat-sub" id="val-total">/ 512 MB</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Disk</div>
-                <div class="stat-value">--</div>
-                <div class="stat-sub">/ 5 GB</div>
-            </div>
-            <div class="stat-card">
-                <div class="stat-title">Network (Inbound)</div>
-                <div class="stat-value">--</div>
+            <div class="input-wrapper">
+                <span style="font-weight:bold; margin-right:10px;">$</span>
+                <input type="text" class="cmd-in" id="cmd" placeholder="Type command..." onkeydown="if(event.key==='Enter') sendCmd()">
             </div>
         </div>
+    </div>
 
-        <form action="/upload" method="POST" enctype="multipart/form-data" id="up-form">
-            <input type="file" name="scriptFile" id="f-in" style="display:none" onchange="document.getElementById('up-form').submit()">
-            <button class="btn btn-restart" style="margin-top:10px;" onclick="document.getElementById('f-in').click()">+ Upload Zip / Js</button>
-        </form>
-
+    <div id="p-files" class="page">
+        <div class="file-toolbar">
+            <button class="btn btn-start" onclick="document.getElementById('f-up').click()">+ Upload</button>
+            <input type="file" id="f-up" style="display:none" onchange="uploadFile()">
+        </div>
+        <div class="file-list" id="file-container">
+        </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const term = document.getElementById('term');
-        const cmdInput = document.getElementById('cmd-in');
-        const selector = document.getElementById('file-selector');
-        
-        let activeBots = [];
-        let selectedBot = "";
+        const logs = document.getElementById('logs');
 
-        function auth() {
+        if(localStorage.getItem('auth') === 'true') {
+            document.getElementById('auth-overlay').style.display = 'none';
+        }
+
+        function login() {
             const p = document.getElementById('pass').value;
             fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:p}) })
             .then(r=>r.json()).then(d => {
                 if(d.success) {
-                    document.getElementById('login-overlay').style.display='none';
-                    refreshFiles();
-                } else alert('Wrong Password');
+                    localStorage.setItem('auth', 'true');
+                    document.getElementById('auth-overlay').style.display = 'none';
+                } else alert('Salah');
             });
+        }
+
+        function switchTab(t) {
+            document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            
+            event.target.classList.add('active');
+            document.getElementById('p-'+t).classList.add('active');
+            
+            if(t === 'files') loadFiles();
+        }
+
+        function act(endpoint) {
+            fetch(endpoint, { method: 'POST' });
+        }
+
+        function sendCmd() {
+            const i = document.getElementById('cmd');
+            socket.emit('input', i.value);
+            i.value = '';
         }
 
         socket.on('log', d => {
             const h = d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
-            term.innerHTML += h;
-            term.scrollTop = term.scrollHeight;
+            logs.innerHTML += h;
+            logs.scrollTop = logs.scrollHeight;
         });
 
-        socket.on('status_update', l => {
-            activeBots = l;
-            updateStatusUI();
+        socket.on('stats', s => {
+            document.getElementById('ram').innerText = s.ram;
+            document.getElementById('cpu').innerText = s.cpu;
+            const st = document.getElementById('status');
+            st.innerText = s.status;
+            st.className = 'status-pill ' + (s.status === 'Running' ? 'online' : '');
         });
 
-        socket.on('sys_stats', s => {
-            document.getElementById('val-ram').innerText = s.ram;
-            document.getElementById('val-total').innerText = '/ ' + s.total_ram;
-            document.getElementById('val-uptime').innerText = s.uptime;
-            document.getElementById('val-cpu').innerText = s.cpu;
-        });
-
-        cmdInput.addEventListener('keydown', (e) => {
-            if(e.key === 'Enter') {
-                if(!selectedBot) return alert('Select a bot first!');
-                socket.emit('console_input', { filename: selectedBot, cmd: cmdInput.value });
-                cmdInput.value = '';
-            }
-        });
-
-        function refreshFiles() {
+        function loadFiles() {
             fetch('/files').then(r=>r.json()).then(files => {
-                selector.innerHTML = '<option value="">-- Select Bot --</option>';
+                const c = document.getElementById('file-container');
+                c.innerHTML = '';
+                if(files.length === 0) c.innerHTML = '<div style="padding:20px; text-align:center; color:#555">Folder Kosong</div>';
+                
                 files.forEach(f => {
-                    const opt = document.createElement('option');
-                    opt.value = f;
-                    opt.innerText = f;
-                    selector.appendChild(opt);
+                    const isZip = f.name.endsWith('.zip');
+                    c.innerHTML += `
+                    <div class="file-row">
+                        <div class="file-name">${f.isDir ? '📂' : '📄'} ${f.name}</div>
+                        <div class="file-size">${f.size}</div>
+                        <div class="file-act">
+                            \( {isZip ? `<button class="btn-sm btn-unzip" onclick="unzip(' \){f.name}')">Unzip</button>` : ''}
+                            <button class="btn-sm btn-del" onclick="del('${f.name}')">Del</button>
+                        </div>
+                    </div>`;
                 });
             });
         }
 
-        function switchBot() {
-            selectedBot = selector.value;
-            updateStatusUI();
-            term.innerHTML = `container@pterodactyl~ Switched to ${selectedBot || 'none'}...\n`;
+        function uploadFile() {
+            const file = document.getElementById('f-up').files[0];
+            const fd = new FormData();
+            fd.append('file', file);
+            fetch('/upload', { method:'POST', body:fd }).then(() => loadFiles());
         }
 
-        function startBot() {
-            if(!selectedBot) return alert('Select bot!');
-            fetch('/start', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:selectedBot}) });
+        function unzip(n) {
+            if(confirm('Extract '+n+'?')) {
+                fetch('/unzip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n}) })
+                .then(() => { alert('Extracted!'); loadFiles(); });
+            }
         }
 
-        function stopBot() {
-            if(!selectedBot) return alert('Select bot!');
-            fetch('/stop', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:selectedBot}) });
-        }
-
-        function restartBot() {
-            stopBot();
-            setTimeout(startBot, 2000);
-        }
-
-        function updateStatusUI() {
-            const statusText = document.getElementById('status-text');
-            if(activeBots.includes(selectedBot)) {
-                statusText.innerText = "Running";
-                statusText.style.color = "#4ade80";
-            } else {
-                statusText.innerText = "Offline";
-                statusText.style.color = "#fbbf24";
+        function del(n) {
+            if(confirm('Hapus '+n+'?')) {
+                fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n}) })
+                .then(() => loadFiles());
             }
         }
     </script>

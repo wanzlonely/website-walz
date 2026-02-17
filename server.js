@@ -17,7 +17,9 @@ const DB_FILE = path.join(__dirname, 'tokens.json');
 function loadTokens() {
     try {
         if (fs.existsSync(DB_FILE)) {
-            return JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) || {};
+            const data = JSON.parse(fs.readFileSync(DB_FILE, 'utf8'));
+            console.log(`[DB LOAD] ${Object.keys(data).length} token dimuat`);
+            return data || {};
         }
     } catch (e) {
         console.error('[DB LOAD ERR]', e.message);
@@ -28,6 +30,7 @@ function loadTokens() {
 function saveTokens(data) {
     try {
         fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+        console.log('[DB SAVE] Tokens berhasil disimpan');
         return true;
     } catch (e) {
         console.error('[DB SAVE ERR]', e.message);
@@ -86,7 +89,7 @@ try {
                 `<i>Silakan login di web panel sekarang.</i>`,
                 { parse_mode: 'HTML' }
             );
-            console.log(`[TOKEN CREATED] Token baru dibuat untuk ${days} hari.`);
+            console.log(`[TOKEN CREATED] Token baru: ${token}, expired: ${new Date(expired).toISOString()}`);
         } else {
             bot.sendMessage(chatId, '❌ Gagal menyimpan ke database server.');
         }
@@ -127,12 +130,14 @@ const checkAuth = (req, res, next) => {
 
     activeTokens = loadTokens();
     if (!token || !activeTokens[token]) {
+        console.log(`[AUTH FAIL] Token tidak valid: ${token}`);
         return res.status(401).json({ success: false, msg: 'Token Invalid' });
     }
 
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
         saveTokens(activeTokens);
+        console.log(`[AUTH FAIL] Token expired: ${token}`);
         return res.status(401).json({ success: false, msg: 'Token Expired' });
     }
 
@@ -143,22 +148,29 @@ app.post('/login', (req, res) => {
     let { token } = req.body;
     token = String(token || '').trim();
 
-    console.log(`[LOGIN ATTEMPT] Token: ${token}`);
+    console.log(`[LOGIN ATTEMPT] Token diterima: ${token}`);
 
     if (token === ADMIN_PASS) {
+        console.log('[LOGIN] Admin login sukses');
         return res.json({ success: true, msg: 'Welcome Admin' });
     }
 
     activeTokens = loadTokens();
+    console.log(`[TOKENS DB] Saat ini ${Object.keys(activeTokens).length} token tersimpan`);
+
     if (activeTokens[token]) {
+        console.log(`[LOGIN] Token ditemukan, expired: ${new Date(activeTokens[token]).toISOString()}`);
         if (Date.now() < activeTokens[token]) {
+            console.log('[LOGIN] Login sukses');
             res.json({ success: true, msg: 'Akses Diterima' });
         } else {
+            console.log('[LOGIN] Token expired, menghapus...');
             delete activeTokens[token];
             saveTokens(activeTokens);
             res.json({ success: false, msg: 'Token Sudah Expired' });
         }
     } else {
+        console.log('[LOGIN] Token tidak ditemukan dalam database');
         res.json({ success: false, msg: 'Token Tidak Ditemukan' });
     }
 });

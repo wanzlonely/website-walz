@@ -7,98 +7,208 @@ const fs = require('fs');
 const path = require('path');
 const os = require('os');
 const AdmZip = require('adm-zip');
-const mongoose = require('mongoose');
+const TelegramBot = require('node-telegram-bot-api');
+
+const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
+const OWNER_ID = process.env.OWNER_ID || '8062935882';
+const PORT = process.env.PORT || 3000;
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
 
-const PORT = process.env.PORT || 3000;
-const ADMIN_PASS = process.env.ADMIN_PASS || "walzexploit";
-const MONGO_URI = process.env.MONGO_URI;
+let activeTokens = {};
+
+let bot = null;
+if (TG_TOKEN !== '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc') {
+    try {
+        bot = new TelegramBot(TG_TOKEN, { polling: true });
+        console.log('[SYSTEM] Bot Telegram Berjalan...');
+
+        bot.onText(/\/akses (\d+)/, (msg, match) => {
+            const chatId = msg.chat.id;
+            if (String(chatId) !== String(OWNER_ID)) return bot.sendMessage(chatId, '❌ Anda bukan Owner.');
+            
+            const days = parseInt(match[1]);
+            const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+            const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
+            
+            activeTokens[token] = expired;
+            
+            bot.sendMessage(chatId, 
+                `✅ **AKSES DIBUAT**\n\n` +
+                `🔑 Token: \`${token}\`\n` +
+                `Durasi: ${days} Hari\n` +
+                `📅 Expired: ${new Date(expired).toLocaleString()}`, 
+                { parse_mode: 'Markdown' }
+            );
+        });
+
+        bot.on('message', (msg) => {
+            if (String(msg.chat.id) === String(OWNER_ID) && msg.text === '/start') {
+                bot.sendMessage(msg.chat.id, "Halo Owner! Ketik `/akses 30` untuk membuat token login web selama 30 hari.");
+            }
+        });
+        
+        bot.on('polling_error', (error) => console.log(`[TG ERROR] ${error.code}`));
+    } catch (e) {
+        console.log('[SYSTEM] Gagal mengaktifkan bot telegram:', e.message);
+    }
+}
 
 let currentProcess = null;
 let isRunning = false;
+const uploadDir = path.join(__dirname, 'uploads');
 
-if (MONGO_URI) mongoose.connect(MONGO_URI).catch(() => {});
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 app.use(express.static('public'));
 app.use(express.json());
 
-if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
 const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads/'),
+    destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, file.originalname)
 });
 const upload = multer({ storage: storage });
 
-function getLocalIP() {
-    const nets = os.networkInterfaces();
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) return net.address;
-        }
+const checkAuth = (req, res, next) => {
+    if (TG_TOKEN === '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc') return next();
+
+    const token = req.headers['authorization'];
+    
+    if (!token || !activeTokens[token]) {
+        return res.status(401).json({ success: false, msg: 'Token Invalid / Tidak Ada' });
     }
-    return '127.0.0.1';
-}
-
-setInterval(() => {
-    const used = process.memoryUsage().heapUsed / 1024 / 1024;
-    const cpuLoad = os.loadavg()[0];
-    const date = new Date().toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Jakarta' });
     
-    io.emit('stats', {
-        ram: `${Math.round(used)} MB`,
-        cpu: `${cpuLoad.toFixed(2)}%`,
-        ip: getLocalIP(),
-        time: date,
-        status: isRunning ? 'ONLINE' : 'OFFLINE'
-    });
-}, 1000);
-
-io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] SERVER CONNECTED.\x1b[0m\n');
+    if (Date.now() > activeTokens[token]) {
+        delete activeTokens[token];
+        return res.status(401).json({ success: false, msg: 'Token Sudah Kadaluarsa' });
+    }
     
-    socket.on('input', (cmd) => {
-        if (currentProcess && currentProcess.stdin) {
-            try {
-                currentProcess.stdin.write(cmd + '\n');
-                io.emit('log', `\x1b[33m> ${cmd}\x1b[0m\n`);
-            } catch (e) {
-                socket.emit('notify', { type: 'error', msg: 'Gagal mengirim perintah.' });
-            }
-        } else {
-            socket.emit('notify', { type: 'error', msg: 'Bot belum dijalankan.' });
-        }
-    });
-});
+    next();
+};
 
 app.post('/login', (req, res) => {
-    if (req.body.password === ADMIN_PASS) res.json({ success: true });
-    else res.json({ success: false });
+    const { token } = req.body;
+    
+    if (TG_TOKEN === '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc' && token === 'dev') {
+        return res.json({ success: true, warning: 'Mode Developer (Tanpa Telegram)' });
+    }
+
+    if (activeTokens[token] && Date.now() < activeTokens[token]) {
+        res.json({ success: true });
+    } else {
+        res.json({ success: false });
+    }
 });
 
-app.post('/start', async (req, res) => {
+app.post('/files', checkAuth, (req, res) => {
+    const reqPath = req.body.path || '';
+    const targetPath = path.join(uploadDir, reqPath);
+    
+    if (!targetPath.startsWith(uploadDir)) {
+        return res.json({ success: false, msg: 'Akses Ditolak', data: [] });
+    }
+
+    try {
+        const files = fs.readdirSync(targetPath);
+        const data = files.map(f => {
+            const fullPath = path.join(targetPath, f);
+            try {
+                const stats = fs.statSync(fullPath);
+                return {
+                    name: f,
+                    isDir: stats.isDirectory(),
+                    path: path.relative(uploadDir, fullPath).split(path.sep).join('/') 
+                };
+            } catch { return null; }
+        }).filter(Boolean);
+
+        data.sort((a, b) => (a.isDir === b.isDir ? 0 : a.isDir ? -1 : 1));
+        
+        res.json({ success: true, data, currentPath: reqPath });
+    } catch (e) {
+        res.json({ success: false, msg: 'Gagal membaca folder', data: [] });
+    }
+});
+
+app.post('/read', checkAuth, (req, res) => {
+    const target = path.join(uploadDir, req.body.path);
+    if (!target.startsWith(uploadDir)) return res.status(403).json({success: false});
+    
+    try {
+        const stats = fs.statSync(target);
+        if (stats.size > 1024 * 1024) return res.json({ success: false, msg: 'File terlalu besar untuk diedit' });
+
+        const content = fs.readFileSync(target, 'utf8');
+        res.json({ success: true, content });
+    } catch {
+        res.json({ success: false, msg: 'Gagal membaca file' });
+    }
+});
+
+app.post('/save', checkAuth, (req, res) => {
+    const target = path.join(uploadDir, req.body.path);
+    if (!target.startsWith(uploadDir)) return res.status(403).json({success: false});
+
+    try {
+        fs.writeFileSync(target, req.body.content);
+        res.json({ success: true, msg: 'File berhasil disimpan' });
+    } catch {
+        res.json({ success: false, msg: 'Gagal menyimpan file' });
+    }
+});
+
+app.post('/upload', upload.single('file'), (req, res) => {
+    res.json({ success: true, msg: 'Upload Berhasil' });
+});
+
+app.post('/unzip', checkAuth, (req, res) => {
+    try {
+        const filePath = path.join(uploadDir, req.body.filename);
+        const targetDir = path.dirname(filePath);
+        
+        const zip = new AdmZip(filePath);
+        zip.extractAllTo(targetDir, true);
+        
+        fs.unlinkSync(filePath);
+        
+        res.json({ success: true, msg: 'Berhasil Extract & Hapus Zip' });
+    } catch (e) {
+        res.json({ success: false, msg: 'Gagal Extract: ' + e.message });
+    }
+});
+
+app.post('/delete', checkAuth, (req, res) => {
+    const target = path.join(uploadDir, req.body.filename);
+    if (!target.startsWith(uploadDir)) return res.status(403);
+    
+    fs.rm(target, { recursive: true, force: true }, (err) => {
+        if (err) res.json({ success: false, msg: 'Gagal menghapus' });
+        else res.json({ success: true, msg: 'Berhasil dihapus' });
+    });
+});
+
+app.post('/start', checkAuth, (req, res) => {
     if (isRunning) return res.json({ success: false, msg: 'Bot sudah berjalan!' });
 
-    const rootDir = path.join(__dirname, 'uploads');
-    let entryFile = null;
-
-    const findEntry = (d) => {
+    const findEntry = (dir) => {
         try {
-            const files = fs.readdirSync(d);
+            const files = fs.readdirSync(dir);
             if (files.includes('package.json')) {
                 try { 
-                    const pkg = require(path.join(d, 'package.json'));
-                    if (pkg.main) return path.join(d, pkg.main);
+                    const pkg = require(path.join(dir, 'package.json'));
+                    if (pkg.main) return path.join(dir, pkg.main);
                 } catch {}
             }
-            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js'];
-            for (const f of candidates) if (files.includes(f)) return path.join(d, f);
-            
+            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js', 'server.js'];
+            for (const c of candidates) {
+                if (files.includes(c)) return path.join(dir, c);
+            }
             for (const f of files) {
-                if (fs.statSync(path.join(d, f)).isDirectory() && f !== 'node_modules') {
-                    const found = findEntry(path.join(d, f));
+                const full = path.join(dir, f);
+                if (fs.statSync(full).isDirectory() && f !== 'node_modules') {
+                    const found = findEntry(full);
                     if (found) return found;
                 }
             }
@@ -106,95 +216,107 @@ app.post('/start', async (req, res) => {
         return null;
     };
 
-    entryFile = findEntry(rootDir);
-    if (!entryFile) return res.json({ success: false, msg: 'File bot tidak ditemukan. Upload ZIP dulu.' });
+    const entryFile = findEntry(uploadDir);
+    if (!entryFile) return res.json({ success: false, msg: 'Script Bot Tidak Ditemukan!' });
 
     const workDir = path.dirname(entryFile);
-    
-    io.emit('log', `\x1b[32m[SYSTEM] Menyiapkan environment: ${path.basename(workDir)}\x1b[0m\n`);
+    io.emit('log', `\x1b[36m[SYSTEM] Entry point: ${path.basename(entryFile)}\x1b[0m\n`);
 
-    if (fs.existsSync(path.join(workDir, 'package.json')) && !fs.existsSync(path.join(workDir, 'node_modules'))) {
-        io.emit('log', `\x1b[33m[INSTALL] Menginstall modul... (Mohon tunggu 2-3 menit)\x1b[0m\n`);
-        try {
-            await new Promise((resolve, reject) => {
-                exec('npm install --omit=dev --no-audit --no-fund', { cwd: workDir }, (e) => e ? reject(e) : resolve());
-            });
+    if (!fs.existsSync(path.join(workDir, 'node_modules')) && fs.existsSync(path.join(workDir, 'package.json'))) {
+        io.emit('log', `\x1b[33m[INSTALL] Menjalankan 'npm install'...\x1b[0m\n`);
+        
+        exec('npm install', { cwd: workDir }, (error, stdout, stderr) => {
+            if (error) {
+                io.emit('log', `\x1b[31m[ERROR] Gagal Install: ${stderr}\x1b[0m\n`);
+                return;
+            }
             io.emit('log', `\x1b[32m[DONE] Installasi selesai.\x1b[0m\n`);
-        } catch (e) {
-            io.emit('log', `\x1b[31m[WARN] Warning saat install (Abaikan).\x1b[0m\n`);
-        }
+            startBot(entryFile, workDir);
+        });
+    } else {
+        startBot(entryFile, workDir);
     }
-
-    io.emit('log', `\x1b[32m[START] Menjalankan ${path.basename(entryFile)}...\x1b[0m\n`);
-    isRunning = true;
-
-    currentProcess = spawn('node', [entryFile], {
-        cwd: workDir,
-        env: { ...process.env, MONGO_URI },
-        stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
-    currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d}\x1b[0m`));
     
-    currentProcess.on('close', (code) => {
-        isRunning = false;
-        io.emit('log', `\n\x1b[31m[STOP] Bot berhenti (Code: ${code})\x1b[0m\n`);
-        currentProcess = null;
-    });
-
-    res.json({ success: true, msg: 'Bot berhasil dijalankan.' });
+    res.json({ success: true, msg: 'Memulai Proses...' });
 });
 
-app.post('/stop', (req, res) => {
+function startBot(file, cwd) {
+    io.emit('log', `\x1b[32m[START] Meluncurkan bot...\x1b[0m\n`);
+    isRunning = true;
+
+    currentProcess = spawn('node', [file], {
+        cwd: cwd,
+        stdio: ['pipe', 'pipe', 'pipe'],
+        shell: true 
+    });
+
+    currentProcess.stdout.on('data', (data) => {
+        io.emit('log', data.toString());
+    });
+    
+    currentProcess.stderr.on('data', (data) => {
+        io.emit('log', `\x1b[31m${data.toString()}\x1b[0m`);
+    });
+
+    currentProcess.on('close', (code) => {
+        isRunning = false;
+        io.emit('log', `\n\x1b[33m[STOP] Bot berhenti (Exit Code: ${code})\x1b[0m\n`);
+        currentProcess = null;
+        io.emit('status_update', false);
+    });
+    
+    io.emit('status_update', true);
+}
+
+app.post('/stop', checkAuth, (req, res) => {
     if (currentProcess) {
-        currentProcess.kill();
+        if (os.platform() === 'win32') {
+            exec(`taskkill /pid ${currentProcess.pid} /T /F`);
+        } else {
+            try { process.kill(-currentProcess.pid); } catch { currentProcess.kill(); }
+        }
+        
         currentProcess = null;
         isRunning = false;
-        io.emit('log', `\x1b[31m[STOP] Dimatikan paksa oleh user.\x1b[0m\n`);
-        res.json({ success: true, msg: 'Bot dimatikan.' });
+        io.emit('status_update', false);
+        res.json({ success: true, msg: 'Bot Dimatikan.' });
     } else {
         res.json({ success: false, msg: 'Bot tidak sedang berjalan.' });
     }
 });
 
-app.post('/restart', (req, res) => {
-    if (currentProcess) {
-        currentProcess.kill();
-        currentProcess = null;
-        isRunning = false;
-    }
-    setTimeout(() => {
-        io.emit('log', `\x1b[33m[RESTART] Memulai ulang sistem...\x1b[0m\n`);
-    }, 1000);
-    res.json({ success: true, msg: 'Restarting...' });
+app.post('/restart', checkAuth, (req, res) => {
+    res.json({ success: true });
 });
 
-app.get('/files', (req, res) => {
-    try {
-        const files = fs.readdirSync('./uploads').filter(f => f !== 'node_modules' && !f.startsWith('.'));
-        const data = files.map(f => ({
-            name: f,
-            isDir: fs.statSync(path.join('./uploads', f)).isDirectory()
-        }));
-        res.json(data);
-    } catch { res.json([]); }
+io.on('connection', (socket) => {
+    socket.emit('stats', { 
+        ram: getRamUsage(), 
+        status: isRunning ? 'ONLINE' : 'OFFLINE' 
+    });
+
+    socket.on('input', (cmd) => {
+        if (currentProcess && currentProcess.stdin) {
+            currentProcess.stdin.write(cmd + '\n');
+            io.emit('log', `\x1b[36m> ${cmd}\x1b[0m\n`);
+        } else {
+            socket.emit('log', `\x1b[31m[ERROR] Bot belum jalan.\x1b[0m\n`);
+        }
+    });
 });
 
-app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
+function getRamUsage() {
+    const used = process.memoryUsage().rss / 1024 / 1024;
+    return `${Math.round(used)} MB`;
+}
 
-app.post('/unzip', (req, res) => {
-    try {
-        const filePath = path.join('./uploads', req.body.filename);
-        const zip = new AdmZip(filePath);
-        zip.extractAllTo('./uploads', true);
-        fs.unlinkSync(filePath);
-        res.json({ success: true, msg: 'Berhasil diekstrak.' });
-    } catch { res.json({ success: false, msg: 'Gagal ekstrak.' }); }
+setInterval(() => {
+    io.emit('stats', {
+        ram: getRamUsage(),
+        status: isRunning ? 'ONLINE' : 'OFFLINE'
+    });
+}, 2000);
+
+server.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server berjalan di port ${PORT}`);
 });
-
-app.post('/delete', (req, res) => {
-    fs.rm(path.join('./uploads', req.body.filename), { recursive: true, force: true }, () => res.json({ success: true, msg: 'File dihapus.' }));
-});
-
-server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

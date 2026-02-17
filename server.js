@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASS = process.env.ADMIN_PASS || "admin123";
 const MONGO_URI = process.env.MONGO_URI;
 
-let currentProcess = null;
+let currentProcess = null; 
 let isRunning = false;
 
 if (MONGO_URI) mongoose.connect(MONGO_URI).catch(() => {});
@@ -45,14 +45,14 @@ setInterval(() => {
 }, 1000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] PTERODACTYL CONSOLE READY.\x1b[0m\n');
+    socket.emit('log', '\x1b[36m[SYSTEM] NEXUS CORE READY.\x1b[0m\n');
     
     socket.on('input', (cmd) => {
         if (currentProcess && currentProcess.stdin) {
             currentProcess.stdin.write(cmd + '\n');
             io.emit('log', `\x1b[33m> ${cmd}\x1b[0m\n`);
         } else {
-            socket.emit('log', '\x1b[31m[ERROR] Server is offline.\x1b[0m\n');
+            socket.emit('log', '\x1b[31m[ERROR] Bot is offline.\x1b[0m\n');
         }
     });
 });
@@ -87,30 +87,30 @@ app.post('/start', async (req, res) => {
     if (isRunning) return res.json({ msg: 'Already running' });
 
     const rootDir = path.join(__dirname, 'uploads');
-    io.emit('log', `\x1b[33m[INIT] Searching for bot script in uploads...\x1b[0m\n`);
+    io.emit('log', `\x1b[33m[INIT] Scanning for bot script...\x1b[0m\n`);
 
     const entryFile = findMainFile(rootDir);
     if (!entryFile) {
-        io.emit('log', `\x1b[31m[FAIL] No index.js or package.json found. Upload a bot first!\x1b[0m\n`);
+        io.emit('log', `\x1b[31m[FAIL] No bot file found (index.js/package.json). Please UPLOAD ZIP first!\x1b[0m\n`);
         return res.json({ success: false });
     }
 
     const workDir = path.dirname(entryFile);
-    io.emit('log', `\x1b[32m[FOUND] Entry point: ${path.basename(entryFile)}\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[FOUND] Script: ${path.basename(entryFile)}\x1b[0m\n`);
 
     if (fs.existsSync(path.join(workDir, 'package.json')) && !fs.existsSync(path.join(workDir, 'node_modules'))) {
-        io.emit('log', `\x1b[36m[INSTALL] Installing dependencies... This may take a while.\x1b[0m\n`);
+        io.emit('log', `\x1b[36m[INSTALL] Installing dependencies (Silent Mode)... Please wait 1-3 mins.\x1b[0m\n`);
         try {
             await new Promise((resolve, reject) => {
-                exec('npm install', { cwd: workDir }, (e) => e ? reject(e) : resolve());
+                exec('npm install --omit=dev --no-audit --no-fund', { cwd: workDir }, (e) => e ? reject(e) : resolve());
             });
-            io.emit('log', `\x1b[32m[DONE] Dependencies installed.\x1b[0m\n`);
+            io.emit('log', `\x1b[32m[DONE] Dependencies installed successfully.\x1b[0m\n`);
         } catch (e) {
-            io.emit('log', `\x1b[31m[FAIL] Install Error: ${e.message}\x1b[0m\n`);
+            io.emit('log', `\x1b[31m[WARN] Install warning: ${e.message}\x1b[0m\n`);
         }
     }
 
-    io.emit('log', `\x1b[32m[START] Booting system...\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[START] Launching ${path.basename(entryFile)}...\x1b[0m\n`);
     isRunning = true;
 
     currentProcess = spawn('node', [entryFile], {
@@ -124,7 +124,7 @@ app.post('/start', async (req, res) => {
     
     currentProcess.on('close', (code) => {
         isRunning = false;
-        io.emit('log', `\n\x1b[31m[OFF] Server stopped with code ${code}\x1b[0m\n`);
+        io.emit('log', `\n\x1b[31m[OFF] Process exited with code ${code}\x1b[0m\n`);
         currentProcess = null;
     });
 
@@ -136,7 +136,7 @@ app.post('/stop', (req, res) => {
         currentProcess.kill();
         currentProcess = null;
         isRunning = false;
-        io.emit('log', `\x1b[31m[STOP] Kill signal sent.\x1b[0m\n`);
+        io.emit('log', `\x1b[31m[STOP] Force kill signal sent.\x1b[0m\n`);
     }
     res.json({ success: true });
 });
@@ -156,23 +156,22 @@ app.post('/restart', (req, res) => {
 app.get('/files', (req, res) => {
     const getFiles = (dir) => {
         let results = [];
-        const list = fs.readdirSync(dir);
-        list.forEach(file => {
-            const filePath = path.join(dir, file);
-            const stat = fs.statSync(filePath);
-            if (file === 'node_modules' || file.startsWith('.')) return;
-            results.push({
-                name: file,
-                isDir: stat.isDirectory(),
-                size: (stat.size / 1024).toFixed(1) + ' KB',
-                path: filePath.replace(__dirname + '/uploads/', '')
+        try {
+            const list = fs.readdirSync(dir);
+            list.forEach(file => {
+                const filePath = path.join(dir, file);
+                const stat = fs.statSync(filePath);
+                if (file === 'node_modules' || file.startsWith('.')) return;
+                results.push({
+                    name: file,
+                    isDir: stat.isDirectory(),
+                    size: (stat.size / 1024).toFixed(1) + ' KB'
+                });
             });
-        });
+        } catch(e) {}
         return results;
     };
-    try {
-        res.json(getFiles(path.join(__dirname, 'uploads')));
-    } catch(e) { res.json([]) }
+    res.json(getFiles(path.join(__dirname, 'uploads')));
 });
 
 app.post('/upload', upload.single('file'), (req, res) => {
@@ -184,7 +183,7 @@ app.post('/unzip', (req, res) => {
     try {
         const zip = new AdmZip(target);
         zip.extractAllTo(path.join(__dirname, 'uploads'), true);
-        fs.unlinkSync(target);
+        fs.unlinkSync(target); 
         io.emit('log', `\x1b[32m[FILE] Extracted ${req.body.filename}\x1b[0m\n`);
         res.json({ success: true });
     } catch (e) {

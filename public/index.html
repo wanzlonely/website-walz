@@ -3,120 +3,276 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS PRIME</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
+    <title>Pterodactyl Console</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
-        :root { --bg: #050505; --glass: rgba(10, 10, 20, 0.85); --border: #333; --accent: #00ffcc; --danger: #ff3366; --text: #eee; }
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; user-select: none; }
-        body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
-        .hidden { display: none !important; }
-        .flex { display: flex; gap: 8px; }
+        :root {
+            --bg: #0e0e12;
+            --panel: #16181d;
+            --blue: #10529e;
+            --blue-hover: #0d4280;
+            --red: #f54336;
+            --red-hover: #d32f2f;
+            --grey: #4b5563;
+            --text: #ffffff;
+            --subtext: #9ca3af;
+            --term-bg: #101014;
+        }
+        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; }
         
-        header { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
-        .brand { font-size: 22px; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
-        .stats { font-family: 'JetBrains Mono'; font-size: 11px; color: #888; }
-        .stats span { color: var(--accent); }
+        nav {
+            background: var(--panel); height: 60px; padding: 0 20px;
+            display: flex; align-items: center; justify-content: space-between;
+            border-bottom: 1px solid #2d3039;
+        }
+        .nav-logo { font-weight: 700; font-size: 18px; display: flex; align-items: center; gap: 10px; }
+        .nav-tabs { display: flex; gap: 20px; height: 100%; }
+        .tab { 
+            display: flex; align-items: center; height: 100%; color: var(--subtext); 
+            font-size: 14px; font-weight: 500; cursor: pointer; border-bottom: 2px solid transparent; 
+        }
+        .tab.active { color: var(--text); border-bottom: 2px solid var(--blue); }
 
-        .layout { display: flex; flex: 1; overflow: hidden; }
-        aside { width: 300px; border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; background: var(--glass); }
+        .container { flex: 1; padding: 20px; max-width: 1200px; margin: 0 auto; width: 100%; display: flex; flex-direction: column; gap: 15px; }
+
+        .control-bar { 
+            background: var(--panel); padding: 15px; border-radius: 6px; 
+            display: flex; justify-content: space-between; align-items: center;
+        }
+        .btn-group { display: flex; gap: 10px; }
+        .btn { 
+            padding: 10px 20px; border-radius: 4px; font-weight: 600; font-size: 14px; 
+            border: none; cursor: pointer; color: white; transition: 0.2s; 
+        }
+        .btn-start { background: var(--blue); }
+        .btn-start:hover { background: var(--blue-hover); }
+        .btn-restart { background: var(--grey); }
+        .btn-stop { background: var(--red); }
+        .btn-stop:hover { background: var(--red-hover); }
         
-        .upload-zone { border: 1px dashed var(--border); padding: 15px; text-align: center; border-radius: 6px; cursor: pointer; transition: 0.2s; margin-bottom: 20px; }
-        .upload-zone:hover { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
-        
-        .file-list { flex: 1; overflow-y: auto; }
-        .card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; border-radius: 4px; }
-        .card-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-family: 'JetBrains Mono'; font-size: 12px; }
-        .dot { width: 6px; height: 6px; background: #444; border-radius: 50%; box-shadow: 0 0 5px #444; }
-        .dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+        .server-status { font-weight: 600; color: var(--subtext); font-size: 14px; }
+        .status-badge { color: #fbbf24; }
 
-        button { background: transparent; border: 1px solid var(--border); color: #ccc; padding: 6px; cursor: pointer; font-family: 'JetBrains Mono'; font-size: 10px; flex: 1; border-radius: 3px; transition: 0.2s; }
-        button:hover { border-color: var(--accent); color: var(--accent); }
-        .btn-red:hover { border-color: var(--danger); color: var(--danger); }
+        .terminal-wrapper {
+            flex: 1; background: var(--term-bg); border-radius: 6px; 
+            display: flex; flex-direction: column; overflow: hidden;
+            border: 1px solid #2d3039;
+        }
+        .terminal-log {
+            flex: 1; padding: 15px; font-family: 'JetBrains Mono', monospace; 
+            font-size: 13px; color: #d1d5db; overflow-y: auto; white-space: pre-wrap;
+        }
+        .input-area {
+            display: flex; background: #1f2129; padding: 10px; align-items: center;
+        }
+        .prompt { color: var(--text); font-weight: bold; margin-right: 10px; }
+        .cmd-input {
+            flex: 1; background: transparent; border: none; color: white;
+            font-family: 'JetBrains Mono'; font-size: 13px;
+        }
 
-        main { flex: 1; background: #000; padding: 20px; display: flex; flex-direction: column; }
-        .terminal { flex: 1; background: rgba(10,10,10,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 15px; font-family: 'JetBrains Mono'; font-size: 12px; overflow-y: auto; white-space: pre-wrap; color: #bbb; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
+        .stats-grid {
+            display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 10px;
+        }
+        .stat-card {
+            background: var(--panel); padding: 15px; border-radius: 6px;
+            display: flex; flex-direction: column; border: 1px solid #2d3039;
+        }
+        .stat-title { font-size: 12px; color: var(--subtext); font-weight: 600; margin-bottom: 5px; text-transform: uppercase; }
+        .stat-value { font-size: 15px; font-weight: 600; color: var(--text); }
+        .stat-sub { font-size: 11px; color: var(--subtext); margin-top: 3px; }
 
-        #login { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; flex-direction: column; }
-        input { background: #111; border: 1px solid var(--border); padding: 12px; width: 250px; color: var(--accent); text-align: center; font-family: 'JetBrains Mono'; margin-bottom: 10px; border-radius: 4px; }
-        
-        #editor { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 50; display: none; padding: 30px; }
-        .editor-box { width: 100%; height: 100%; background: #111; border: 1px solid var(--border); display: flex; flex-direction: column; }
-        textarea { flex: 1; background: #080808; border: none; color: #ccc; padding: 20px; font-family: 'JetBrains Mono'; resize: none; font-size: 13px; }
+        .file-select {
+            padding: 10px; background: #1f2129; border: 1px solid #2d3039; 
+            color: white; border-radius: 4px; margin-bottom: 10px;
+        }
 
-        .ansi-red { color: var(--danger); } .ansi-green { color: var(--accent); } .ansi-yellow { color: #ffd700; } .ansi-blue { color: #3b82f6; }
-        
-        @media (max-width: 700px) { .layout { flex-direction: column; } aside { width: 100%; height: 40%; } }
+        #login-overlay {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 99;
+            display: flex; align-items: center; justify-content: center; flex-direction: column;
+        }
+        .auth-box { background: var(--panel); padding: 30px; border-radius: 8px; width: 300px; text-align: center; }
+        .auth-inp { width: 100%; padding: 10px; margin: 15px 0; background: var(--bg); border: 1px solid #333; color: white; text-align: center; }
+
+        .ansi-red { color: #f87171; } .ansi-green { color: #4ade80; } .ansi-yellow { color: #facc15; } .ansi-blue { color: #60a5fa; }
     </style>
 </head>
 <body>
-    <div id="login">
-        <h1 class="brand" style="margin-bottom: 20px;">SYSTEM ACCESS</h1>
-        <input type="password" id="pass" placeholder="PASSPHRASE">
-        <button onclick="auth()" style="width: 250px; padding: 12px;">UNLOCK</button>
-    </div>
 
-    <header>
-        <div class="brand">NEXUS</div>
-        <div class="stats" id="stats">RAM: -</div>
-    </header>
-
-    <div class="layout">
-        <aside>
-            <form action="/upload" method="POST" enctype="multipart/form-data" id="fup">
-                <input type="file" name="scriptFile" id="fin" style="display:none" onchange="document.getElementById('fup').submit()">
-                <div class="upload-zone" onclick="document.getElementById('fin').click()">+ UPLOAD ZIP / JS</div>
-            </form>
-            <div class="file-list" id="list"></div>
-        </aside>
-        <main>
-            <div class="terminal" id="term"></div>
-        </main>
-    </div>
-
-    <div id="editor">
-        <div class="editor-box">
-            <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
-                <span id="ed-name" style="color:var(--accent)">EDIT</span>
-                <div class="flex"><button onclick="save()">SAVE</button><button onclick="closeEd()" class="btn-red">CLOSE</button></div>
-            </div>
-            <textarea id="ed-code"></textarea>
+    <div id="login-overlay">
+        <div class="auth-box">
+            <h3>Console Access</h3>
+            <input type="password" id="pass" class="auth-inp" placeholder="Admin Password">
+            <button onclick="auth()" class="btn btn-start" style="width:100%">Login</button>
         </div>
+    </div>
+
+    <nav>
+        <div class="nav-logo">
+            <span>☁️</span> Pterodactyl Panel
+        </div>
+        <div class="nav-tabs">
+            <div class="tab active">Console</div>
+            <div class="tab" onclick="alert('Use Console to Upload')">Files</div>
+            <div class="tab">Databases</div>
+            <div class="tab">Schedules</div>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <select id="file-selector" class="file-select" onchange="switchBot()">
+            <option value="">-- Select Bot Folder --</option>
+        </select>
+
+        <div class="control-bar">
+            <div class="btn-group">
+                <button class="btn btn-start" onclick="startBot()">Start</button>
+                <button class="btn btn-restart" onclick="restartBot()">Restart</button>
+                <button class="btn btn-stop" onclick="stopBot()">Stop</button>
+            </div>
+            <div class="server-status">
+                Status: <span id="status-text" class="status-badge">Offline</span>
+            </div>
+        </div>
+
+        <div class="terminal-wrapper">
+            <div class="terminal-log" id="term">
+                container@pterodactyl~ Server marked as offline...
+            </div>
+            <div class="input-area">
+                <span class="prompt">></span>
+                <input type="text" id="cmd-in" class="cmd-input" placeholder="Type a command..." autocomplete="off">
+            </div>
+        </div>
+
+        <div class="stats-grid">
+            <div class="stat-card">
+                <div class="stat-title">Address</div>
+                <div class="stat-value">RAILWAY:3000</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Uptime</div>
+                <div class="stat-value" id="val-uptime">Offline</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">CPU Load</div>
+                <div class="stat-value" id="val-cpu">0%</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Memory</div>
+                <div class="stat-value" id="val-ram">0 MB</div>
+                <div class="stat-sub" id="val-total">/ 512 MB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Disk</div>
+                <div class="stat-value">--</div>
+                <div class="stat-sub">/ 5 GB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-title">Network (Inbound)</div>
+                <div class="stat-value">--</div>
+            </div>
+        </div>
+
+        <form action="/upload" method="POST" enctype="multipart/form-data" id="up-form">
+            <input type="file" name="scriptFile" id="f-in" style="display:none" onchange="document.getElementById('up-form').submit()">
+            <button class="btn btn-restart" style="margin-top:10px;" onclick="document.getElementById('f-in').click()">+ Upload Zip / Js</button>
+        </form>
+
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
         const term = document.getElementById('term');
-        let active = [];
-
-        socket.on('log', d => {
-            term.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
-            term.scrollTop = term.scrollHeight;
-        });
-        socket.on('status_update', l => { active = l; ref(); });
-        socket.on('sys_stats', s => document.getElementById('stats').innerHTML = `MEM: ${s.ram} | HOST: ${s.total}`);
+        const cmdInput = document.getElementById('cmd-in');
+        const selector = document.getElementById('file-selector');
+        
+        let activeBots = [];
+        let selectedBot = "";
 
         function auth() {
-            fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:document.getElementById('pass').value}) })
-            .then(r=>r.json()).then(d=>{ if(d.success) { document.getElementById('login').classList.add('hidden'); ref(); } else alert('DENIED'); });
+            const p = document.getElementById('pass').value;
+            fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:p}) })
+            .then(r=>r.json()).then(d => {
+                if(d.success) {
+                    document.getElementById('login-overlay').style.display='none';
+                    refreshFiles();
+                } else alert('Wrong Password');
+            });
         }
 
-        function ref() {
+        socket.on('log', d => {
+            const h = d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
+            term.innerHTML += h;
+            term.scrollTop = term.scrollHeight;
+        });
+
+        socket.on('status_update', l => {
+            activeBots = l;
+            updateStatusUI();
+        });
+
+        socket.on('sys_stats', s => {
+            document.getElementById('val-ram').innerText = s.ram;
+            document.getElementById('val-total').innerText = '/ ' + s.total_ram;
+            document.getElementById('val-uptime').innerText = s.uptime;
+            document.getElementById('val-cpu').innerText = s.cpu;
+        });
+
+        cmdInput.addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                if(!selectedBot) return alert('Select a bot first!');
+                socket.emit('console_input', { filename: selectedBot, cmd: cmdInput.value });
+                cmdInput.value = '';
+            }
+        });
+
+        function refreshFiles() {
             fetch('/files').then(r=>r.json()).then(files => {
-                const l = document.getElementById('list'); l.innerHTML = '';
+                selector.innerHTML = '<option value="">-- Select Bot --</option>';
                 files.forEach(f => {
-                    const on = active.includes(f);
-                    const dir = !f.includes('.');
-                    l.innerHTML += `<div class="card"><div class="card-head"><span style="color:${dir?'var(--accent)':'#fff'}">${dir?'📂 ':'📄 '}${f}</span><div class="dot ${on?'on':''}"></div></div><div class="flex">${on?`<button class="btn-red" onclick="req('/stop','${f}')">HALT</button>`:`<button onclick="req('/start','${f}')">EXEC</button>`}<button onclick="edit('${f}')">EDIT</button><button class="btn-red" onclick="del('${f}')">DEL</button></div></div>`;
+                    const opt = document.createElement('option');
+                    opt.value = f;
+                    opt.innerText = f;
+                    selector.appendChild(opt);
                 });
             });
         }
 
-        function req(u, f) { fetch(u, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) }); }
-        function del(f) { if(confirm('DELETE?')) req('/delete', f); setTimeout(ref, 500); }
-        function edit(f) { fetch('/read', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) }).then(r=>r.json()).then(d=>{ document.getElementById('editor').style.display='flex'; document.getElementById('ed-name').innerText=f; document.getElementById('ed-code').value=d.content; }); }
-        function save() { fetch('/save', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:document.getElementById('ed-name').innerText, content:document.getElementById('ed-code').value}) }).then(()=>closeEd()); }
-        function closeEd() { document.getElementById('editor').style.display='none'; }
+        function switchBot() {
+            selectedBot = selector.value;
+            updateStatusUI();
+            term.innerHTML = `container@pterodactyl~ Switched to ${selectedBot || 'none'}...\n`;
+        }
+
+        function startBot() {
+            if(!selectedBot) return alert('Select bot!');
+            fetch('/start', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:selectedBot}) });
+        }
+
+        function stopBot() {
+            if(!selectedBot) return alert('Select bot!');
+            fetch('/stop', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:selectedBot}) });
+        }
+
+        function restartBot() {
+            stopBot();
+            setTimeout(startBot, 2000);
+        }
+
+        function updateStatusUI() {
+            const statusText = document.getElementById('status-text');
+            if(activeBots.includes(selectedBot)) {
+                statusText.innerText = "Running";
+                statusText.style.color = "#4ade80";
+            } else {
+                statusText.innerText = "Offline";
+                statusText.style.color = "#fbbf24";
+            }
+        }
     </script>
 </body>
 </html>

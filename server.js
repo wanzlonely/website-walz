@@ -10,7 +10,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'walz123';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'walzy2009';
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'tokens.json');
 
@@ -35,6 +35,15 @@ function saveTokens(data) {
     }
 }
 
+function generateHardToken(length = 12) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let result = '';
+    for (let i = 0; i < length; i++) {
+        result += chars.charAt(Math.floor(Math.random() * chars.length));
+    }
+    return `WL-${result}`;
+}
+
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
@@ -43,24 +52,32 @@ let bot = null;
 
 try {
     bot = new TelegramBot(TG_TOKEN, { polling: true });
-    console.log('[SYSTEM] Bot Telegram Service Started...');
+    console.log(`[SYSTEM] Bot Telegram Started. Menunggu perintah dari ID: ${OWNER_ID}`);
+
+    bot.onText(/\/id/, (msg) => {
+        bot.sendMessage(msg.chat.id, `🆔 ID Telegram Anda: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+    });
 
     bot.onText(/\/akses (\d+)/, (msg, match) => {
         const chatId = String(msg.chat.id);
+
         if (chatId !== String(OWNER_ID)) {
-            return bot.sendMessage(chatId, '⛔ <b>Akses Ditolak.</b> Anda bukan pemilik server.', { parse_mode: 'HTML' });
+            console.log(`[UNAUTHORIZED] Akses ditolak dari ID: ${chatId}`);
+            return bot.sendMessage(chatId, '⛔ <b>Akses Ditolak.</b> Anda bukan pemilik server ini.', { parse_mode: 'HTML' });
         }
 
         const days = parseInt(match[1]);
-        if (!days) return bot.sendMessage(chatId, '⚠ Format salah. Gunakan: `/akses 30`');
+        if (!days) return bot.sendMessage(chatId, '⚠ Format salah. Gunakan: `/akses 30` (untuk 30 hari)');
 
-        const token = Math.floor(10000 + Math.random() * 90000).toString();
+        const token = generateHardToken(16);
         const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
 
         activeTokens = loadTokens();
         activeTokens[token] = expired;
+
         if (saveTokens(activeTokens)) {
             const dateStr = new Date(expired).toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' });
+
             bot.sendMessage(chatId,
                 `✅ <b>AKSES DIBUAT SUKSES</b>\n\n` +
                 `🔑 Token: <code>${token}</code>\n` +
@@ -69,18 +86,22 @@ try {
                 `<i>Silakan login di web panel sekarang.</i>`,
                 { parse_mode: 'HTML' }
             );
-            console.log(`[TOKEN CREATED] ${token} for ${days} days.`);
+            console.log(`[TOKEN CREATED] Token baru dibuat untuk ${days} hari.`);
         } else {
             bot.sendMessage(chatId, '❌ Gagal menyimpan ke database server.');
         }
     });
 
     bot.on('polling_error', (error) => {
-        console.log(`[TG POLING ERR] ${error.code}`);
+        if (error.code !== 'EFATAL') {
+            console.log(`[TG POLLING] Koneksi berkedip... (Auto Reconnect)`);
+        } else {
+            console.log(`[TG ERR] ${error.code}`);
+        }
     });
 
 } catch (e) {
-    console.log('[TG INIT ERR] Bot Telegram Gagal Dimulai (Cek Token).', e.message);
+    console.log('[TG INIT ERR] Bot Telegram Gagal Dimulai (Cek Token di Variabel).', e.message);
 }
 
 let currentProcess = null;

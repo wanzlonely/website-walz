@@ -20,9 +20,7 @@ const MONGO_URI = process.env.MONGO_URI;
 const activeBots = {};
 
 if (MONGO_URI) {
-    mongoose.connect(MONGO_URI)
-        .then(() => console.log("DB_CONNECTED"))
-        .catch(e => console.log("DB_FAIL", e));
+    mongoose.connect(MONGO_URI).then(() => console.log("DB_OK")).catch(e => console.log("DB_ERR", e));
 }
 
 app.use(express.static('public'));
@@ -36,94 +34,113 @@ const storage = multer.diskStorage({
 });
 const upload = multer({ storage: storage });
 
+app.get('/ping', (req, res) => res.send('Pong'));
 setInterval(() => {
-    http.get(`http://localhost:${PORT}/ping`);
-}, 300000);
-
-setInterval(() => {
-    const used = process.memoryUsage().heapUsed / 1024 / 1024;
-    const total = os.totalmem() / 1024 / 1024;
+    const usedMem = process.memoryUsage().heapUsed / 1024 / 1024;
+    const totalMem = os.totalmem() / 1024 / 1024;
+    const uptime = process.uptime();
+    
     io.emit('sys_stats', {
-        ram: `${Math.round(used)} MB`,
-        total: `${Math.round(total / 1024)} GB`
+        ram: `${Math.round(usedMem)} MB`,
+        total_ram: `${Math.round(totalMem/1024)} GB`,
+        uptime: new Date(uptime * 1000).toISOString().substr(11, 8),
+        cpu: `${os.loadavg()[0].toFixed(1)}%`
     });
-}, 2000);
+}, 1000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] NEXUS KERNEL READY.\x1b[0m\n');
-    if(mongoose.connection.readyState === 1) socket.emit('log', '\x1b[32m[DB] MONGODB CONNECTED.\x1b[0m\n');
+    socket.emit('log', '\x1b[36m[SYSTEM] PTERODACTYL-LITE ENGINE READY (NODE 20)\x1b[0m\n');
     emitStatus();
+
+    socket.on('console_input', ({ filename, cmd }) => {
+        if (activeBots[filename] && activeBots[filename].stdin) {
+            activeBots[filename].stdin.write(cmd + '\n');
+            io.emit('log', `\x1b[35m> ${cmd}\x1b[0m\n`);
+        } else {
+            socket.emit('log', '\r\n\x1b[31m[ERROR] Bot offline / Input closed.\x1b[0m\r\n');
+        }
+    });
 });
 
 function emitStatus() {
     io.emit('status_update', Object.keys(activeBots));
 }
 
-app.get('/ping', (req, res) => {
-    res.status(200).send('OK');
-});
+function findStartupFile(dir) {
+    if (fs.existsSync(path.join(dir, 'package.json'))) {
+        try {
+            const pkg = require(path.join(dir, 'package.json'));
+            if (pkg.main && fs.existsSync(path.join(dir, pkg.main))) return path.join(dir, pkg.main);
+        } catch (e) {}
+    }
+    const common = ['index.js', 'main.js', 'bot.js', 'run.js'];
+    for (const f of common) {
+        if (fs.existsSync(path.join(dir, f))) return path.join(dir, f);
+    }
+    const items = fs.readdirSync(dir);
+    for (const item of items) {
+        const full = path.join(dir, item);
+        if (fs.statSync(full).isDirectory() && item !== 'node_modules') {
+            const found = findStartupFile(full);
+            if (found) return found;
+        }
+    }
+    return null;
+}
 
-app.post('/login', (req, res) => {
-    res.json({ success: req.body.password === ADMIN_PASS });
-});
+app.post('/login', (req, res) => res.json({ success: req.body.password === ADMIN_PASS }));
 
 app.post('/start', async (req, res) => {
     const { filename } = req.body;
-    let targetPath = path.join(__dirname, 'uploads', filename);
+    let target = path.join(__dirname, 'uploads', filename);
 
-    if (!fs.existsSync(targetPath)) return res.json({ success: false, msg: '404' });
-    if (activeBots[filename]) return res.json({ success: false, msg: 'RUNNING' });
+    if (!fs.existsSync(target)) return res.json({ success: false });
+    if (activeBots[filename]) return res.json({ success: false });
 
-    if (fs.lstatSync(targetPath).isDirectory()) {
-        io.emit('log', `\n\x1b[33m[INIT] Environment: ${filename}\x1b[0m\n`);
+    let workDir = path.dirname(target);
+    if (fs.lstatSync(target).isDirectory()) {
+        io.emit('log', `\n\x1b[33m[SEARCH] Looking for startup file in ${filename}...\x1b[0m\n`);
         
-        if (fs.existsSync(path.join(targetPath, 'package.json')) && !fs.existsSync(path.join(targetPath, 'node_modules'))) {
-            io.emit('log', `\x1b[36m[INSTALL] Dependencies...\x1b[0m\n`);
+        const entry = findStartupFile(target);
+        if (!entry) {
+            io.emit('log', `\x1b[31m[FAIL] No index.js/package.json found!\x1b[0m\n`);
+            return res.json({ success: false });
+        }
+        
+        target = entry;
+        workDir = path.dirname(entry);
+        
+        if (fs.existsSync(path.join(workDir, 'package.json')) && !fs.existsSync(path.join(workDir, 'node_modules'))) {
+            io.emit('log', `\x1b[36m[INSTALL] Installing dependencies... Please wait.\x1b[0m\n`);
             try {
-                await new Promise((resolve, reject) => {
-                    exec('npm install', { cwd: targetPath }, (e) => e ? reject(e) : resolve());
-                });
-                io.emit('log', `\x1b[32m[DONE] Installed.\x1b[0m\n`);
+                await new Promise((res, rej) => exec('npm install', { cwd: workDir }, (e) => e ? rej(e) : res()));
+                io.emit('log', `\x1b[32m[DONE] Dependencies installed.\x1b[0m\n`);
             } catch (e) {
-                io.emit('log', `\x1b[31m[FAIL] Install Error: ${e}\x1b[0m\n`);
+                io.emit('log', `\x1b[31m[ERROR] Install failed: ${e}\x1b[0m\n`);
             }
         }
-
-        let mainFile = 'index.js';
-        try {
-            const pkg = require(path.join(targetPath, 'package.json'));
-            if (pkg.main) mainFile = pkg.main;
-        } catch (e) {}
-
-        if (!fs.existsSync(path.join(targetPath, mainFile))) {
-             const possible = ['index.js', 'main.js', 'run.js', 'bot.js', 'app.js'];
-             const found = possible.find(f => fs.existsSync(path.join(targetPath, f)));
-             if (found) mainFile = found;
-        }
-        targetPath = path.join(targetPath, mainFile);
     }
 
-    const botEnv = { ...process.env, MONGO_URI: MONGO_URI };
-
-    io.emit('log', `\x1b[32m[EXEC] ${path.basename(targetPath)}\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[EXEC] Starting ${path.basename(target)} in Node 20...\x1b[0m\n`);
     
-    const child = spawn('node', [targetPath], { 
-        cwd: path.dirname(targetPath),
-        env: botEnv
+    const child = spawn('node', [target], { 
+        cwd: workDir,
+        env: { ...process.env, MONGO_URI },
+        stdio: ['pipe', 'pipe', 'pipe'] 
     });
-    
+
     activeBots[filename] = child;
 
-    child.stdout.on('data', (d) => io.emit('log', d.toString()));
-    child.stderr.on('data', (d) => io.emit('log', `\x1b[31m${d}\x1b[0m`));
-    child.on('close', (c) => {
-        io.emit('log', `\n\x1b[33m[EXIT] Code ${c}\x1b[0m\n`);
+    child.stdout.on('data', d => io.emit('log', d.toString()));
+    child.stderr.on('data', d => io.emit('log', `\x1b[31m${d}\x1b[0m`));
+    child.on('close', c => {
+        io.emit('log', `\n\x1b[33m[EXIT] Process ended with code ${c}\x1b[0m\n`);
         delete activeBots[filename];
         emitStatus();
     });
 
     emitStatus();
-    res.json({ success: true, msg: 'Started' });
+    res.json({ success: true });
 });
 
 app.post('/stop', (req, res) => {
@@ -132,47 +149,32 @@ app.post('/stop', (req, res) => {
         activeBots[filename].kill();
         delete activeBots[filename];
         emitStatus();
-        res.json({ success: true, msg: 'Stopped' });
-    } else {
-        res.json({ success: false, msg: 'Not Running' });
-    }
+        res.json({ success: true });
+    } else res.json({ success: false });
 });
 
 app.post('/upload', upload.single('scriptFile'), (req, res) => {
-    if (!req.file) return res.redirect('/');
-    io.emit('log', `\n\x1b[36m[UPLOAD] ${req.file.originalname}\x1b[0m\n`);
-    if (req.file.mimetype === 'application/zip' || req.file.originalname.endsWith('.zip')) {
+    if (req.file && req.file.mimetype.includes('zip')) {
         try {
             const zip = new AdmZip(req.file.path);
-            const extractPath = path.join('./uploads', req.file.originalname.replace('.zip', ''));
-            zip.extractAllTo(extractPath, true);
+            const out = path.join('./uploads', req.file.originalname.replace('.zip', ''));
+            zip.extractAllTo(out, true);
             fs.unlinkSync(req.file.path);
-            io.emit('log', `\x1b[32m[UNZIP] Success.\x1b[0m\n`);
-        } catch (e) { io.emit('log', `\x1b[31m[ERROR] Zip Corrupt\x1b[0m\n`); }
+            io.emit('log', `\x1b[32m[UNZIP] Extracted ${req.file.originalname}\x1b[0m\n`);
+        } catch (e) {}
     }
     res.redirect('/');
 });
 
 app.get('/files', (req, res) => {
-    fs.readdir('./uploads', (err, files) => {
-        if (err) return res.json([]);
-        res.json(files.filter(f => !f.startsWith('.')));
+    fs.readdir('./uploads', (e, f) => {
+        if(e) return res.json([]);
+        res.json(f.filter(x => !x.startsWith('.')));
     });
 });
 
 app.post('/delete', (req, res) => {
-    const p = path.join(__dirname, 'uploads', req.body.filename);
-    fs.rm(p, { recursive: true, force: true }, () => res.json({ success: true }));
+    fs.rm(path.join(__dirname, 'uploads', req.body.filename), {recursive:true, force:true}, ()=>res.json({success:true}));
 });
 
-app.post('/read', (req, res) => {
-    const p = path.join(__dirname, 'uploads', req.body.filename);
-    if(fs.lstatSync(p).isDirectory()) return res.json({content: "Directory"});
-    fs.readFile(p, 'utf8', (err, data) => res.json({ content: err ? "" : data }));
-});
-
-app.post('/save', (req, res) => {
-    fs.writeFile(path.join(__dirname, 'uploads', req.body.filename), req.body.content, () => res.json({ success: true }));
-});
-
-server.listen(PORT, '0.0.0.0', () => console.log(`Server: ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Panel Port: ${PORT}`));

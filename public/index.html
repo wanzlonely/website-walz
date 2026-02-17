@@ -3,235 +3,233 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS HYPER-V</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-    <style>
-        :root {
-            --bg: #050508;
-            --panel: rgba(15, 15, 20, 0.7);
-            --cyan: #00f0ff;
-            --red: #ff003c;
-            --green: #00ff9f;
-            --border: rgba(0, 240, 255, 0.2);
-        }
-        * { margin:0; padding:0; box-sizing:border-box; outline:none; }
-        body { 
-            background: var(--bg); color: #fff; font-family: 'Rajdhani', sans-serif; 
-            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
-            background-image: radial-gradient(circle at 50% -20%, #1a1a2e, #000);
-        }
-        #auth-layer {
-            position: fixed; inset: 0; background: #000; z-index: 9999;
-            display: flex; justify-content: center; align-items: center;
-        }
-        .login-card {
-            width: 320px; padding: 40px; border: 1px solid var(--border);
-            background: rgba(10,10,10,0.9); border-radius: 4px; text-align: center;
-            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
-        }
-        .inp {
-            width: 100%; padding: 12px; margin: 20px 0; background: #080808; 
-            border: 1px solid #333; color: var(--cyan); text-align: center;
-            font-family: 'JetBrains Mono'; font-size: 16px; letter-spacing: 2px;
-        }
-        .btn-login {
-            width: 100%; padding: 12px; background: var(--cyan); border: none;
-            color: #000; font-weight: bold; cursor: pointer; font-size: 16px;
-            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
-            transition: 0.3s;
-        }
-        .btn-login:hover { box-shadow: 0 0 15px var(--cyan); }
-        nav {
-            height: 65px; border-bottom: 1px solid var(--border);
-            display: flex; align-items: center; justify-content: space-between;
-            padding: 0 30px; background: var(--panel); backdrop-filter: blur(10px);
-        }
-        .brand { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #fff; }
-        .brand span { color: var(--cyan); }
-        .tabs { display: flex; gap: 2px; }
-        .tab {
-            padding: 10px 25px; cursor: pointer; color: #888; font-weight: 600;
-            transition: 0.3s; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
-        }
-        .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
-        .tab.active { background: var(--cyan); color: #000; }
-        .container { flex: 1; padding: 20px; display: none; flex-direction: column; gap: 15px; }
-        .container.active { display: flex; animation: fadeUp 0.4s ease; }
-        @keyframes fadeUp { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
-        .term-box {
-            flex: 1; background: rgba(5,5,5,0.8); border: 1px solid #333;
-            border-radius: 4px; display: flex; flex-direction: column;
-            font-family: 'JetBrains Mono'; position: relative;
-        }
-        .term-logs {
-            flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; color: #ccc;
-            white-space: pre-wrap; text-shadow: 0 0 2px rgba(0,0,0,0.5);
-        }
-        .term-input {
-            display: flex; padding: 10px; border-top: 1px solid #333; background: #0a0a0a;
-        }
-        .cmd {
-            flex: 1; background: transparent; border: none; color: #fff;
-            font-family: 'JetBrains Mono'; margin-left: 10px; font-size: 14px;
-        }
-        .controls { display: flex; gap: 10px; align-items: center; }
-        .btn {
-            padding: 8px 20px; border: 1px solid #333; background: #111;
-            color: #fff; cursor: pointer; font-family: 'Rajdhani'; font-weight: 600;
-            transition: 0.2s;
-        }
-        .btn:hover { border-color: var(--cyan); color: var(--cyan); }
-        .btn-red:hover { border-color: var(--red); color: var(--red); }
-        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; margin-left: auto; }
-        .status-dot.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
-        .file-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: rgba(0,0,0,0.3); }
-        .row { display: flex; padding: 12px 20px; border-bottom: 1px solid #222; align-items: center; }
-        .row:hover { background: rgba(255,255,255,0.03); }
-        .ansi-red {color:var(--red)} .ansi-green {color:var(--green)} .ansi-yellow {color:#ffd700} .ansi-blue {color:var(--cyan)}
-    </style>
+    <title>NEXUS CONTROL PANEL</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-    <div id="auth-layer">
-        <div class="login-card">
-            <h2 style="margin-bottom:5px">SYSTEM ACCESS</h2>
-            <p style="color:#666; font-size:12px">IDENTITY VERIFICATION</p>
-            <input type="password" id="pass" class="inp" placeholder="ACCESS CODE" autocomplete="off">
-            <button onclick="login()" class="btn-login" id="btn-log">INITIALIZE</button>
-            <div id="msg" style="color:var(--red); font-size:12px; margin-top:15px; font-weight:bold;"></div>
+    <div id="toast-box"></div>
+
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="font-weight: 800; letter-spacing: -1px; margin-bottom: 8px;">SYSTEM LOGIN</h2>
+            <p style="color: var(--text-mute); font-size: 13px;">Masukkan kode akses administrator</p>
+            
+            <input type="password" id="pass" class="login-input" placeholder="••••••••" autocomplete="off">
+            <button onclick="login()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">MASUK DASHBOARD</button>
         </div>
     </div>
 
     <nav>
-        <div class="brand">NEXUS <span>HYPER-V</span></div>
-        <div class="tabs">
-            <div class="tab active" onclick="page('console', this)">TERMINAL</div>
-            <div class="tab" onclick="page('files', this)">DATABASE</div>
+        <div class="brand">
+            <span style="font-size: 20px;">⚡</span> NEXUS
+        </div>
+        <div class="nav-right">
+            <div class="tabs">
+                <div class="tab active" onclick="switchPage('console')">Console</div>
+                <div class="tab" onclick="switchPage('files')">Files</div>
+            </div>
+            <button class="btn-icon" onclick="toggleTheme()" title="Ganti Tema">
+                🌗
+            </button>
         </div>
     </nav>
 
-    <div id="p-console" class="container active">
-        <div class="controls">
-            <button class="btn" onclick="req('/start')">▶ START SYSTEM</button>
-            <button class="btn" onclick="req('/restart')">↻ REBOOT</button>
-            <button class="btn btn-red" onclick="req('/stop')">■ TERMINATE</button>
-            <div style="margin-left:auto; display:flex; align-items:center; gap:15px; font-size:14px; color:#888;">
-                RAM: <span id="ram" style="color:#fff">--</span>
-                <div id="led" class="status-dot"></div>
+    <main id="p-console" class="page active">
+        <div class="console-header">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 600;">Server Control</h3>
+                <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Kelola proses bot secara realtime</p>
+            </div>
+            <div class="console-actions">
+                <button class="btn btn-primary" onclick="req('/start')">▶ Start</button>
+                <button class="btn" onclick="req('/restart')">↻ Restart</button>
+                <button class="btn btn-danger" onclick="req('/stop')">■ Stop</button>
             </div>
         </div>
-        <div class="term-box">
-            <div class="term-logs" id="logs"></div>
-            <div class="term-input">
-                <span style="color:var(--cyan)">root@nexus:~#</span>
-                <input type="text" id="cmd" class="cmd" placeholder="Execute command...">
+
+        <div class="terminal-box">
+            <div class="terminal-logs" id="logs"></div>
+            <div class="terminal-input">
+                <span class="prompt-char">➜</span>
+                <input type="text" id="cmd" class="cmd-input" placeholder="Ketik perintah command disini..." autocomplete="off">
             </div>
         </div>
-    </div>
 
-    <div id="p-files" class="container">
-        <div style="text-align:right">
-            <button class="btn" onclick="document.getElementById('up').click()">+ UPLOAD DATA (.ZIP)</button>
-            <input type="file" id="up" style="display:none" onchange="upload()">
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-label">RAM Usage</div>
+                <div class="stat-value" id="stat-ram">-- MB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">CPU Load</div>
+                <div class="stat-value" id="stat-cpu">-- %</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Server Time</div>
+                <div class="stat-value" id="stat-time">--:--:--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-value">
+                    <span id="stat-dot" class="stat-indicator"></span>
+                    <span id="stat-text" style="font-size: 14px;">OFFLINE</span>
+                </div>
+            </div>
         </div>
-        <div class="file-list" id="list"></div>
-    </div>
+    </main>
 
-    <script src="/socket.io/socket.io.js"></script>
+    <main id="p-files" class="page">
+        <div class="file-toolbar">
+            <button class="btn btn-primary" onclick="document.getElementById('up').click()">+ Upload Script (.zip)</button>
+            <input type="file" id="up" style="display: none;" onchange="upload()">
+        </div>
+        
+        <div class="file-table">
+            <div class="file-header">
+                <div style="width: 40px;"></div>
+                <div style="flex: 1;">Filename</div>
+                <div style="width: 140px;">Actions</div>
+            </div>
+            <div class="file-list" id="file-list"></div>
+        </div>
+    </main>
+
     <script>
         const socket = io();
         
-        function checkAuth() {
-            if(localStorage.getItem('nexus_token') === 'verified') {
-                const layer = document.getElementById('auth-layer');
-                if(layer) layer.remove();
-            }
+        if (localStorage.getItem('nexus_auth') === 'true') {
+            document.getElementById('login-overlay').style.display = 'none';
         }
-        checkAuth();
+        
+        document.getElementById('pass').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
 
         function login() {
             const p = document.getElementById('pass').value;
-            const btn = document.getElementById('btn-log');
-            
-            btn.innerText = "VERIFYING...";
-            
-            fetch('/login', { 
-                method: 'POST', 
-                headers: {'Content-Type': 'application/json'}, 
-                body: JSON.stringify({ password: p }) 
-            })
-            .then(r => r.json())
-            .then(d => {
+            fetch('/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password: p })
+            }).then(r => r.json()).then(d => {
                 if(d.success) {
-                    localStorage.setItem('nexus_token', 'verified');
-                    location.reload();
+                    localStorage.setItem('nexus_auth', 'true');
+                    document.getElementById('login-overlay').style.display = 'none';
+                    showToast('Login Berhasil', 'success');
+                    loadFiles();
                 } else {
-                    document.getElementById('msg').innerText = "ACCESS DENIED";
-                    btn.innerText = "INITIALIZE";
+                    showToast('Password Salah!', 'error');
                 }
-            })
-            .catch(() => btn.innerText = "ERROR");
+            });
         }
 
-        document.getElementById('pass').addEventListener('keydown', e => { if(e.key==='Enter') login() });
-
-        function page(id, el) {
-            document.querySelectorAll('.container').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-            document.getElementById('p-'+id).classList.add('active');
-            el.classList.add('active');
-            if(id === 'files') loadFiles();
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
         }
+        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
-        function req(u) { fetch(u, { method: 'POST' }); }
+        socket.on('log', d => {
+            const l = document.getElementById('logs');
+            l.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">')
+                               .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+                               .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+                               .replace(/\x1b\[36m/g, '<span class="ansi-cyan">')
+                               .replace(/\x1b\[0m/g, '</span>');
+            l.scrollTop = l.scrollHeight;
+        });
+
+        socket.on('stats', s => {
+            document.getElementById('stat-ram').innerText = s.ram;
+            document.getElementById('stat-cpu').innerText = s.cpu;
+            document.getElementById('stat-time').innerText = s.time;
+            
+            const dot = document.getElementById('stat-dot');
+            const txt = document.getElementById('stat-text');
+            if(s.status === 'ONLINE') {
+                dot.classList.add('online');
+                txt.innerText = 'ONLINE';
+                txt.style.color = 'var(--success)';
+            } else {
+                dot.classList.remove('online');
+                txt.innerText = 'OFFLINE';
+                txt.style.color = 'var(--text-mute)';
+            }
+        });
+
+        socket.on('notify', d => showToast(d.msg, d.type));
 
         document.getElementById('cmd').addEventListener('keydown', e => {
-            if(e.key === 'Enter') {
+            if(e.key === 'Enter' && e.target.value.trim()) {
                 socket.emit('input', e.target.value);
                 e.target.value = '';
             }
         });
 
-        socket.on('log', d => {
-            const l = document.getElementById('logs');
-            l.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">')
-                            .replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
-                            .replace(/\x1b\[36m/g, '<span class="ansi-blue">')
-                            .replace(/\x1b\[0m/g, '</span>');
-            l.scrollTop = l.scrollHeight;
-        });
+        function switchPage(id) {
+            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+            document.getElementById('p-'+id).classList.add('active');
+            event.target.classList.add('active');
+            if(id === 'files') loadFiles();
+        }
 
-        socket.on('stats', s => {
-            document.getElementById('ram').innerText = s.ram;
-            const led = document.getElementById('led');
-            if(s.status === 'ONLINE') led.classList.add('on');
-            else led.classList.remove('on');
-        });
+        function req(url) {
+            fetch(url, {method: 'POST'}).then(r=>r.json()).then(d => {
+                showToast(d.msg, d.success ? 'success' : 'error');
+                if(url === '/restart') setTimeout(() => req('/start'), 2500);
+            });
+        }
+
+        function showToast(msg, type = 'success') {
+            const box = document.getElementById('toast-box');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerHTML = `<span>${msg}</span> <span style="cursor:pointer" onclick="this.parentElement.remove()">✕</span>`;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
 
         function loadFiles() {
-            fetch('/files').then(r=>r.json()).then(f => {
-                const l = document.getElementById('list'); l.innerHTML = '';
-                if(f.length === 0) l.innerHTML = '<div style="padding:20px;text-align:center;color:#555">NO DATA FOUND</div>';
-                f.forEach(i => {
-                    const isZip = i.name.endsWith('.zip');
-                    l.innerHTML += `
-                    <div class="row">
-                        <div style="width:30px; font-size:18px">${i.isDir ? '📂' : '📄'}</div>
-                        <div style="flex:1; font-family:'JetBrains Mono'; font-size:13px">${i.name}</div>
-                        ${isZip ? `<button class="btn" style="padding:4px 8px; font-size:11px; margin-right:5px" onclick="act('/unzip','${i.name}')">UNZIP</button>` : ''}
-                        <button class="btn btn-red" style="padding:4px 8px; font-size:11px" onclick="act('/delete','${i.name}')">DEL</button>
+            fetch('/files').then(r=>r.json()).then(files => {
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+                if(files.length === 0) list.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-mute)">Belum ada file diupload</div>';
+                
+                files.forEach(f => {
+                    const isZip = f.name.endsWith('.zip');
+                    list.innerHTML += `
+                    <div class="file-row">
+                        <div class="file-icon">${f.isDir ? '📂' : '📄'}</div>
+                        <div class="file-name">${f.name}</div>
+                        <div class="file-actions">
+                            ${isZip ? `<button class="btn" onclick="act('/unzip','${f.name}')">Extract</button>` : ''}
+                            <button class="btn btn-danger" onclick="act('/delete','${f.name}')">Del</button>
+                        </div>
                     </div>`;
                 });
             });
         }
 
-        function act(u, n) { if(confirm('Confirm Action?')) fetch(u, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:n})}).then(loadFiles); }
-        function upload() { 
-            const fd = new FormData(); 
+        function act(url, name) {
+            if(confirm('Yakin ingin melanjutkan?')) {
+                fetch(url, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({filename: name})
+                }).then(r=>r.json()).then(d => {
+                    showToast(d.msg, d.success?'success':'error');
+                    loadFiles();
+                });
+            }
+        }
+
+        function upload() {
+            const fd = new FormData();
             fd.append('file', document.getElementById('up').files[0]);
-            fetch('/upload', {method:'POST',body:fd}).then(loadFiles); 
+            showToast('Mengupload file...', 'warning');
+            fetch('/upload', {method:'POST', body:fd}).then(() => {
+                showToast('Upload Selesai', 'success');
+                loadFiles();
+            });
         }
     </script>
 </body>

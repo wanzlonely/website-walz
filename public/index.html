@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WALZ CONTROL CENTER</title>
+  <title>WALZ PANEL V3</title>
   <link rel="stylesheet" href="style.css">
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -18,15 +18,30 @@
     </div>
     <h2 style="margin-bottom: 10px; font-weight: 700;">SYSTEM ACCESS</h2>
     <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 30px;">
-      Authenticate identity to proceed to terminal.
+      Masukkan token autentikasi untuk melanjutkan.
     </p>
-    <div class="input-group" style="background: rgba(0,0,0,0.2); margin-bottom: 20px;">
-      <i class="ri-lock-2-line" style="margin-left: 15px; color: var(--text-muted);"></i>
-      <input type="password" id="token-input" class="cmd-input" placeholder="Enter Access Token" style="text-align: center; letter-spacing: 2px;">
+    
+    <div class="input-group" style="margin-bottom: 20px; background: rgba(0,0,0,0.05); padding: 12px;">
+      <i class="ri-key-2-line" style="color: var(--text-muted); margin-left: 5px;"></i>
+      <input type="password" id="token-input" class="cmd-input" placeholder="WL-XXXXXXXX" style="text-align: center; color: var(--text-main); font-size: 16px;">
     </div>
-    <button class="ctrl-btn btn-start" style="width: 100%;" onclick="login()">
-      INITIALIZE SYSTEM <i class="ri-arrow-right-line"></i>
+
+    <button class="ctrl-btn btn-start" onclick="login()">
+      VERIFY ACCESS <i class="ri-arrow-right-line"></i>
     </button>
+  </div>
+</div>
+
+<div id="editor-modal">
+  <div class="editor-container">
+    <div class="editor-head">
+      <span id="editor-filename" style="font-weight: 600; font-family: 'JetBrains Mono';">filename.js</span>
+      <div style="display:flex; gap:10px;">
+        <button class="ctrl-btn btn-stop" style="padding: 8px 15px; width:auto; font-size:12px;" onclick="closeEditor()">CANCEL</button>
+        <button class="ctrl-btn btn-start" style="padding: 8px 15px; width:auto; font-size:12px;" onclick="saveFile()">SAVE CHANGE</button>
+      </div>
+    </div>
+    <textarea id="editor-content" class="editor-area" spellcheck="false"></textarea>
   </div>
 </div>
 
@@ -35,8 +50,8 @@
     <div class="header-brand">
       <div class="brand-icon"><i class="ri-command-fill"></i></div>
       <div>
-        <h2>WALZ<span style="color:var(--primary)">PANEL</span></h2>
-        <span id="role-display" class="role-badge">LOCKED</span>
+        <h2 style="font-size: 18px; font-weight: 700;">WALZ<span style="color:var(--primary)">PANEL</span></h2>
+        <span id="role-display" style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: 600;">LOCKED</span>
       </div>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()">
@@ -46,109 +61,60 @@
 
   <div class="content-area">
     <div id="tab-console" class="tab-view active">
-      <div class="controls-area">
-        <button class="ctrl-btn btn-start" onclick="req('/start')">
-          <i class="ri-play-fill" style="font-size: 18px;"></i> START SERVER
-        </button>
-        <button class="ctrl-btn btn-stop" onclick="req('/stop')">
-          <i class="ri-shut-down-line" style="font-size: 18px;"></i> SHUTDOWN
-        </button>
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
+        <button class="ctrl-btn btn-start" onclick="req('/start')"><i class="ri-play-fill"></i> START BOT</button>
+        <button class="ctrl-btn btn-stop" onclick="req('/stop')"><i class="ri-shut-down-line"></i> STOP BOT</button>
       </div>
 
       <div class="terminal-wrapper">
         <div class="terminal-head">
           <div class="term-dots">
-            <div class="dot r"></div>
-            <div class="dot y"></div>
-            <div class="dot g"></div>
+            <div class="dot r"></div><div class="dot y"></div><div class="dot g"></div>
           </div>
-          <span style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono';">root@walz-vps:~</span>
+          <span style="font-size: 11px; color: #94a3b8; font-family: 'JetBrains Mono';">root@walz-server:~</span>
         </div>
-
         <div class="terminal-logs" id="logs">
-          <div style="opacity: 0.6; margin-bottom: 10px;">
-            <i class="ri-terminal-box-line"></i> System initialized. Waiting for commands...
-          </div>
+          <div style="opacity: 0.5;">> System Ready...</div>
         </div>
-
         <div class="terminal-footer">
           <div class="input-group">
-            <span style="color: var(--success); font-weight: bold; padding-left: 10px;">➜</span>
-            <input type="text" id="cmd-input" class="cmd-input" placeholder="Execute command..." autocomplete="off">
-            <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-2-fill"></i></button>
+            <span style="color: var(--success); font-weight: bold; margin-left:5px;">$</span>
+            <input type="text" id="cmd-input" class="cmd-input" placeholder="Type command..." autocomplete="off">
+            <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-fill"></i></button>
           </div>
-
-          <div class="stats-grid">
-            <div class="stat-card">
-              <i class="ri-cpu-line stat-icon" style="color: var(--primary);"></i>
-              <span class="stat-value" id="ram-val">0 MB</span>
-              <span class="stat-label">RAM</span>
-            </div>
-            <div class="stat-card">
-              <i class="ri-time-line stat-icon" style="color: var(--warning);"></i>
-              <span class="stat-value" id="uptime-val">00:00</span>
-              <span class="stat-label">UPTIME</span>
-            </div>
-            <div class="stat-card">
-              <i class="ri-wifi-line stat-icon" style="color: var(--success);"></i>
-              <span class="stat-value" id="ping-val">0 ms</span>
-              <span class="stat-label">PING</span>
-            </div>
-            <div class="stat-card">
-              <i class="ri-server-line stat-icon" style="color: var(--danger);"></i>
-              <span class="stat-value" id="status-val" style="color: var(--danger);">OFF</span>
-              <span class="stat-label">STATUS</span>
-            </div>
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:12px; font-family:'JetBrains Mono';">
+            <span id="ram-val">RAM: 0 MB</span>
+            <span id="status-val" style="color:var(--danger)">OFFLINE</span>
           </div>
         </div>
       </div>
-
-      <footer class="app-footer">
-        <div class="social-links">
-          <a href="https://wa.me/YOUR_NUMBER" target="_blank" class="social-btn wa"><i class="ri-whatsapp-line"></i></a>
-          <a href="https://t.me/YOUR_USERNAME" target="_blank" class="social-btn tg"><i class="ri-telegram-plane"></i></a>
-          <a href="https://github.com/YOUR_USERNAME" target="_blank" class="social-btn gh"><i class="ri-github-fill"></i></a>
-        </div>
-        <div style="font-size: 11px; color: var(--text-muted); letter-spacing: 1px;">
-          DESIGNED BY WALZ SYSTEM © 2024
-        </div>
-      </footer>
     </div>
 
     <div id="tab-files" class="tab-view">
       <div class="file-toolbar">
-        <button onclick="goUp()" style="background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer;">
-          <i class="ri-arrow-left-circle-fill"></i>
-        </button>
-        <span class="path-txt" id="path-display" style="font-weight: 600; font-family: 'JetBrains Mono'; color: var(--primary);">/home</span>
-        <label for="up-file" style="color: var(--text-main); font-weight: 600; font-size: 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; background: var(--primary); padding: 8px 16px; border-radius: 10px;">
-          <i class="ri-upload-2-fill"></i> UPLOAD
+        <div style="display:flex; align-items:center; gap:10px;">
+          <button onclick="goUp()" style="background:none; border:none; color:var(--text-main); font-size:20px; cursor:pointer;"><i class="ri-arrow-left-circle-line"></i></button>
+          <span class="path-txt" id="path-display" style="font-weight:600; font-family:'JetBrains Mono'; font-size:14px;">/home</span>
+        </div>
+        <label for="up-file" style="background: var(--primary); color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
+          <i class="ri-upload-2-line"></i> UPLOAD
         </label>
         <input type="file" id="up-file" hidden onchange="uploadFile()">
       </div>
       <div class="file-list" id="file-list"></div>
-      
-      <footer class="app-footer">
-        <div style="font-size: 11px; color: var(--text-muted);">SECURE FILE MANAGER</div>
-      </footer>
     </div>
   </div>
 
   <nav class="nav-dock">
-    <button class="dock-btn active" onclick="switchTab('console', this)">
-      <i class="ri-terminal-window-line"></i>
-    </button>
-    <button class="dock-btn" onclick="switchTab('files', this)">
-      <i class="ri-folder-shield-2-line"></i>
-    </button>
+    <button class="dock-btn active" onclick="switchTab('console', this)"><i class="ri-terminal-box-line"></i></button>
+    <button class="dock-btn" onclick="switchTab('files', this)"><i class="ri-folder-shield-2-line"></i></button>
   </nav>
 </div>
 
 <script>
   const socket = io();
   let currPath = '';
-  let botStartTime = null;
-  let uptimeInterval = null;
+  let currentEditFile = '';
 
   function toggleTheme() {
     document.body.classList.toggle('light-mode');
@@ -157,256 +123,164 @@
     localStorage.setItem('theme', isLight ? 'light' : 'dark');
   }
   if (localStorage.getItem('theme') === 'light') toggleTheme();
-
-  if (localStorage.getItem('walz_token')) {
-    document.getElementById('view-login').style.display = 'none';
-  }
-
-  async function login() {
-    const t = document.getElementById('token-input').value;
-    const btn = document.querySelector('.login-card button');
-    const originalContent = btn.innerHTML;
-    btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> VERIFYING...';
-    try {
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: t })
-      });
-      const d = await res.json();
-      if (d.success) {
-        localStorage.setItem('walz_token', t);
-        const loginView = document.getElementById('view-login');
-        loginView.style.opacity = '0';
-        setTimeout(() => loginView.style.display = 'none', 500);
-        
-        const roleEl = document.getElementById('role-display');
-        if (d.role === 'OWNER') {
-          roleEl.innerText = "OWNER";
-          roleEl.style.color = "var(--success)";
-          roleEl.style.borderColor = "var(--success)";
-          roleEl.style.background = "rgba(52, 211, 153, 0.1)";
-        } else {
-          roleEl.innerText = "PREMIUM";
-        }
-        toast('Access Granted', 'success');
-        loadFiles();
-      } else {
-        toast(d.msg || 'Access Denied', 'error');
-      }
-    } catch (e) {
-      toast('Connection Refused', 'error');
-    } finally {
-      btn.innerHTML = originalContent;
-    }
-  }
+  
+  if (localStorage.getItem('walz_token')) document.getElementById('view-login').style.display = 'none';
 
   function getHead() {
-    return {
-      'Authorization': localStorage.getItem('walz_token'),
-      'Content-Type': 'application/json'
-    };
+    return { 'Authorization': localStorage.getItem('walz_token'), 'Content-Type': 'application/json' };
   }
 
   async function req(url, body = {}) {
     try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: getHead(),
-        body: JSON.stringify(body)
-      });
+      const res = await fetch(url, { method: 'POST', headers: getHead(), body: JSON.stringify(body) });
       const data = await res.json();
-      if (data.success) {
-        toast(data.msg || 'Command Executed', 'success');
-      } else {
-        toast(data.msg || 'Command Failed', 'error');
-      }
+      if(data.success) toast(data.msg || 'Success', 'success');
+      else toast(data.msg || 'Failed', 'error');
       return data;
-    } catch (e) {
-      toast('Network Error', 'error');
-    }
+    } catch { toast('Connection Error', 'error'); }
+  }
+
+  async function login() {
+    const t = document.getElementById('token-input').value.trim();
+    if(!t) return toast('Masukkan Token', 'error');
+    
+    const btn = document.querySelector('.login-card button');
+    const oriText = btn.innerHTML;
+    btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> CHECKING...';
+
+    try {
+      const res = await fetch('/login', { 
+        method: 'POST', 
+        headers: { 'Content-Type': 'application/json' }, 
+        body: JSON.stringify({ token: t }) 
+      });
+      const d = await res.json();
+      if (d.success) {
+        localStorage.setItem('walz_token', t);
+        document.getElementById('view-login').style.display = 'none';
+        document.getElementById('role-display').innerText = d.role;
+        toast('Login Berhasil', 'success');
+        loadFiles();
+      } else {
+        toast(d.msg, 'error');
+      }
+    } catch { toast('Server Error', 'error'); } 
+    finally { btn.innerHTML = oriText; }
   }
 
   socket.on('log', d => {
     const l = document.getElementById('logs');
-    let clean = d.replace(/\x1b\[32m/g, '<span style="color:var(--success)">')
-      .replace(/\x1b\[31m/g, '<span style="color:var(--danger)">')
-      .replace(/\x1b\[33m/g, '<span style="color:var(--warning)">')
-      .replace(/\x1b\[36m/g, '<span style="color:var(--primary)">')
-      .replace(/\x1b\[0m/g, '</span>');
     const div = document.createElement('div');
-    div.innerHTML = clean;
-    div.style.animation = "fadeIn 0.3s ease";
+    div.innerHTML = d.replace(/\x1b\[32m/g, '<span style="color:#10b981">').replace(/\x1b\[31m/g, '<span style="color:#ef4444">').replace(/\x1b\[33m/g, '<span style="color:#f59e0b">').replace(/\x1b\[0m/g, '</span>');
     l.appendChild(div);
-    if (l.scrollTop + l.clientHeight >= l.scrollHeight - 100) {
-      l.scrollTop = l.scrollHeight;
-    }
+    l.scrollTop = l.scrollHeight;
   });
 
   socket.on('stats', d => {
-    document.getElementById('ram-val').innerText = d.ram;
-    const stEl = document.getElementById('status-val');
-    stEl.innerText = d.status;
-    stEl.style.color = d.status === 'ONLINE' ? 'var(--success)' : 'var(--danger)';
-    
-    if (d.status === 'ONLINE') {
-      stEl.style.textShadow = "0 0 10px var(--success)";
-      if (!botStartTime) botStartTime = Date.now();
-      if (!uptimeInterval) {
-        uptimeInterval = setInterval(() => {
-          const diff = Math.floor((Date.now() - botStartTime) / 1000);
-          const h = Math.floor(diff / 3600).toString().padStart(2, '0');
-          const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-          const s = (diff % 60).toString().padStart(2, '0');
-          document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`;
-        }, 1000);
-      }
-    } else {
-      stEl.style.textShadow = "none";
-      botStartTime = null;
-      clearInterval(uptimeInterval);
-      uptimeInterval = null;
-      document.getElementById('uptime-val').innerText = "00:00";
-    }
-    const ping = Math.floor(Math.random() * 20) + 10;
-    document.getElementById('ping-val').innerText = ping + " ms";
+    document.getElementById('ram-val').innerText = `RAM: ${d.ram}`;
+    const st = document.getElementById('status-val');
+    st.innerText = d.status;
+    st.style.color = d.status === 'ONLINE' ? '#10b981' : '#ef4444';
   });
 
   function sendCmd() {
-    const input = document.getElementById('cmd-input');
-    const cmd = input.value.trim();
-    if (!cmd) return;
-    if (cmd === 'clear') {
-      document.getElementById('logs').innerHTML = '';
-      input.value = '';
-      return;
-    }
-    socket.emit('input', cmd);
-    input.value = '';
+    const i = document.getElementById('cmd-input');
+    if(i.value.trim() === 'clear') { document.getElementById('logs').innerHTML = ''; i.value = ''; return; }
+    socket.emit('input', i.value);
+    i.value = '';
   }
-
-  document.getElementById('cmd-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendCmd();
-  });
+  
+  document.getElementById('cmd-input').addEventListener('keydown', e => { if(e.key === 'Enter') sendCmd(); });
 
   async function loadFiles(p = currPath) {
-    try {
-      const res = await fetch('/files', {
-        method: 'POST',
-        headers: getHead(),
-        body: JSON.stringify({ path: p })
-      });
-      const d = await res.json();
-      if (!d.success) return;
-      currPath = d.currentPath;
-      document.getElementById('path-display').innerText = currPath || '/home';
-      const list = document.getElementById('file-list');
-      list.innerHTML = '';
+    const res = await fetch('/files', { method: 'POST', headers: getHead(), body: JSON.stringify({ path: p }) });
+    const d = await res.json();
+    if (!d.success) return;
+    
+    currPath = d.currentPath;
+    document.getElementById('path-display').innerText = currPath || '/home';
+    const list = document.getElementById('file-list');
+    list.innerHTML = '';
 
-      if (d.data.length === 0) {
-        list.innerHTML = '<div style="text-align:center; padding:50px; color:var(--text-muted);">Empty Directory</div>';
-        return;
-      }
+    if (d.data.length === 0) list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">Kosong</div>';
 
-      d.data.forEach((f, i) => {
-        const icon = f.isDir ? 'ri-folder-fill' : 'ri-file-code-line';
-        const col = f.isDir ? '#fbbf24' : 'var(--primary)';
-        const isZip = !f.isDir && f.name.toLowerCase().endsWith('.zip');
-        const item = document.createElement('div');
-        item.className = 'file-item';
-        item.style.animationDelay = (i * 0.05) + 's';
-        
-        item.innerHTML = `
-          <div style="display:flex; align-items:center; gap:15px; flex:1; cursor:${f.isDir ? 'pointer' : 'default'}" onclick="${f.isDir ? `loadFiles('${f.path}')` : ''}">
-            <div style="width:38px; height:38px; background:${f.isDir ? 'rgba(251, 191, 36, 0.1)' : 'rgba(56, 189, 248, 0.1)'}; display:flex; align-items:center; justify-content:center; border-radius:10px;">
-              <i class="${icon}" style="color:${col}; font-size:20px;"></i>
-            </div>
-            <span style="font-size:14px; font-weight:500;">${f.name}</span>
-          </div>
-          <div class="file-actions">
-            ${isZip ? `<button onclick="unzipFile('${f.path}')"><i class="ri-file-zip-line"></i></button>` : ''}
-            <button onclick="deleteFile('${f.path}')"><i class="ri-delete-bin-5-line" style="color:var(--danger)"></i></button>
-          </div>
-        `;
-        list.appendChild(item);
-      });
-    } catch (e) {
-      toast('Failed to load files', 'error');
-    }
-  }
-
-  async function unzipFile(filename) {
-    const res = await req('/unzip', { filename });
-    if (res && res.success) {
-      toast('Extraction Complete', 'success');
-      loadFiles(currPath);
-    }
-  }
-
-  async function deleteFile(filename) {
-    if (!confirm('Permanently delete this file?')) return;
-    const res = await req('/delete', { filename });
-    if (res && res.success) {
-      loadFiles(currPath);
-    }
+    d.data.forEach(f => {
+      const item = document.createElement('div');
+      item.className = 'file-item';
+      
+      const icon = f.isDir ? '<i class="ri-folder-fill" style="color:#f59e0b; font-size:20px;"></i>' : '<i class="ri-file-code-line" style="color:var(--primary); font-size:20px;"></i>';
+      const actionClick = f.isDir ? `onclick="loadFiles('${f.path}')"` : '';
+      const isZip = f.name.endsWith('.zip');
+      
+      item.innerHTML = `
+        <div style="display:flex; align-items:center; gap:15px; cursor:pointer; flex:1;" ${actionClick}>
+          ${icon}
+          <span style="font-size:14px; font-weight:500;">${f.name}</span>
+        </div>
+        <div class="file-actions">
+          ${!f.isDir ? `<button class="file-btn" onclick="editFile('${f.path}')" title="Edit"><i class="ri-edit-2-line"></i></button>` : ''}
+          ${isZip ? `<button class="file-btn" onclick="req('/unzip', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-file-zip-line"></i></button>` : ''}
+          <button class="file-btn del" onclick="if(confirm('Hapus?')) req('/delete', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-delete-bin-line"></i></button>
+        </div>
+      `;
+      list.appendChild(item);
+    });
   }
 
   function goUp() {
-    if (currPath) {
-      const s = currPath.split('/');
-      s.pop();
-      loadFiles(s.join('/'));
-    }
+    if(!currPath) return;
+    const s = currPath.split('/'); s.pop();
+    loadFiles(s.join('/'));
   }
 
   async function uploadFile() {
     const file = document.getElementById('up-file').files[0];
     if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
+    const fd = new FormData(); fd.append('file', file);
     toast('Uploading...', 'normal');
-    try {
-      const res = await fetch('/upload', { method: 'POST', body: fd });
-      const data = await res.json();
-      if (data.success) {
-        toast('Upload Successful', 'success');
-        loadFiles(currPath);
-      } else {
-        toast('Upload Failed', 'error');
-      }
-    } catch (e) {
-      toast('Upload Error', 'error');
-    }
-    document.getElementById('up-file').value = '';
+    await fetch('/upload', { method: 'POST', body: fd });
+    loadFiles(currPath);
   }
 
-  function toast(msg, type = 'normal') {
-    const container = document.getElementById('toast-container');
-    const toastEl = document.createElement('div');
-    toastEl.className = 'toast';
-    let icon = 'ri-information-fill';
-    let col = 'white';
-    if (type === 'success') {
-      icon = 'ri-checkbox-circle-fill';
-      col = 'var(--success)';
-    } else if (type === 'error') {
-      icon = 'ri-close-circle-fill';
-      col = 'var(--danger)';
+  async function editFile(path) {
+    const res = await fetch('/read', { method: 'POST', headers: getHead(), body: JSON.stringify({ path }) });
+    const d = await res.json();
+    if(d.success) {
+      currentEditFile = path;
+      document.getElementById('editor-filename').innerText = path;
+      document.getElementById('editor-content').value = d.content;
+      document.getElementById('editor-modal').classList.add('active');
+    } else {
+      toast(d.msg, 'error');
     }
-    toastEl.innerHTML = `<i class="${icon}" style="color:${col}; font-size:18px;"></i> ${msg}`;
-    container.appendChild(toastEl);
-    setTimeout(() => {
-      toastEl.style.opacity = '0';
-      setTimeout(() => toastEl.remove(), 300);
-    }, 3000);
+  }
+
+  async function saveFile() {
+    const content = document.getElementById('editor-content').value;
+    const res = await req('/save', { path: currentEditFile, content });
+    if(res && res.success) closeEditor();
+  }
+
+  function closeEditor() {
+    document.getElementById('editor-modal').classList.remove('active');
+    currentEditFile = '';
+  }
+
+  function toast(msg, type) {
+    const c = document.getElementById('toast-container');
+    const d = document.createElement('div');
+    d.className = 'toast';
+    d.innerHTML = type === 'error' ? `<i class="ri-error-warning-fill" style="color:var(--danger)"></i> ${msg}` : `<i class="ri-checkbox-circle-fill" style="color:var(--success)"></i> ${msg}`;
+    c.appendChild(d);
+    setTimeout(() => d.remove(), 3000);
   }
 
   function switchTab(id, btn) {
     document.querySelectorAll('.tab-view').forEach(e => e.classList.remove('active'));
     document.querySelectorAll('.dock-btn').forEach(e => e.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
+    document.getElementById('tab-'+id).classList.add('active');
     btn.classList.add('active');
-    if (id === 'files') loadFiles();
+    if(id === 'files') loadFiles();
   }
 </script>
 </body>

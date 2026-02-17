@@ -37,11 +37,11 @@ function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
   } catch (e) {
-    console.error('Database Save Error:', e.message);
+    console.log('DB Error');
   }
 }
 
-function generateToken(len = 12) {
+function generateToken(len = 10) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let res = 'WL-';
   for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
@@ -52,33 +52,29 @@ loadTokens();
 
 try {
   bot = new TelegramBot(TG_TOKEN, { polling: true });
-  console.log(`[SYSTEM] Bot Telegram Aktif. Owner ID: ${OWNER_ID}`);
+  console.log(`[SYSTEM] Bot Telegram Active. Owner: ${OWNER_ID}`);
 
   bot.onText(/\/id/, (msg) => {
-    bot.sendMessage(msg.chat.id, `🆔 ID Anda: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+    bot.sendMessage(msg.chat.id, `🆔: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/akses (\d+)/, (msg, match) => {
     if (String(msg.chat.id) !== String(OWNER_ID)) return;
     
     loadTokens();
-
     const days = parseInt(match[1]);
     const token = generateToken();
-    const exp = Date.now() + (days * 24 * 60 * 60 * 1000);
+    const exp = Date.now() + (days * 86400000);
     
     activeTokens[token] = exp;
     saveTokens();
     
-    bot.sendMessage(msg.chat.id, 
-      `✅ <b>AKSES DIBUAT</b>\n\n🔑 Token: <code>${token}</code>\n⏳ Durasi: ${days} Hari\n\nSilakan login di panel.`, 
-      { parse_mode: 'HTML' }
-    );
+    bot.sendMessage(msg.chat.id, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari`, { parse_mode: 'HTML' });
   });
   
-  bot.on('polling_error', (e) => console.log(`[TG ERROR] ${e.message}`));
+  bot.on('polling_error', () => {});
 } catch (e) {
-  console.log('[SYSTEM] Gagal memuat Bot Telegram. Cek Token.');
+  console.log('[SYSTEM] Telegram Bot Error');
 }
 
 const app = express();
@@ -86,19 +82,19 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 app.use(express.json());
-app.use(express.static(__dirname)); 
+app.use(express.static(__dirname));
 
 const checkAuth = (req, res, next) => {
   const token = req.headers['authorization'];
   if (token === ADMIN_PASS) return next();
   
   loadTokens();
-
-  if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Token Salah/Tidak Ditemukan' });
+  
+  if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
   if (Date.now() > activeTokens[token]) {
     delete activeTokens[token];
     saveTokens();
-    return res.status(401).json({ success: false, msg: 'Token Kadaluarsa' });
+    return res.status(401).json({ success: false, msg: 'Expired' });
   }
   next();
 };
@@ -108,7 +104,7 @@ app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 app.post('/login', (req, res) => {
   let { token } = req.body;
   token = String(token || '').trim();
-
+  
   loadTokens();
 
   if (token === ADMIN_PASS) {
@@ -124,7 +120,7 @@ app.post('/login', (req, res) => {
       res.json({ success: false, msg: 'Token Expired' });
     }
   } else {
-    res.json({ success: false, msg: 'Token Tidak Valid' });
+    res.json({ success: false, msg: 'Invalid Token' });
   }
 });
 
@@ -159,12 +155,12 @@ app.post('/read', checkAuth, (req, res) => {
     if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
     
     const stats = fs.statSync(target);
-    if (stats.size > 1024 * 1024) return res.json({ success: false, msg: 'File terlalu besar untuk diedit.' });
+    if (stats.size > 2 * 1024 * 1024) return res.json({ success: false, msg: 'File too large' });
 
     const content = fs.readFileSync(target, 'utf8');
     res.json({ success: true, content });
   } catch (e) {
-    res.json({ success: false, msg: 'Gagal membaca file' });
+    res.json({ success: false, msg: 'Read Error' });
   }
 });
 
@@ -174,9 +170,9 @@ app.post('/save', checkAuth, (req, res) => {
     if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
     
     fs.writeFileSync(target, req.body.content);
-    res.json({ success: true, msg: 'File berhasil disimpan' });
+    res.json({ success: true, msg: 'Saved' });
   } catch (e) {
-    res.json({ success: false, msg: 'Gagal menyimpan file' });
+    res.json({ success: false, msg: 'Save Error' });
   }
 });
 
@@ -213,7 +209,7 @@ app.post('/unzip', checkAuth, (req, res) => {
 });
 
 app.post('/start', checkAuth, (req, res) => {
-  if (isRunning) return res.json({ success: false, msg: 'Bot Sudah Berjalan!' });
+  if (isRunning) return res.json({ success: false, msg: 'Bot Running' });
 
   const findEntry = (dir) => {
     try {
@@ -238,22 +234,22 @@ app.post('/start', checkAuth, (req, res) => {
   };
 
   const entry = findEntry(UPLOAD_DIR);
-  if (!entry) return res.json({ success: false, msg: 'File Bot Tidak Ditemukan!' });
+  if (!entry) return res.json({ success: false, msg: 'No Bot File Found' });
 
   const cwd = path.dirname(entry);
   io.emit('log', `\x1b[36m[SYSTEM] Starting: ${path.basename(entry)}\x1b[0m\n`);
 
   if (!fs.existsSync(path.join(cwd, 'node_modules')) && fs.existsSync(path.join(cwd, 'package.json'))) {
-    io.emit('log', `\x1b[33m[AUTO-INSTALL] Menjalankan npm install...\x1b[0m\n`);
+    io.emit('log', `\x1b[33m[INSTALL] npm install...\x1b[0m\n`);
     const install = spawn('npm', ['install'], { cwd, shell: true });
     install.stdout.on('data', d => io.emit('log', d.toString()));
     install.stderr.on('data', d => io.emit('log', d.toString()));
     install.on('close', (code) => {
       if (code === 0) {
-        io.emit('log', `\x1b[32m[INSTALL SUCCESS] Memulai bot...\x1b[0m\n`);
+        io.emit('log', `\x1b[32m[OK] Install done. Starting...\x1b[0m\n`);
         spawnBot(entry, cwd);
       } else {
-        io.emit('log', `\x1b[31m[INSTALL FAIL] Gagal install module.\x1b[0m\n`);
+        io.emit('log', `\x1b[31m[FAIL] Install error.\x1b[0m\n`);
       }
     });
   } else {
@@ -273,7 +269,7 @@ function spawnBot(file, cwd) {
   currentProcess.on('close', (code) => {
     isRunning = false;
     currentProcess = null;
-    io.emit('log', `\n\x1b[31m[STOP] Bot berhenti (Kode: ${code})\x1b[0m\n`);
+    io.emit('log', `\n\x1b[31m[STOP] Exit Code: ${code}\x1b[0m\n`);
   });
 }
 
@@ -282,10 +278,10 @@ app.post('/stop', checkAuth, (req, res) => {
     currentProcess.kill();
     currentProcess = null;
     isRunning = false;
-    io.emit('log', `\x1b[31m[STOP] Mematikan paksa...\x1b[0m\n`);
+    io.emit('log', `\x1b[31m[STOP] Process Killed.\x1b[0m\n`);
     res.json({ success: true });
   } else {
-    res.json({ success: false, msg: 'Bot tidak berjalan' });
+    res.json({ success: false, msg: 'Not Running' });
   }
 });
 
@@ -314,4 +310,4 @@ function emitStats() {
 }
 setInterval(emitStats, 2000);
 
-server.listen(PORT, () => console.log(`[SERVER] Berjalan di Port ${PORT}`));
+server.listen(PORT, () => console.log(`[SERVER] Running on Port ${PORT}`));

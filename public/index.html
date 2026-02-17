@@ -3,196 +3,120 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS VPS</title>
-    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=Fira+Code:wght@400;500&display=swap" rel="stylesheet">
+    <title>NEXUS PRIME</title>
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;700&family=JetBrains+Mono:wght@400;700&display=swap" rel="stylesheet">
     <style>
-        :root {
-            --bg: #050509;
-            --glass: rgba(20, 20, 35, 0.7);
-            --border: rgba(255, 255, 255, 0.1);
-            --accent: #00f3ff;
-            --accent-glow: rgba(0, 243, 255, 0.2);
-            --danger: #ff0055;
-            --success: #00ff9d;
-            --text: #e0e0e0;
-        }
+        :root { --bg: #050505; --glass: rgba(10, 10, 20, 0.85); --border: #333; --accent: #00ffcc; --danger: #ff3366; --text: #eee; }
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; user-select: none; }
-        body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; background-image: radial-gradient(circle at 50% 50%, #111 0%, #000 100%); }
-        
-        /* Utils */
-        .flex { display: flex; gap: 10px; }
+        body { background: var(--bg); color: var(--text); font-family: 'Rajdhani', sans-serif; height: 100vh; overflow: hidden; display: flex; flex-direction: column; }
         .hidden { display: none !important; }
-        .btn { background: rgba(255,255,255,0.05); border: 1px solid var(--border); color: var(--text); padding: 8px 16px; cursor: pointer; font-family: 'Fira Code', monospace; font-size: 12px; transition: 0.3s; text-transform: uppercase; border-radius: 4px; }
-        .btn:hover { border-color: var(--accent); color: var(--accent); box-shadow: 0 0 10px var(--accent-glow); }
-        .btn-danger:hover { border-color: var(--danger); color: var(--danger); box-shadow: 0 0 10px rgba(255,0,85,0.3); }
+        .flex { display: flex; gap: 8px; }
         
-        /* Layout */
-        header { height: 60px; background: var(--glass); border-bottom: 1px solid var(--border); backdrop-filter: blur(10px); display: flex; align-items: center; justify-content: space-between; padding: 0 25px; z-index: 10; }
-        .brand { font-size: 20px; font-weight: 700; letter-spacing: 2px; color: var(--accent); text-shadow: 0 0 10px var(--accent-glow); }
-        .stats { font-family: 'Fira Code', monospace; font-size: 12px; display: flex; gap: 20px; color: #888; }
-        .stats span { color: var(--success); }
+        header { height: 60px; border-bottom: 1px solid var(--border); display: flex; align-items: center; justify-content: space-between; padding: 0 20px; background: rgba(0,0,0,0.5); backdrop-filter: blur(10px); }
+        .brand { font-size: 22px; font-weight: bold; color: var(--accent); letter-spacing: 2px; }
+        .stats { font-family: 'JetBrains Mono'; font-size: 11px; color: #888; }
+        .stats span { color: var(--accent); }
 
-        .layout { display: flex; flex: 1; overflow: hidden; position: relative; }
+        .layout { display: flex; flex: 1; overflow: hidden; }
+        aside { width: 300px; border-right: 1px solid var(--border); padding: 15px; display: flex; flex-direction: column; background: var(--glass); }
         
-        /* Sidebar */
-        aside { width: 300px; background: rgba(10,10,15,0.5); border-right: 1px solid var(--border); display: flex; flex-direction: column; padding: 15px; backdrop-filter: blur(5px); }
-        .upload-area { border: 1px dashed var(--border); padding: 15px; border-radius: 6px; margin-bottom: 20px; transition: 0.3s; text-align: center; }
-        .upload-area:hover { border-color: var(--accent); background: var(--accent-glow); }
-        input[type="file"] { display: none; }
-        .file-list { flex: 1; overflow-y: auto; padding-right: 5px; }
-        .file-card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 12px; margin-bottom: 10px; border-radius: 6px; transition: 0.2s; animation: slideIn 0.3s ease; }
-        .file-card:hover { border-color: var(--border); background: rgba(255,255,255,0.06); }
-        .file-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; }
-        .file-name { font-family: 'Fira Code', monospace; font-size: 12px; font-weight: bold; }
-        .status-dot { width: 8px; height: 8px; background: #333; border-radius: 50%; box-shadow: 0 0 0 2px #222; transition: 0.3s; }
-        .status-dot.active { background: var(--success); box-shadow: 0 0 10px var(--success); }
-
-        /* Terminal */
-        main { flex: 1; padding: 20px; display: flex; flex-direction: column; position: relative; }
-        .terminal-container { flex: 1; background: rgba(0,0,0,0.6); border: 1px solid var(--border); border-radius: 8px; padding: 15px; overflow-y: auto; font-family: 'Fira Code', monospace; font-size: 13px; color: #ccc; box-shadow: inset 0 0 30px rgba(0,0,0,0.8); white-space: pre-wrap; line-height: 1.5; }
-        .terminal-container::-webkit-scrollbar { width: 8px; }
-        .terminal-container::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        .upload-zone { border: 1px dashed var(--border); padding: 15px; text-align: center; border-radius: 6px; cursor: pointer; transition: 0.2s; margin-bottom: 20px; }
+        .upload-zone:hover { border-color: var(--accent); background: rgba(0, 255, 204, 0.05); }
         
-        /* Overlays */
-        #login-screen { position: fixed; inset: 0; background: #000; z-index: 999; display: flex; align-items: center; justify-content: center; flex-direction: column; background-image: radial-gradient(circle, #111 0%, #000 80%); }
-        .login-box { width: 320px; text-align: center; padding: 40px; border: 1px solid var(--border); border-radius: 10px; background: rgba(20,20,30,0.8); backdrop-filter: blur(20px); box-shadow: 0 0 40px rgba(0,0,0,0.5); }
-        .login-input { width: 100%; background: rgba(0,0,0,0.5); border: 1px solid var(--border); padding: 12px; color: var(--accent); text-align: center; font-family: 'Fira Code', monospace; margin-bottom: 20px; border-radius: 4px; font-size: 16px; }
-        .login-input:focus { border-color: var(--accent); box-shadow: 0 0 15px var(--accent-glow); }
+        .file-list { flex: 1; overflow-y: auto; }
+        .card { background: rgba(255,255,255,0.03); border: 1px solid var(--border); padding: 10px; margin-bottom: 8px; border-radius: 4px; }
+        .card-head { display: flex; justify-content: space-between; margin-bottom: 8px; font-family: 'JetBrains Mono'; font-size: 12px; }
+        .dot { width: 6px; height: 6px; background: #444; border-radius: 50%; box-shadow: 0 0 5px #444; }
+        .dot.on { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
 
-        #editor-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 100; padding: 40px; display: flex; align-items: center; justify-content: center; opacity: 0; pointer-events: none; transition: 0.3s; }
-        #editor-modal.visible { opacity: 1; pointer-events: all; }
-        .editor-window { width: 90%; height: 90%; background: #111; border: 1px solid var(--border); display: flex; flex-direction: column; border-radius: 8px; overflow: hidden; }
-        textarea { flex: 1; background: #0c0c0c; border: none; color: #bbb; padding: 20px; font-family: 'Fira Code', monospace; font-size: 14px; resize: none; }
+        button { background: transparent; border: 1px solid var(--border); color: #ccc; padding: 6px; cursor: pointer; font-family: 'JetBrains Mono'; font-size: 10px; flex: 1; border-radius: 3px; transition: 0.2s; }
+        button:hover { border-color: var(--accent); color: var(--accent); }
+        .btn-red:hover { border-color: var(--danger); color: var(--danger); }
 
-        /* ANSI Colors */
-        .ansi-red { color: var(--danger); } .ansi-green { color: var(--success); } .ansi-yellow { color: #ffd700; } .ansi-blue { color: var(--accent); }
-        @keyframes slideIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        main { flex: 1; background: #000; padding: 20px; display: flex; flex-direction: column; }
+        .terminal { flex: 1; background: rgba(10,10,10,0.9); border: 1px solid var(--border); border-radius: 6px; padding: 15px; font-family: 'JetBrains Mono'; font-size: 12px; overflow-y: auto; white-space: pre-wrap; color: #bbb; box-shadow: inset 0 0 20px rgba(0,0,0,0.8); }
 
-        @media (max-width: 768px) { .layout { flex-direction: column; } aside { width: 100%; height: 40%; } header { padding: 0 15px; } }
+        #login { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; align-items: center; justify-content: center; flex-direction: column; }
+        input { background: #111; border: 1px solid var(--border); padding: 12px; width: 250px; color: var(--accent); text-align: center; font-family: 'JetBrains Mono'; margin-bottom: 10px; border-radius: 4px; }
+        
+        #editor { position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 50; display: none; padding: 30px; }
+        .editor-box { width: 100%; height: 100%; background: #111; border: 1px solid var(--border); display: flex; flex-direction: column; }
+        textarea { flex: 1; background: #080808; border: none; color: #ccc; padding: 20px; font-family: 'JetBrains Mono'; resize: none; font-size: 13px; }
+
+        .ansi-red { color: var(--danger); } .ansi-green { color: var(--accent); } .ansi-yellow { color: #ffd700; } .ansi-blue { color: #3b82f6; }
+        
+        @media (max-width: 700px) { .layout { flex-direction: column; } aside { width: 100%; height: 40%; } }
     </style>
 </head>
 <body>
-
-    <div id="login-screen">
-        <h1 class="brand" style="margin-bottom: 30px; font-size: 30px;">// SYSTEM ACCESS //</h1>
-        <div class="login-box">
-            <input type="password" id="pass" class="login-input" placeholder="ENTER PASSPHRASE">
-            <button onclick="auth()" class="btn" style="width: 100%;">AUTHENTICATE</button>
-        </div>
+    <div id="login">
+        <h1 class="brand" style="margin-bottom: 20px;">SYSTEM ACCESS</h1>
+        <input type="password" id="pass" placeholder="PASSPHRASE">
+        <button onclick="auth()" style="width: 250px; padding: 12px;">UNLOCK</button>
     </div>
 
     <header>
-        <div class="brand">NEXUS <span style="font-weight:400; font-size:14px; color:#666;">C2 PROTOCOL</span></div>
-        <div class="stats" id="sys-stats">INITIALIZING...</div>
+        <div class="brand">NEXUS</div>
+        <div class="stats" id="stats">RAM: -</div>
     </header>
 
     <div class="layout">
         <aside>
-            <form action="/upload" method="POST" enctype="multipart/form-data" id="up-form">
-                <input type="file" name="scriptFile" id="file-in" onchange="document.getElementById('up-form').submit()">
-                <div class="upload-area" onclick="document.getElementById('file-in').click()" style="cursor: pointer;">
-                    <div style="font-size: 24px; margin-bottom: 5px; color: var(--accent);">+</div>
-                    <div style="font-size: 10px; color: #888;">UPLOAD ZIP / JS</div>
-                </div>
+            <form action="/upload" method="POST" enctype="multipart/form-data" id="fup">
+                <input type="file" name="scriptFile" id="fin" style="display:none" onchange="document.getElementById('fup').submit()">
+                <div class="upload-zone" onclick="document.getElementById('fin').click()">+ UPLOAD ZIP / JS</div>
             </form>
-            <div class="file-list" id="file-list"></div>
+            <div class="file-list" id="list"></div>
         </aside>
-
         <main>
-            <div class="terminal-container" id="terminal">
-                <div style="color: var(--accent)">> SYSTEM READY... WAITING FOR INPUT_</div>
-            </div>
+            <div class="terminal" id="term"></div>
         </main>
     </div>
 
-    <div id="editor-modal">
-        <div class="editor-window">
-            <div style="padding: 10px 20px; background: #1a1a1a; border-bottom: 1px solid #333; display: flex; justify-content: space-between;">
-                <span id="ed-title" style="font-family:'Fira Code'; font-size:12px; color:var(--accent);">EDITING</span>
-                <div class="flex">
-                    <button onclick="saveFile()" class="btn">SAVE DATA</button>
-                    <button onclick="closeEditor()" class="btn btn-danger">CLOSE</button>
-                </div>
+    <div id="editor">
+        <div class="editor-box">
+            <div style="padding:10px; border-bottom:1px solid #333; display:flex; justify-content:space-between;">
+                <span id="ed-name" style="color:var(--accent)">EDIT</span>
+                <div class="flex"><button onclick="save()">SAVE</button><button onclick="closeEd()" class="btn-red">CLOSE</button></div>
             </div>
-            <textarea id="ed-content"></textarea>
+            <textarea id="ed-code"></textarea>
         </div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
         const socket = io();
-        const term = document.getElementById('terminal');
+        const term = document.getElementById('term');
         let active = [];
 
-        socket.on('log', data => {
-            const f = data.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
-            term.innerHTML += f;
+        socket.on('log', d => {
+            term.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
             term.scrollTop = term.scrollHeight;
         });
-
-        socket.on('status_update', list => { active = list; refresh(); });
-        socket.on('sys_stats', s => document.getElementById('sys-stats').innerHTML = `MEM: <span>${s.ram}</span> | HOST: <span>${s.total}</span>`);
+        socket.on('status_update', l => { active = l; ref(); });
+        socket.on('sys_stats', s => document.getElementById('stats').innerHTML = `MEM: ${s.ram} | HOST: ${s.total}`);
 
         function auth() {
-            const p = document.getElementById('pass').value;
-            fetch('/login', { method: 'POST', headers: {'Content-Type':'application/json'}, body: JSON.stringify({password: p}) })
-            .then(r=>r.json()).then(d => {
-                if(d.success) {
-                    document.getElementById('login-screen').classList.add('hidden');
-                    refresh();
-                } else {
-                    document.getElementById('pass').style.borderColor = 'var(--danger)';
-                    setTimeout(()=>document.getElementById('pass').style.borderColor = 'var(--border)', 500);
-                }
-            });
+            fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:document.getElementById('pass').value}) })
+            .then(r=>r.json()).then(d=>{ if(d.success) { document.getElementById('login').classList.add('hidden'); ref(); } else alert('DENIED'); });
         }
 
-        function refresh() {
+        function ref() {
             fetch('/files').then(r=>r.json()).then(files => {
-                const c = document.getElementById('file-list'); c.innerHTML = '';
+                const l = document.getElementById('list'); l.innerHTML = '';
                 files.forEach(f => {
-                    const isOn = active.includes(f);
-                    const isDir = !f.includes('.'); 
-                    c.innerHTML += `
-                    <div class="file-card">
-                        <div class="file-header">
-                            <span class="file-name" style="color: ${isDir ? 'var(--accent)' : '#fff'}">${isDir ? '📂 ' : '📄 '}${f}</span>
-                            <div class="status-dot ${isOn ? 'active' : ''}"></div>
-                        </div>
-                        <div class="flex">
-                            ${isOn 
-                                ? `<button class="btn btn-danger" style="flex:1" onclick="act('/stop', '${f}')">HALT</button>` 
-                                : `<button class="btn" style="flex:1" onclick="act('/start', '${f}')">EXEC</button>`
-                            }
-                            <button class="btn" onclick="edit('${f}')">EDIT</button>
-                            <button class="btn btn-danger" onclick="del('${f}')">X</button>
-                        </div>
-                    </div>`;
+                    const on = active.includes(f);
+                    const dir = !f.includes('.');
+                    l.innerHTML += `<div class="card"><div class="card-head"><span style="color:${dir?'var(--accent)':'#fff'}">${dir?'📂 ':'📄 '}${f}</span><div class="dot ${on?'on':''}"></div></div><div class="flex">${on?`<button class="btn-red" onclick="req('/stop','${f}')">HALT</button>`:`<button onclick="req('/start','${f}')">EXEC</button>`}<button onclick="edit('${f}')">EDIT</button><button class="btn-red" onclick="del('${f}')">DEL</button></div></div>`;
                 });
             });
         }
 
-        function act(end, f) { fetch(end, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) }); }
-        
-        function del(f) { if(confirm('DELETE DATA?')) act('/delete', f); setTimeout(refresh, 500); }
-
-        function edit(f) {
-            fetch('/read', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) })
-            .then(r=>r.json()).then(d => {
-                document.getElementById('editor-modal').classList.add('visible');
-                document.getElementById('ed-title').innerText = f;
-                document.getElementById('ed-content').value = d.content;
-            });
-        }
-
-        function saveFile() {
-            const f = document.getElementById('ed-title').innerText;
-            const c = document.getElementById('ed-content').value;
-            fetch('/save', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f, content:c}) })
-            .then(()=>closeEditor());
-        }
-
-        function closeEditor() { document.getElementById('editor-modal').classList.remove('visible'); }
+        function req(u, f) { fetch(u, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) }); }
+        function del(f) { if(confirm('DELETE?')) req('/delete', f); setTimeout(ref, 500); }
+        function edit(f) { fetch('/read', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:f}) }).then(r=>r.json()).then(d=>{ document.getElementById('editor').style.display='flex'; document.getElementById('ed-name').innerText=f; document.getElementById('ed-code').value=d.content; }); }
+        function save() { fetch('/save', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:document.getElementById('ed-name').innerText, content:document.getElementById('ed-code').value}) }).then(()=>closeEd()); }
+        function closeEd() { document.getElementById('editor').style.display='none'; }
     </script>
 </body>
 </html>

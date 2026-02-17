@@ -14,8 +14,10 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'tokens.json');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
+const PUBLIC_DIR = path.join(__dirname, 'public');
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR);
 
 let activeTokens = {};
 let currentProcess = null;
@@ -36,7 +38,7 @@ function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
   } catch (e) {
-    console.error('Database Error');
+    console.error(e);
   }
 }
 
@@ -51,10 +53,9 @@ loadTokens();
 
 try {
   bot = new TelegramBot(TG_TOKEN, { polling: true });
-  console.log(`[SYSTEM] TG Bot Started. Owner: ${OWNER_ID}`);
-
+  
   bot.onText(/\/id/, (msg) => {
-    bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+    bot.sendMessage(msg.chat.id, `ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/akses (\d+)/, (msg, match) => {
@@ -64,12 +65,12 @@ try {
     const exp = Date.now() + (days * 86400000);
     activeTokens[token] = exp;
     saveTokens();
-    bot.sendMessage(msg.chat.id, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari`, { parse_mode: 'HTML' });
+    bot.sendMessage(msg.chat.id, `ACCESS GRANTED\nTOKEN: <code>${token}</code>\nDAYS: ${days}`, { parse_mode: 'HTML' });
   });
   
   bot.on('polling_error', () => {});
 } catch (e) {
-  console.log('[SYSTEM] TG Bot Error (Check Token)');
+  console.log('Telegram Bot Error');
 }
 
 const app = express();
@@ -77,7 +78,11 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 app.use(express.json());
-app.use(express.static(__dirname)); 
+app.use(express.static(PUBLIC_DIR));
+
+app.get('/', (req, res) => {
+  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
+});
 
 const checkAuth = (req, res, next) => {
   const token = req.headers['authorization'];
@@ -90,8 +95,6 @@ const checkAuth = (req, res, next) => {
   }
   next();
 };
-
-app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
 
 app.post('/login', (req, res) => {
   const { token } = req.body;
@@ -269,4 +272,4 @@ function emitStats() {
 }
 setInterval(emitStats, 2000);
 
-server.listen(PORT, () => console.log(`[SERVER] Running on ${PORT}`));
+server.listen(PORT, () => console.log(`Server Running on Port ${PORT}`));

@@ -5,196 +5,246 @@ const { spawn, exec } = require('child_process');
 const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
-const os = require('os');
 const AdmZip = require('adm-zip');
-const mongoose = require('mongoose');
+const TelegramBot = require('node-telegram-bot-api');
+
+const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
+const OWNER_ID = process.env.OWNER_ID || '8062935882';
+const PORT = process.env.PORT || 3000;
+const DB_FILE = path.join(__dirname, 'tokens.json');
+const UPLOAD_DIR = path.join(__dirname, 'uploads');
+
+let activeTokens = {};
+let currentProc = null;
+let isRunning = false;
+
+if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
+
+function loadTokens() {
+    try {
+        if (fs.existsSync(DB_FILE)) {
+            activeTokens = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) || {};
+        }
+    } catch {
+        activeTokens = {};
+    }
+}
+
+function saveTokens() {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
+    } catch {}
+}
+
+function generateToken(len = 16) {
+    const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    let r = '';
+    for (let i = 0; i < len; i++) r += c.charAt(Math.floor(Math.random() * c.length));
+    return `WL-${r}`;
+}
+
+loadTokens();
 
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
+const bot = new TelegramBot(TG_TOKEN, { polling: true });
 
-const PORT = process.env.PORT || 3000;
-const ADMIN_PASS = process.env.ADMIN_PASS || "walzexploit";
-const MONGO_URI = process.env.MONGO_URI;
+bot.on('polling_error', () => {});
 
-let currentProcess = null;
-let isRunning = false;
+bot.onText(/\/id/, (msg) => {
+    bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+});
 
-if (MONGO_URI) mongoose.connect(MONGO_URI).catch(() => {});
+bot.onText(/\/akses (\d+)/, (msg, match) => {
+    if (String(msg.chat.id) !== String(OWNER_ID)) return;
+    
+    const days = parseInt(match[1]);
+    const token = generateToken();
+    const exp = Date.now() + (days * 24 * 3600 * 1000);
+    
+    activeTokens[token] = exp;
+    saveTokens();
+
+    const date = new Date(exp).toLocaleDateString('id-ID');
+    bot.sendMessage(msg.chat.id, 
+        `✅ <b>AKSES DIBUAT</b>\n\n🔑: <code>${token}</code>\n⏳: ${days} Hari\n📅: ${date}\n\nLogin di Web Panel sekarang.`,
+        { parse_mode: 'HTML' }
+    );
+});
 
 app.use(express.static('public'));
 app.use(express.json());
 
-if (!fs.existsSync('./uploads')) fs.mkdirSync('./uploads');
-const storage = multer.diskStorage({
-    destination: (req, file, cb) => cb(null, './uploads/'),
-    filename: (req, file, cb) => cb(null, file.originalname)
-});
-const upload = multer({ storage: storage });
-
-function getLocalIP() {
-    const nets = os.networkInterfaces();
-    for (const name of Object.keys(nets)) {
-        for (const net of nets[name]) {
-            if (net.family === 'IPv4' && !net.internal) return net.address;
+const auth = (req, res, next) => {
+    const token = req.headers['authorization'];
+    if (token && activeTokens[token]) {
+        if (Date.now() < activeTokens[token]) {
+            return next();
+        } else {
+            delete activeTokens[token];
+            saveTokens();
         }
     }
-    return '127.0.0.1';
-}
-
-setInterval(() => {
-    const used = process.memoryUsage().heapUsed / 1024 / 1024;
-    const cpuLoad = os.loadavg()[0];
-    const date = new Date().toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Jakarta' });
-    
-    io.emit('stats', {
-        ram: `${Math.round(used)} MB`,
-        cpu: `${cpuLoad.toFixed(2)}%`,
-        ip: getLocalIP(),
-        time: date,
-        status: isRunning ? 'ONLINE' : 'OFFLINE'
-    });
-}, 1000);
-
-io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] SERVER CONNECTED.\x1b[0m\n');
-    
-    socket.on('input', (cmd) => {
-        if (currentProcess && currentProcess.stdin) {
-            try {
-                currentProcess.stdin.write(cmd + '\n');
-                io.emit('log', `\x1b[33m> ${cmd}\x1b[0m\n`);
-            } catch (e) {
-                socket.emit('notify', { type: 'error', msg: 'Gagal mengirim perintah.' });
-            }
-        } else {
-            socket.emit('notify', { type: 'error', msg: 'Bot belum dijalankan.' });
-        }
-    });
-});
+    res.status(401).json({ success: false, msg: 'Sesi Habis / Token Invalid' });
+};
 
 app.post('/login', (req, res) => {
-    if (req.body.password === ADMIN_PASS) res.json({ success: true });
-    else res.json({ success: false });
-});
+    const { token } = req.body;
+    const cleanToken = String(token || '').trim();
 
-app.post('/start', async (req, res) => {
-    if (isRunning) return res.json({ success: false, msg: 'Bot sudah berjalan!' });
-
-    const rootDir = path.join(__dirname, 'uploads');
-    let entryFile = null;
-
-    const findEntry = (d) => {
-        try {
-            const files = fs.readdirSync(d);
-            if (files.includes('package.json')) {
-                try { 
-                    const pkg = require(path.join(d, 'package.json'));
-                    if (pkg.main) return path.join(d, pkg.main);
-                } catch {}
-            }
-            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js'];
-            for (const f of candidates) if (files.includes(f)) return path.join(d, f);
-            
-            for (const f of files) {
-                if (fs.statSync(path.join(d, f)).isDirectory() && f !== 'node_modules') {
-                    const found = findEntry(path.join(d, f));
-                    if (found) return found;
-                }
-            }
-        } catch {}
-        return null;
-    };
-
-    entryFile = findEntry(rootDir);
-    if (!entryFile) return res.json({ success: false, msg: 'File bot tidak ditemukan. Upload ZIP dulu.' });
-
-    const workDir = path.dirname(entryFile);
-    
-    io.emit('log', `\x1b[32m[SYSTEM] Menyiapkan environment: ${path.basename(workDir)}\x1b[0m\n`);
-
-    if (fs.existsSync(path.join(workDir, 'package.json')) && !fs.existsSync(path.join(workDir, 'node_modules'))) {
-        io.emit('log', `\x1b[33m[INSTALL] Menginstall modul... (Mohon tunggu 2-3 menit)\x1b[0m\n`);
-        try {
-            await new Promise((resolve, reject) => {
-                exec('npm install --omit=dev --no-audit --no-fund', { cwd: workDir }, (e) => e ? reject(e) : resolve());
-            });
-            io.emit('log', `\x1b[32m[DONE] Installasi selesai.\x1b[0m\n`);
-        } catch (e) {
-            io.emit('log', `\x1b[31m[WARN] Warning saat install (Abaikan).\x1b[0m\n`);
+    if (activeTokens[cleanToken]) {
+        if (Date.now() < activeTokens[cleanToken]) {
+            res.json({ success: true });
+        } else {
+            delete activeTokens[cleanToken];
+            saveTokens();
+            res.json({ success: false, msg: 'Token Expired' });
         }
-    }
-
-    io.emit('log', `\x1b[32m[START] Menjalankan ${path.basename(entryFile)}...\x1b[0m\n`);
-    isRunning = true;
-
-    currentProcess = spawn('node', [entryFile], {
-        cwd: workDir,
-        env: { ...process.env, MONGO_URI },
-        stdio: ['pipe', 'pipe', 'pipe']
-    });
-
-    currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
-    currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d}\x1b[0m`));
-    
-    currentProcess.on('close', (code) => {
-        isRunning = false;
-        io.emit('log', `\n\x1b[31m[STOP] Bot berhenti (Code: ${code})\x1b[0m\n`);
-        currentProcess = null;
-    });
-
-    res.json({ success: true, msg: 'Bot berhasil dijalankan.' });
-});
-
-app.post('/stop', (req, res) => {
-    if (currentProcess) {
-        currentProcess.kill();
-        currentProcess = null;
-        isRunning = false;
-        io.emit('log', `\x1b[31m[STOP] Dimatikan paksa oleh user.\x1b[0m\n`);
-        res.json({ success: true, msg: 'Bot dimatikan.' });
     } else {
-        res.json({ success: false, msg: 'Bot tidak sedang berjalan.' });
+        res.json({ success: false, msg: 'Token Tidak Ditemukan' });
     }
 });
 
-app.post('/restart', (req, res) => {
-    if (currentProcess) {
-        currentProcess.kill();
-        currentProcess = null;
+app.post('/files/list', auth, (req, res) => {
+    try {
+        const files = fs.readdirSync(UPLOAD_DIR).map(f => {
+            const stat = fs.statSync(path.join(UPLOAD_DIR, f));
+            return { name: f, isDir: stat.isDirectory(), size: stat.size };
+        });
+        files.sort((a, b) => b.isDir - a.isDir);
+        res.json({ success: true, data: files });
+    } catch {
+        res.json({ success: false, data: [] });
+    }
+});
+
+app.post('/files/read', auth, (req, res) => {
+    try {
+        const target = path.join(UPLOAD_DIR, req.body.filename);
+        if (!target.startsWith(UPLOAD_DIR)) throw new Error();
+        const content = fs.readFileSync(target, 'utf8');
+        res.json({ success: true, content });
+    } catch {
+        res.json({ success: false, msg: 'Gagal membaca file' });
+    }
+});
+
+app.post('/files/save', auth, (req, res) => {
+    try {
+        const target = path.join(UPLOAD_DIR, req.body.filename);
+        if (!target.startsWith(UPLOAD_DIR)) throw new Error();
+        fs.writeFileSync(target, req.body.content);
+        res.json({ success: true, msg: 'File berhasil disimpan' });
+    } catch {
+        res.json({ success: false, msg: 'Gagal menyimpan file' });
+    }
+});
+
+app.post('/files/delete', auth, (req, res) => {
+    try {
+        const target = path.join(UPLOAD_DIR, req.body.filename);
+        if (!target.startsWith(UPLOAD_DIR)) throw new Error();
+        fs.rmSync(target, { recursive: true, force: true });
+        res.json({ success: true, msg: 'File dihapus' });
+    } catch {
+        res.json({ success: false, msg: 'Gagal menghapus' });
+    }
+});
+
+app.post('/files/unzip', auth, (req, res) => {
+    try {
+        const target = path.join(UPLOAD_DIR, req.body.filename);
+        if (!target.startsWith(UPLOAD_DIR)) throw new Error();
+        const zip = new AdmZip(target);
+        zip.extractAllTo(UPLOAD_DIR, true);
+        fs.unlinkSync(target);
+        res.json({ success: true, msg: 'Extract Berhasil' });
+    } catch {
+        res.json({ success: false, msg: 'Gagal Extract File' });
+    }
+});
+
+const storage = multer.diskStorage({
+    destination: (req, file, cb) => cb(null, UPLOAD_DIR),
+    filename: (req, file, cb) => cb(null, file.originalname)
+});
+const upload = multer({ storage });
+
+app.post('/upload', upload.single('file'), (req, res) => {
+    res.json({ success: true });
+});
+
+app.post('/proc/start', auth, (req, res) => {
+    if (isRunning) return res.json({ success: false, msg: 'Bot Sedang Berjalan' });
+
+    let mainFile = 'index.js';
+    try {
+        if (fs.existsSync(path.join(UPLOAD_DIR, 'package.json'))) {
+            const pkg = require(path.join(UPLOAD_DIR, 'package.json'));
+            if (pkg.main) mainFile = pkg.main;
+        }
+    } catch {}
+
+    const target = path.join(UPLOAD_DIR, mainFile);
+    if (!fs.existsSync(target)) return res.json({ success: false, msg: `File ${mainFile} tidak ditemukan` });
+
+    isRunning = true;
+    io.emit('status', true);
+    io.emit('log', `\x1b[36m[SYSTEM] Memulai ${mainFile}...\x1b[0m\n`);
+
+    currentProc = spawn('node', [mainFile], { cwd: UPLOAD_DIR, stdio: ['pipe', 'pipe', 'pipe'] });
+
+    currentProc.stdout.on('data', d => io.emit('log', d.toString()));
+    currentProc.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
+    
+    currentProc.on('close', c => {
         isRunning = false;
+        currentProc = null;
+        io.emit('status', false);
+        io.emit('log', `\n\x1b[33m[SYSTEM] Proses berhenti (Code: ${c})\x1b[0m\n`);
+    });
+
+    res.json({ success: true, msg: 'Bot Dimulai' });
+});
+
+app.post('/proc/stop', auth, (req, res) => {
+    if (currentProc) {
+        currentProc.kill();
+        currentProc = null;
+        isRunning = false;
+        io.emit('status', false);
+        res.json({ success: true, msg: 'Bot Dimatikan' });
+    } else {
+        res.json({ success: false, msg: 'Bot tidak berjalan' });
     }
-    setTimeout(() => {
-        io.emit('log', `\x1b[33m[RESTART] Memulai ulang sistem...\x1b[0m\n`);
-    }, 1000);
-    res.json({ success: true, msg: 'Restarting...' });
 });
 
-app.get('/files', (req, res) => {
-    try {
-        const files = fs.readdirSync('./uploads').filter(f => f !== 'node_modules' && !f.startsWith('.'));
-        const data = files.map(f => ({
-            name: f,
-            isDir: fs.statSync(path.join('./uploads', f)).isDirectory()
-        }));
-        res.json(data);
-    } catch { res.json([]); }
+io.on('connection', (socket) => {
+    socket.emit('status', isRunning);
+    
+    socket.on('cmd', (cmd) => {
+        if (!cmd) return;
+        io.emit('log', `\x1b[30m\x1b[47m $ ${cmd} \x1b[0m\n`);
+
+        if (isRunning && currentProc) {
+            try {
+                currentProc.stdin.write(cmd + '\n');
+            } catch {
+                io.emit('log', `\x1b[31m[ERROR] Gagal mengirim input ke bot\x1b[0m\n`);
+            }
+        } else {
+            exec(cmd, { cwd: UPLOAD_DIR }, (error, stdout, stderr) => {
+                if (stdout) io.emit('log', stdout);
+                if (stderr) io.emit('log', `\x1b[31m${stderr}\x1b[0m`);
+            });
+        }
+    });
 });
 
-app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
+setInterval(() => {
+    const used = process.memoryUsage().rss / 1024 / 1024;
+    io.emit('usage', { ram: Math.round(used) });
+}, 2000);
 
-app.post('/unzip', (req, res) => {
-    try {
-        const filePath = path.join('./uploads', req.body.filename);
-        const zip = new AdmZip(filePath);
-        zip.extractAllTo('./uploads', true);
-        fs.unlinkSync(filePath);
-        res.json({ success: true, msg: 'Berhasil diekstrak.' });
-    } catch { res.json({ success: false, msg: 'Gagal ekstrak.' }); }
-});
-
-app.post('/delete', (req, res) => {
-    fs.rm(path.join('./uploads', req.body.filename), { recursive: true, force: true }, () => res.json({ success: true, msg: 'File dihapus.' }));
-});
-
-server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));
+server.listen(PORT, () => console.log(`Server running on port ${PORT}`));

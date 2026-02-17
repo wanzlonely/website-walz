@@ -1,7 +1,7 @@
 {
-  "name": "walz-exploit-pro",
-  "version": "1.0.0",
-  "description": "Professional WhatsApp Bot Controller with Telegram Auth",
+  "name": "walz-exploit-v2",
+  "version": "2.0.0",
+  "description": "Professional WhatsApp Bot Controller",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -16,7 +16,5 @@
   },
   "engines": {
     "node": "20.x"
-  },
-  "author": "Walz",
-  "license": "MIT"
+  }
 }

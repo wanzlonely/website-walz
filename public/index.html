@@ -1,369 +1,236 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WALZ CONTROL CENTER</title>
-  <link rel="stylesheet" href="style.css">
-  <script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEXUS CONTROL PANEL</title>
+    <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-<div id="toast-container"></div>
+    <div id="toast-box"></div>
 
-<div id="view-login">
-  <div class="login-card">
-    <div style="font-size: 50px; color: var(--primary); margin-bottom: 20px;">
-      <i class="ri-fingerprint-line"></i>
-    </div>
-    <h2 style="margin-bottom: 10px; font-weight: 800;">SECURE LOGIN</h2>
-    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 30px;">
-      Masukkan token akses server Anda.
-    </p>
-    <div class="input-group" style="margin-bottom: 25px; padding: 14px; background:rgba(0,0,0,0.05);">
-      <i class="ri-key-fill" style="color: var(--text-muted);"></i>
-      <input type="password" id="token-input" class="cmd-input" placeholder="WL-XXXXXXXX" style="text-align: center; font-size: 16px; letter-spacing: 2px;" autocomplete="off">
-    </div>
-    <button class="ctrl-btn btn-start" onclick="login()">
-      UNLOCK SYSTEM <i class="ri-arrow-right-line"></i>
-    </button>
-  </div>
-</div>
-
-<div id="editor-modal">
-  <div class="editor-container">
-    <div class="editor-head">
-      <div style="display:flex; align-items:center; gap:10px;">
-        <i class="ri-file-edit-line" style="color:var(--primary); font-size:20px;"></i>
-        <span id="editor-filename" style="font-weight: 600; font-family: 'JetBrains Mono';">filename.js</span>
-      </div>
-      <div style="display:flex; gap:10px;">
-        <button class="ctrl-btn btn-stop" style="padding: 8px 16px; width:auto; font-size:12px;" onclick="closeEditor()">BATAL</button>
-        <button class="ctrl-btn btn-start" style="padding: 8px 16px; width:auto; font-size:12px;" onclick="saveFile()">SIMPAN</button>
-      </div>
-    </div>
-    <textarea id="editor-content" class="editor-area" spellcheck="false"></textarea>
-  </div>
-</div>
-
-<div class="app-container">
-  <header class="app-header">
-    <div class="header-brand">
-      <div class="brand-icon"><i class="ri-command-fill"></i></div>
-      <div>
-        <h2 style="font-size: 18px; font-weight: 800; letter-spacing:-0.5px;">WALZ<span style="color:var(--primary)">PANEL</span></h2>
-        <span id="role-display" style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--primary); padding: 3px 8px; border-radius: 6px; font-weight: 700; border:1px solid rgba(59,130,246,0.2);">LOCKED</span>
-      </div>
-    </div>
-    <button class="theme-toggle" onclick="toggleTheme()">
-      <i class="ri-sun-line" id="theme-icon"></i>
-    </button>
-  </header>
-
-  <div class="content-area">
-    <div id="tab-console" class="tab-view active">
-      <div class="controls-area">
-        <button class="ctrl-btn btn-start" onclick="req('/start')">
-          <i class="ri-play-fill" style="font-size:20px;"></i> START SYSTEM
-        </button>
-        <button class="ctrl-btn btn-stop" onclick="req('/stop')">
-          <i class="ri-shut-down-line" style="font-size:20px;"></i> SHUTDOWN
-        </button>
-      </div>
-
-      <div class="terminal-wrapper">
-        <div class="terminal-head">
-          <div class="term-dots">
-            <div class="dot r"></div>
-            <div class="dot y"></div>
-            <div class="dot g"></div>
-          </div>
-          <span style="font-size: 11px; color: #94a3b8; font-family: 'JetBrains Mono';">root@walz-server:~</span>
+    <div id="login-overlay">
+        <div class="login-box">
+            <h2 style="font-weight: 800; letter-spacing: -1px; margin-bottom: 8px;">SYSTEM LOGIN</h2>
+            <p style="color: var(--text-mute); font-size: 13px;">Masukkan kode akses administrator</p>
+            
+            <input type="password" id="pass" class="login-input" placeholder="••••••••" autocomplete="off">
+            <button onclick="login()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">MASUK DASHBOARD</button>
         </div>
+    </div>
 
-        <div class="terminal-logs" id="logs">
-          <div style="opacity: 0.5;">> System Initialized... Ready.</div>
+    <nav>
+        <div class="brand">
+            <span style="font-size: 20px;">⚡</span> NEXUS
         </div>
-
-        <div class="terminal-footer">
-          <div class="input-group">
-            <span style="color: var(--success); font-weight: bold; margin-left:5px;">$</span>
-            <input type="text" id="cmd-input" class="cmd-input" placeholder="Execute command..." autocomplete="off">
-            <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-fill"></i></button>
-          </div>
-
-          <div class="stats-container">
-            <div class="stat-item">
-              <span class="stat-val" id="ram-val" style="color:var(--primary)">0 MB</span>
-              <span class="stat-lbl">RAM USAGE</span>
+        <div class="nav-right">
+            <div class="tabs">
+                <div class="tab active" onclick="switchPage('console')">Console</div>
+                <div class="tab" onclick="switchPage('files')">Files</div>
             </div>
-            <div class="stat-item">
-              <span class="stat-val" id="uptime-val" style="color:var(--warning)">00:00:00</span>
-              <span class="stat-lbl">UPTIME</span>
+            <button class="btn-icon" onclick="toggleTheme()" title="Ganti Tema">
+                🌗
+            </button>
+        </div>
+    </nav>
+
+    <main id="p-console" class="page active">
+        <div class="console-header">
+            <div>
+                <h3 style="font-size: 16px; font-weight: 600;">Server Control</h3>
+                <p style="font-size: 12px; color: var(--text-mute); margin-top: 4px;">Kelola proses bot secara realtime</p>
             </div>
-            <div class="stat-item">
-              <span class="stat-val" id="ping-val" style="color:var(--success)">0 ms</span>
-              <span class="stat-lbl">LATENCY</span>
+            <div class="console-actions">
+                <button class="btn btn-primary" onclick="req('/start')">▶ Start</button>
+                <button class="btn" onclick="req('/restart')">↻ Restart</button>
+                <button class="btn btn-danger" onclick="req('/stop')">■ Stop</button>
             </div>
-            <div class="stat-item">
-              <span class="stat-val" id="status-val" style="color:var(--danger)">OFFLINE</span>
-              <span class="stat-lbl">STATUS</span>
+        </div>
+
+        <div class="terminal-box">
+            <div class="terminal-logs" id="logs"></div>
+            <div class="terminal-input">
+                <span class="prompt-char">➜</span>
+                <input type="text" id="cmd" class="cmd-input" placeholder="Ketik perintah command disini..." autocomplete="off">
             </div>
-          </div>
-
-          <div class="social-footer">
-            <a href="https://wa.me/628XXXXXXXXX" target="_blank" class="social-link wa"><i class="ri-whatsapp-line"></i></a>
-            <a href="https://t.me/USERNAME" target="_blank" class="social-link tg"><i class="ri-telegram-plane"></i></a>
-            <a href="https://github.com/USERNAME" target="_blank" class="social-link gh"><i class="ri-github-fill"></i></a>
-          </div>
         </div>
-      </div>
-    </div>
 
-    <div id="tab-files" class="tab-view">
-      <div class="file-toolbar">
-        <div style="display:flex; align-items:center; gap:12px;">
-          <button onclick="goUp()" style="background:none; border:none; color:var(--text-main); font-size:22px; cursor:pointer;"><i class="ri-arrow-left-circle-fill"></i></button>
-          <span class="path-txt" id="path-display" style="font-weight:600; font-family:'JetBrains Mono'; font-size:14px; color:var(--primary);">/home</span>
+        <div class="stats-container">
+            <div class="stat-card">
+                <div class="stat-label">RAM Usage</div>
+                <div class="stat-value" id="stat-ram">-- MB</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">CPU Load</div>
+                <div class="stat-value" id="stat-cpu">-- %</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Server Time</div>
+                <div class="stat-value" id="stat-time">--:--:--</div>
+            </div>
+            <div class="stat-card">
+                <div class="stat-label">Status</div>
+                <div class="stat-value">
+                    <span id="stat-dot" class="stat-indicator"></span>
+                    <span id="stat-text" style="font-size: 14px;">OFFLINE</span>
+                </div>
+            </div>
         </div>
-        <label for="up-file" style="background: var(--primary); color: white; padding: 10px 18px; border-radius: 10px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 15px var(--primary-glow);">
-          <i class="ri-upload-cloud-2-line"></i> UPLOAD
-        </label>
-        <input type="file" id="up-file" hidden onchange="uploadFile()">
-      </div>
-      <div class="file-list" id="file-list"></div>
-    </div>
-  </div>
+    </main>
 
-  <nav class="nav-dock">
-    <button class="dock-btn active" onclick="switchTab('console', this)"><i class="ri-terminal-box-line"></i></button>
-    <button class="dock-btn" onclick="switchTab('files', this)"><i class="ri-folder-shield-2-line"></i></button>
-  </nav>
-</div>
-
-<script>
-  const socket = io();
-  let currPath = '';
-  let currentEditFile = '';
-
-  function toggleTheme() {
-    document.body.classList.toggle('light-mode');
-    const isLight = document.body.classList.contains('light-mode');
-    document.getElementById('theme-icon').className = isLight ? 'ri-moon-line' : 'ri-sun-line';
-    localStorage.setItem('theme', isLight ? 'light' : 'dark');
-  }
-
-  if (localStorage.getItem('theme') === 'light') toggleTheme();
-
-  if (localStorage.getItem('walz_token')) document.getElementById('view-login').style.display = 'none';
-
-  function getHead() {
-    return {
-      'Authorization': localStorage.getItem('walz_token'),
-      'Content-Type': 'application/json'
-    };
-  }
-
-  async function req(url, body = {}) {
-    try {
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: getHead(),
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
-      if (data.success) toast(data.msg || 'Success', 'success');
-      else toast(data.msg || 'Failed', 'error');
-      return data;
-    } catch {
-      toast('Connection Error', 'error');
-    }
-  }
-
-  async function login() {
-    const t = document.getElementById('token-input').value.trim();
-    if (!t) return toast('Masukkan Token!', 'error');
-
-    const btn = document.querySelector('.login-card button');
-    const oriText = btn.innerHTML;
-    btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> VERIFYING...';
-
-    try {
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token: t })
-      });
-      const d = await res.json();
-      if (d.success) {
-        localStorage.setItem('walz_token', t);
-        document.getElementById('view-login').style.display = 'none';
-        document.getElementById('role-display').innerText = d.role;
-        toast('Akses Diterima', 'success');
-        loadFiles();
-      } else {
-        toast(d.msg, 'error');
-      }
-    } catch {
-      toast('Server Error', 'error');
-    } finally {
-      btn.innerHTML = oriText;
-    }
-  }
-
-  socket.on('log', d => {
-    const l = document.getElementById('logs');
-    const div = document.createElement('div');
-    div.innerHTML = d.replace(/\x1b\[32m/g, '<span style="color:#10b981">')
-      .replace(/\x1b\[31m/g, '<span style="color:#ef4444">')
-      .replace(/\x1b\[33m/g, '<span style="color:#f59e0b">')
-      .replace(/\x1b\[36m/g, '<span style="color:#3b82f6">')
-      .replace(/\x1b\[0m/g, '</span>');
-    l.appendChild(div);
-    l.scrollTop = l.scrollHeight;
-  });
-
-  socket.on('stats', d => {
-    document.getElementById('ram-val').innerText = d.ram;
-    document.getElementById('uptime-val').innerText = d.uptime;
-    document.getElementById('ping-val').innerText = d.ping;
-
-    const st = document.getElementById('status-val');
-    st.innerText = d.status;
-    st.style.color = d.status === 'ONLINE' ? '#10b981' : '#ef4444';
-  });
-
-  function sendCmd() {
-    const i = document.getElementById('cmd-input');
-    const v = i.value.trim();
-    if (v === 'clear') {
-      document.getElementById('logs').innerHTML = '';
-      i.value = '';
-      return;
-    }
-    if (v) socket.emit('input', v);
-    i.value = '';
-  }
-
-  document.getElementById('cmd-input').addEventListener('keydown', e => {
-    if (e.key === 'Enter') sendCmd();
-  });
-
-  async function loadFiles(p = currPath) {
-    const res = await fetch('/files', {
-      method: 'POST',
-      headers: getHead(),
-      body: JSON.stringify({ path: p })
-    });
-    const d = await res.json();
-    if (!d.success) return;
-
-    currPath = d.currentPath;
-    document.getElementById('path-display').innerText = currPath || '/home';
-    const list = document.getElementById('file-list');
-    list.innerHTML = '';
-
-    if (d.data.length === 0) {
-      list.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:12px;">Folder Kosong</div>';
-    }
-
-    d.data.forEach(f => {
-      const item = document.createElement('div');
-      item.className = 'file-item';
-
-      const icon = f.isDir
-        ? '<i class="ri-folder-fill" style="color:#f59e0b; font-size:20px;"></i>'
-        : '<i class="ri-file-code-line" style="color:var(--primary); font-size:20px;"></i>';
-      const actionClick = f.isDir ? `onclick="loadFiles('${f.path}')"` : '';
-      const isZip = f.name.toLowerCase().endsWith('.zip');
-
-      let editBtn = '';
-      if (!f.isDir && !isZip) {
-        editBtn = `<button class="file-btn" onclick="editFile('${f.path}')" title="Edit"><i class="ri-edit-line"></i></button>`;
-      }
-
-      item.innerHTML = `
-        <div style="display:flex; align-items:center; gap:15px; cursor:pointer; flex:1;" ${actionClick}>
-          ${icon}
-          <span style="font-size:14px; font-weight:500;">${f.name}</span>
+    <main id="p-files" class="page">
+        <div class="file-toolbar">
+            <button class="btn btn-primary" onclick="document.getElementById('up').click()">+ Upload Script (.zip)</button>
+            <input type="file" id="up" style="display: none;" onchange="upload()">
         </div>
-        <div class="file-actions">
-          ${editBtn}
-          ${isZip ? `<button class="file-btn" onclick="req('/unzip', {filename: '${f.path}'}).then(() => loadFiles(currPath))" title="Extract"><i class="ri-file-zip-line"></i></button>` : ''}
-          <button class="file-btn del" onclick="if(confirm('Hapus file ini?')) req('/delete', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-delete-bin-line"></i></button>
+        
+        <div class="file-table">
+            <div class="file-header">
+                <div style="width: 40px;"></div>
+                <div style="flex: 1;">Filename</div>
+                <div style="width: 140px;">Actions</div>
+            </div>
+            <div class="file-list" id="file-list"></div>
         </div>
-      `;
-      list.appendChild(item);
-    });
-  }
+    </main>
 
-  function goUp() {
-    if (!currPath) return;
-    const s = currPath.split('/');
-    s.pop();
-    loadFiles(s.join('/'));
-  }
+    <script>
+        const socket = io();
+        
+        if (localStorage.getItem('nexus_auth') === 'true') {
+            document.getElementById('login-overlay').style.display = 'none';
+        }
+        
+        document.getElementById('pass').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
 
-  async function uploadFile() {
-    const file = document.getElementById('up-file').files[0];
-    if (!file) return;
-    const fd = new FormData();
-    fd.append('file', file);
-    toast('Mengupload...', 'normal');
-    await fetch('/upload', { method: 'POST', body: fd });
-    loadFiles(currPath);
-  }
+        function login() {
+            const p = document.getElementById('pass').value;
+            fetch('/login', {
+                method: 'POST', headers: {'Content-Type': 'application/json'},
+                body: JSON.stringify({ password: p })
+            }).then(r => r.json()).then(d => {
+                if(d.success) {
+                    localStorage.setItem('nexus_auth', 'true');
+                    document.getElementById('login-overlay').style.display = 'none';
+                    showToast('Login Berhasil', 'success');
+                    loadFiles();
+                } else {
+                    showToast('Password Salah!', 'error');
+                }
+            });
+        }
 
-  async function editFile(path) {
-    const res = await fetch('/read', {
-      method: 'POST',
-      headers: getHead(),
-      body: JSON.stringify({ path })
-    });
-    const d = await res.json();
-    if (d.success) {
-      currentEditFile = path;
-      document.getElementById('editor-filename').innerText = path;
-      document.getElementById('editor-content').value = d.content;
-      document.getElementById('editor-modal').classList.add('active');
-    } else {
-      toast(d.msg, 'error');
-    }
-  }
+        function toggleTheme() {
+            document.body.classList.toggle('light-mode');
+            localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+        }
+        if(localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
-  async function saveFile() {
-    const content = document.getElementById('editor-content').value;
-    const res = await req('/save', { path: currentEditFile, content });
-    if (res && res.success) closeEditor();
-  }
+        socket.on('log', d => {
+            const l = document.getElementById('logs');
+            l.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">')
+                               .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+                               .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+                               .replace(/\x1b\[36m/g, '<span class="ansi-cyan">')
+                               .replace(/\x1b\[0m/g, '</span>');
+            l.scrollTop = l.scrollHeight;
+        });
 
-  function closeEditor() {
-    document.getElementById('editor-modal').classList.remove('active');
-    currentEditFile = '';
-  }
+        socket.on('stats', s => {
+            document.getElementById('stat-ram').innerText = s.ram;
+            document.getElementById('stat-cpu').innerText = s.cpu;
+            document.getElementById('stat-time').innerText = s.time;
+            
+            const dot = document.getElementById('stat-dot');
+            const txt = document.getElementById('stat-text');
+            if(s.status === 'ONLINE') {
+                dot.classList.add('online');
+                txt.innerText = 'ONLINE';
+                txt.style.color = 'var(--success)';
+            } else {
+                dot.classList.remove('online');
+                txt.innerText = 'OFFLINE';
+                txt.style.color = 'var(--text-mute)';
+            }
+        });
 
-  function toast(msg, type) {
-    const c = document.getElementById('toast-container');
-    const d = document.createElement('div');
-    d.className = 'toast';
-    const icon = type === 'error' ? 'ri-error-warning-fill' : 'ri-checkbox-circle-fill';
-    const col = type === 'error' ? 'var(--danger)' : 'var(--success)';
-    d.innerHTML = `<i class="${icon}" style="color:${col}; font-size:18px;"></i> ${msg}`;
-    c.appendChild(d);
-    setTimeout(() => {
-      d.style.opacity = '0';
-      setTimeout(() => d.remove(), 300);
-    }, 3000);
-  }
+        socket.on('notify', d => showToast(d.msg, d.type));
 
-  function switchTab(id, btn) {
-    document.querySelectorAll('.tab-view').forEach(e => e.classList.remove('active'));
-    document.querySelectorAll('.dock-btn').forEach(e => e.classList.remove('active'));
-    document.getElementById('tab-' + id).classList.add('active');
-    btn.classList.add('active');
-    if (id === 'files') loadFiles();
-  }
-</script>
+        document.getElementById('cmd').addEventListener('keydown', e => {
+            if(e.key === 'Enter' && e.target.value.trim()) {
+                socket.emit('input', e.target.value);
+                e.target.value = '';
+            }
+        });
 
+        function switchPage(id) {
+            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
+            document.getElementById('p-'+id).classList.add('active');
+            event.target.classList.add('active');
+            if(id === 'files') loadFiles();
+        }
+
+        function req(url) {
+            fetch(url, {method: 'POST'}).then(r=>r.json()).then(d => {
+                showToast(d.msg, d.success ? 'success' : 'error');
+                if(url === '/restart') setTimeout(() => req('/start'), 2500);
+            });
+        }
+
+        function showToast(msg, type = 'success') {
+            const box = document.getElementById('toast-box');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerHTML = `<span>${msg}</span> <span style="cursor:pointer" onclick="this.parentElement.remove()">✕</span>`;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), 4000);
+        }
+
+        function loadFiles() {
+            fetch('/files').then(r=>r.json()).then(files => {
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+                if(files.length === 0) list.innerHTML = '<div style="padding:40px; text-align:center; color:var(--text-mute)">Belum ada file diupload</div>';
+                
+                files.forEach(f => {
+                    const isZip = f.name.endsWith('.zip');
+                    list.innerHTML += `
+                    <div class="file-row">
+                        <div class="file-icon">${f.isDir ? '📂' : '📄'}</div>
+                        <div class="file-name">${f.name}</div>
+                        <div class="file-actions">
+                            ${isZip ? `<button class="btn" onclick="act('/unzip','${f.name}')">Extract</button>` : ''}
+                            <button class="btn btn-danger" onclick="act('/delete','${f.name}')">Del</button>
+                        </div>
+                    </div>`;
+                });
+            });
+        }
+
+        function act(url, name) {
+            if(confirm('Yakin ingin melanjutkan?')) {
+                fetch(url, {
+                    method:'POST', headers:{'Content-Type':'application/json'},
+                    body:JSON.stringify({filename: name})
+                }).then(r=>r.json()).then(d => {
+                    showToast(d.msg, d.success?'success':'error');
+                    loadFiles();
+                });
+            }
+        }
+
+        function upload() {
+            const fd = new FormData();
+            fd.append('file', document.getElementById('up').files[0]);
+            showToast('Mengupload file...', 'warning');
+            fetch('/upload', {method:'POST', body:fd}).then(() => {
+                showToast('Upload Selesai', 'success');
+                loadFiles();
+            });
+        }
+    </script>
 </body>
 </html>

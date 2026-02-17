@@ -8,374 +8,406 @@
   <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <div id="toast-container"></div>
 
-  <div id="view-login">
-    <div class="login-card">
-      <div style="font-size:40px; color:var(--primary); margin-bottom:10px; animation: float 3s ease-in-out infinite;">
-        <i class="ri-shield-keyhole-fill"></i>
-      </div>
-      <h2 style="margin-bottom:5px;">SYSTEM ACCESS</h2>
-      <p style="font-size:12px; color:var(--text-muted); margin-bottom:25px;">Masukkan Token Server untuk melanjutkan</p>
-      <input type="password" id="token-input" class="cmd-input" style="width:100%; text-align:center; margin-bottom:15px; letter-spacing:2px;" placeholder="WL-TOKEN-KEY">
-      <button class="ctrl-btn btn-start" style="width:100%" onclick="login()">UNLOCK TERMINAL <i class="ri-arrow-right-line"></i></button>
+<div id="toast-container"></div>
+
+<div id="view-login">
+  <div class="login-card">
+    <div style="font-size: 48px; color: var(--primary); margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--primary-glow));">
+      <i class="ri-fingerprint-line"></i>
     </div>
+    <h2 style="margin-bottom: 10px; font-weight: 700;">SYSTEM ACCESS</h2>
+    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 30px;">
+      Authenticate identity to proceed to terminal.
+    </p>
+    <div class="input-group" style="background: rgba(0,0,0,0.2); margin-bottom: 20px;">
+      <i class="ri-lock-2-line" style="margin-left: 15px; color: var(--text-muted);"></i>
+      <input type="password" id="token-input" class="cmd-input" placeholder="Enter Access Token" style="text-align: center; letter-spacing: 2px;">
+    </div>
+    <button class="ctrl-btn btn-start" style="width: 100%;" onclick="login()">
+      INITIALIZE SYSTEM <i class="ri-arrow-right-line"></i>
+    </button>
   </div>
+</div>
 
-  <div class="app-container">
-    <header class="app-header">
-      <div class="header-brand">
-        <h2><i class="ri-terminal-window-line" style="color:var(--primary)"></i> WALZ<span style="color:var(--primary)">PANEL</span></h2>
-        <span id="role-display" class="role-badge">GUEST MODE</span>
-      </div>
-      <button class="theme-toggle" onclick="toggleTheme()"><i class="ri-sun-line" id="theme-icon"></i></button>
-    </header>
-
-    <div class="content-area">
-      <div id="tab-console" class="tab-view active">
-        <div class="controls-area">
-          <button class="ctrl-btn btn-start" onclick="req('/start')"><i class="ri-play-fill"></i> START BOT</button>
-          <button class="ctrl-btn btn-stop" onclick="req('/stop')"><i class="ri-stop-circle-line"></i> SHUTDOWN</button>
-        </div>
-
-        <div class="terminal-wrapper">
-          <div class="terminal-head">
-            <div class="term-dots">
-              <div class="dot r"></div>
-              <div class="dot y"></div>
-              <div class="dot g"></div>
-            </div>
-            <span style="font-size:11px; color:#666; font-family:'JetBrains Mono'">root@walz-server:~</span>
-          </div>
-
-          <div class="terminal-logs" id="logs">
-            <div style="opacity:0.5; margin-bottom:10px;">> System Initialized... Ready for command.</div>
-          </div>
-
-          <div class="terminal-footer">
-            <div class="input-group">
-              <span style="color:var(--success); font-weight:bold;">$</span>
-              <input type="text" id="cmd-input" class="cmd-input" placeholder="Type command (e.g., npm install)..." autocomplete="off">
-              <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-fill"></i></button>
-            </div>
-
-            <div class="stats-grid">
-              <div class="stat-card">
-                <i class="ri-cpu-line stat-icon"></i>
-                <span class="stat-value" id="ram-val">0 MB</span>
-                <span class="stat-label">RAM</span>
-              </div>
-              <div class="stat-card">
-                <i class="ri-timer-flash-line stat-icon"></i>
-                <span class="stat-value" id="uptime-val">00:00</span>
-                <span class="stat-label">UPTIME</span>
-              </div>
-              <div class="stat-card">
-                <i class="ri-pulse-line stat-icon"></i>
-                <span class="stat-value" id="ping-val">0 ms</span>
-                <span class="stat-label">PING</span>
-              </div>
-              <div class="stat-card">
-                <i class="ri-server-line stat-icon"></i>
-                <span class="stat-value" id="status-val" style="color:var(--danger)">OFF</span>
-                <span class="stat-label">STATUS</span>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <div id="tab-files" class="tab-view">
-        <div class="file-toolbar">
-          <button onclick="goUp()" style="background:none; border:none; font-size:18px; color:var(--text-main); cursor:pointer;"><i class="ri-arrow-left-line"></i></button>
-          <span class="path-txt" id="path-display">/home</span>
-          <label for="up-file" style="color:var(--primary); font-weight:700; font-size:12px; cursor:pointer; display:flex; gap:5px; align-items:center; transition:0.2s;">
-            <i class="ri-upload-cloud-line"></i> UPLOAD
-          </label>
-          <input type="file" id="up-file" hidden onchange="uploadFile()">
-        </div>
-        <div class="file-list" id="file-list"></div>
+<div class="app-container">
+  <header class="app-header">
+    <div class="header-brand">
+      <div class="brand-icon"><i class="ri-command-fill"></i></div>
+      <div>
+        <h2>WALZ<span style="color:var(--primary)">PANEL</span></h2>
+        <span id="role-display" class="role-badge">LOCKED</span>
       </div>
     </div>
+    <button class="theme-toggle" onclick="toggleTheme()">
+      <i class="ri-sun-line" id="theme-icon"></i>
+    </button>
+  </header>
 
-    <footer class="main-footer">
-      <div class="footer-content">
-        <div class="footer-socials">
-          <a href="https://wa.me/628xxxxxxxxxx" target="_blank" class="social-link wa"><i class="ri-whatsapp-line"></i></a>
-          <a href="https://t.me/username_telegram" target="_blank" class="social-link tg"><i class="ri-telegram-line"></i></a>
-          <a href="https://github.com/username_github" target="_blank" class="social-link gh"><i class="ri-github-line"></i></a>
+  <div class="content-area">
+    <div id="tab-console" class="tab-view active">
+      <div class="controls-area">
+        <button class="ctrl-btn btn-start" onclick="req('/start')">
+          <i class="ri-play-fill" style="font-size: 18px;"></i> START SERVER
+        </button>
+        <button class="ctrl-btn btn-stop" onclick="req('/stop')">
+          <i class="ri-shut-down-line" style="font-size: 18px;"></i> SHUTDOWN
+        </button>
+      </div>
+
+      <div class="terminal-wrapper">
+        <div class="terminal-head">
+          <div class="term-dots">
+            <div class="dot r"></div>
+            <div class="dot y"></div>
+            <div class="dot g"></div>
+          </div>
+          <span style="font-size: 11px; color: var(--text-muted); font-family: 'JetBrains Mono';">root@walz-vps:~</span>
         </div>
-        <div class="footer-text">
-          <p>Developed with <i class="ri-heart-fill" style="color:var(--danger)"></i> by <span>Walz Admin</span></p>
-          <p style="opacity: 0.5;">&copy; 2024 Walz Control Panel. All rights reserved.</p>
+
+        <div class="terminal-logs" id="logs">
+          <div style="opacity: 0.6; margin-bottom: 10px;">
+            <i class="ri-terminal-box-line"></i> System initialized. Waiting for commands...
+          </div>
+        </div>
+
+        <div class="terminal-footer">
+          <div class="input-group">
+            <span style="color: var(--success); font-weight: bold; padding-left: 10px;">➜</span>
+            <input type="text" id="cmd-input" class="cmd-input" placeholder="Execute command..." autocomplete="off">
+            <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-2-fill"></i></button>
+          </div>
+
+          <div class="stats-grid">
+            <div class="stat-card">
+              <i class="ri-cpu-line stat-icon" style="color: var(--primary);"></i>
+              <span class="stat-value" id="ram-val">0 MB</span>
+              <span class="stat-label">RAM</span>
+            </div>
+            <div class="stat-card">
+              <i class="ri-time-line stat-icon" style="color: var(--warning);"></i>
+              <span class="stat-value" id="uptime-val">00:00</span>
+              <span class="stat-label">UPTIME</span>
+            </div>
+            <div class="stat-card">
+              <i class="ri-wifi-line stat-icon" style="color: var(--success);"></i>
+              <span class="stat-value" id="ping-val">0 ms</span>
+              <span class="stat-label">PING</span>
+            </div>
+            <div class="stat-card">
+              <i class="ri-server-line stat-icon" style="color: var(--danger);"></i>
+              <span class="stat-value" id="status-val" style="color: var(--danger);">OFF</span>
+              <span class="stat-label">STATUS</span>
+            </div>
+          </div>
         </div>
       </div>
-    </footer>
+
+      <footer class="app-footer">
+        <div class="social-links">
+          <a href="https://wa.me/YOUR_NUMBER" target="_blank" class="social-btn wa"><i class="ri-whatsapp-line"></i></a>
+          <a href="https://t.me/YOUR_USERNAME" target="_blank" class="social-btn tg"><i class="ri-telegram-plane"></i></a>
+          <a href="https://github.com/YOUR_USERNAME" target="_blank" class="social-btn gh"><i class="ri-github-fill"></i></a>
+        </div>
+        <div style="font-size: 11px; color: var(--text-muted); letter-spacing: 1px;">
+          DESIGNED BY WALZ SYSTEM © 2024
+        </div>
+      </footer>
+    </div>
+
+    <div id="tab-files" class="tab-view">
+      <div class="file-toolbar">
+        <button onclick="goUp()" style="background: none; border: none; font-size: 20px; color: var(--text-main); cursor: pointer;">
+          <i class="ri-arrow-left-circle-fill"></i>
+        </button>
+        <span class="path-txt" id="path-display" style="font-weight: 600; font-family: 'JetBrains Mono'; color: var(--primary);">/home</span>
+        <label for="up-file" style="color: var(--text-main); font-weight: 600; font-size: 12px; cursor: pointer; display: flex; gap: 8px; align-items: center; background: var(--primary); padding: 8px 16px; border-radius: 10px;">
+          <i class="ri-upload-2-fill"></i> UPLOAD
+        </label>
+        <input type="file" id="up-file" hidden onchange="uploadFile()">
+      </div>
+      <div class="file-list" id="file-list"></div>
+      
+      <footer class="app-footer">
+        <div style="font-size: 11px; color: var(--text-muted);">SECURE FILE MANAGER</div>
+      </footer>
+    </div>
   </div>
 
   <nav class="nav-dock">
-    <button class="dock-btn active" onclick="switchTab('console', this)"><i class="ri-terminal-box-line"></i></button>
-    <button class="dock-btn" onclick="switchTab('files', this)"><i class="ri-folder-shield-2-line"></i></button>
+    <button class="dock-btn active" onclick="switchTab('console', this)">
+      <i class="ri-terminal-window-line"></i>
+    </button>
+    <button class="dock-btn" onclick="switchTab('files', this)">
+      <i class="ri-folder-shield-2-line"></i>
+    </button>
   </nav>
+</div>
 
-  <script>
-    const socket = io();
-    let currPath = '';
-    let botStartTime = null;
-    let uptimeInterval = null;
+<script>
+  const socket = io();
+  let currPath = '';
+  let botStartTime = null;
+  let uptimeInterval = null;
 
-    function toggleTheme() {
-      document.body.classList.toggle('light-mode');
-      const isLight = document.body.classList.contains('light-mode');
-      document.getElementById('theme-icon').className = isLight ? 'ri-moon-line' : 'ri-sun-line';
-      localStorage.setItem('theme', isLight ? 'light' : 'dark');
-    }
+  function toggleTheme() {
+    document.body.classList.toggle('light-mode');
+    const isLight = document.body.classList.contains('light-mode');
+    document.getElementById('theme-icon').className = isLight ? 'ri-moon-line' : 'ri-sun-line';
+    localStorage.setItem('theme', isLight ? 'light' : 'dark');
+  }
+  if (localStorage.getItem('theme') === 'light') toggleTheme();
 
-    if (localStorage.getItem('theme') === 'light') toggleTheme();
-    if (localStorage.getItem('walz_token')) document.getElementById('view-login').classList.add('hidden');
+  if (localStorage.getItem('walz_token')) {
+    document.getElementById('view-login').style.display = 'none';
+  }
 
-    async function login() {
-      const t = document.getElementById('token-input').value;
-      const btn = document.querySelector('.login-card button');
-      btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> Checking...';
-      try {
-        const res = await fetch('/login', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ token: t })
-        });
-        const d = await res.json();
-        if (d.success) {
-          localStorage.setItem('walz_token', t);
-          document.getElementById('view-login').classList.add('hidden');
-          const roleEl = document.getElementById('role-display');
-          if (d.role === 'OWNER') {
-            roleEl.innerText = 'OWNER ACCESS';
-            roleEl.style.color = 'var(--success)';
-            roleEl.style.borderColor = 'var(--success)';
-            roleEl.style.background = 'rgba(16, 185, 129, 0.1)';
-          } else {
-            const daysLeft = Math.ceil((d.expired - Date.now()) / (1000 * 60 * 60 * 24));
-            roleEl.innerText = `PREMIUM: ${daysLeft} DAYS`;
-          }
-          toast('Access Granted', 'success');
-          loadFiles();
+  async function login() {
+    const t = document.getElementById('token-input').value;
+    const btn = document.querySelector('.login-card button');
+    const originalContent = btn.innerHTML;
+    btn.innerHTML = '<i class="ri-loader-4-line ri-spin"></i> VERIFYING...';
+    try {
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token: t })
+      });
+      const d = await res.json();
+      if (d.success) {
+        localStorage.setItem('walz_token', t);
+        const loginView = document.getElementById('view-login');
+        loginView.style.opacity = '0';
+        setTimeout(() => loginView.style.display = 'none', 500);
+        
+        const roleEl = document.getElementById('role-display');
+        if (d.role === 'OWNER') {
+          roleEl.innerText = "OWNER";
+          roleEl.style.color = "var(--success)";
+          roleEl.style.borderColor = "var(--success)";
+          roleEl.style.background = "rgba(52, 211, 153, 0.1)";
         } else {
-          toast(d.msg || 'Login failed', 'error');
+          roleEl.innerText = "PREMIUM";
         }
-      } catch (e) {
-        toast('Network error', 'error');
-      } finally {
-        btn.innerHTML = 'UNLOCK TERMINAL <i class="ri-arrow-right-line"></i>';
-      }
-    }
-
-    function getHead() {
-      return {
-        'Authorization': localStorage.getItem('walz_token'),
-        'Content-Type': 'application/json'
-      };
-    }
-
-    async function req(url, body = {}) {
-      try {
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: getHead(),
-          body: JSON.stringify(body)
-        });
-        const data = await res.json();
-        if (data.success) {
-          toast(data.msg || 'Success', 'success');
-        } else {
-          toast(data.msg || 'Request failed', 'error');
-        }
-        return data;
-      } catch (e) {
-        toast('Network error', 'error');
-      }
-    }
-
-    socket.on('log', d => {
-      const l = document.getElementById('logs');
-      let clean = d.replace(/\x1b\[32m/g, '<span style="color:var(--success)">')
-        .replace(/\x1b\[31m/g, '<span style="color:var(--danger)">')
-        .replace(/\x1b\[33m/g, '<span style="color:var(--warning)">')
-        .replace(/\x1b\[36m/g, '<span style="color:var(--primary)">')
-        .replace(/\x1b\[0m/g, '</span>');
-      const div = document.createElement('div');
-      div.innerHTML = clean;
-      div.style.animation = 'fadeInUp 0.3s ease';
-      l.appendChild(div);
-      if (l.scrollTop + l.clientHeight >= l.scrollHeight - 100) {
-        l.scrollTop = l.scrollHeight;
-      }
-    });
-
-    socket.on('stats', d => {
-      document.getElementById('ram-val').innerText = d.ram;
-      const stEl = document.getElementById('status-val');
-      stEl.innerText = d.status;
-      if (d.status === 'ONLINE') {
-        stEl.style.color = 'var(--success)';
-        stEl.classList.add('status-online');
+        toast('Access Granted', 'success');
+        loadFiles();
       } else {
-        stEl.style.color = 'var(--danger)';
-        stEl.classList.remove('status-online');
+        toast(d.msg || 'Access Denied', 'error');
       }
+    } catch (e) {
+      toast('Connection Refused', 'error');
+    } finally {
+      btn.innerHTML = originalContent;
+    }
+  }
 
-      if (d.status === 'ONLINE') {
-        if (!botStartTime) botStartTime = Date.now();
-        if (!uptimeInterval) {
-          uptimeInterval = setInterval(() => {
-            const diff = Math.floor((Date.now() - botStartTime) / 1000);
-            const h = Math.floor(diff / 3600).toString().padStart(2, '0');
-            const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
-            const s = (diff % 60).toString().padStart(2, '0');
-            document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`;
-          }, 1000);
-        }
+  function getHead() {
+    return {
+      'Authorization': localStorage.getItem('walz_token'),
+      'Content-Type': 'application/json'
+    };
+  }
+
+  async function req(url, body = {}) {
+    try {
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: getHead(),
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (data.success) {
+        toast(data.msg || 'Command Executed', 'success');
       } else {
-        botStartTime = null;
-        clearInterval(uptimeInterval);
-        uptimeInterval = null;
-        document.getElementById('uptime-val').innerText = '00:00';
+        toast(data.msg || 'Command Failed', 'error');
       }
-      const ping = Math.floor(Math.random() * 20) + 10;
-      document.getElementById('ping-val').innerText = ping + ' ms';
-    });
+      return data;
+    } catch (e) {
+      toast('Network Error', 'error');
+    }
+  }
 
-    function sendCmd() {
-      const input = document.getElementById('cmd-input');
-      const cmd = input.value.trim();
-      if (!cmd) return;
-      if (cmd === 'clear') {
-        document.getElementById('logs').innerHTML = '';
-        input.value = '';
+  socket.on('log', d => {
+    const l = document.getElementById('logs');
+    let clean = d.replace(/\x1b\[32m/g, '<span style="color:var(--success)">')
+      .replace(/\x1b\[31m/g, '<span style="color:var(--danger)">')
+      .replace(/\x1b\[33m/g, '<span style="color:var(--warning)">')
+      .replace(/\x1b\[36m/g, '<span style="color:var(--primary)">')
+      .replace(/\x1b\[0m/g, '</span>');
+    const div = document.createElement('div');
+    div.innerHTML = clean;
+    div.style.animation = "fadeIn 0.3s ease";
+    l.appendChild(div);
+    if (l.scrollTop + l.clientHeight >= l.scrollHeight - 100) {
+      l.scrollTop = l.scrollHeight;
+    }
+  });
+
+  socket.on('stats', d => {
+    document.getElementById('ram-val').innerText = d.ram;
+    const stEl = document.getElementById('status-val');
+    stEl.innerText = d.status;
+    stEl.style.color = d.status === 'ONLINE' ? 'var(--success)' : 'var(--danger)';
+    
+    if (d.status === 'ONLINE') {
+      stEl.style.textShadow = "0 0 10px var(--success)";
+      if (!botStartTime) botStartTime = Date.now();
+      if (!uptimeInterval) {
+        uptimeInterval = setInterval(() => {
+          const diff = Math.floor((Date.now() - botStartTime) / 1000);
+          const h = Math.floor(diff / 3600).toString().padStart(2, '0');
+          const m = Math.floor((diff % 3600) / 60).toString().padStart(2, '0');
+          const s = (diff % 60).toString().padStart(2, '0');
+          document.getElementById('uptime-val').innerText = `${h}:${m}:${s}`;
+        }, 1000);
+      }
+    } else {
+      stEl.style.textShadow = "none";
+      botStartTime = null;
+      clearInterval(uptimeInterval);
+      uptimeInterval = null;
+      document.getElementById('uptime-val').innerText = "00:00";
+    }
+    const ping = Math.floor(Math.random() * 20) + 10;
+    document.getElementById('ping-val').innerText = ping + " ms";
+  });
+
+  function sendCmd() {
+    const input = document.getElementById('cmd-input');
+    const cmd = input.value.trim();
+    if (!cmd) return;
+    if (cmd === 'clear') {
+      document.getElementById('logs').innerHTML = '';
+      input.value = '';
+      return;
+    }
+    socket.emit('input', cmd);
+    input.value = '';
+  }
+
+  document.getElementById('cmd-input').addEventListener('keydown', e => {
+    if (e.key === 'Enter') sendCmd();
+  });
+
+  async function loadFiles(p = currPath) {
+    try {
+      const res = await fetch('/files', {
+        method: 'POST',
+        headers: getHead(),
+        body: JSON.stringify({ path: p })
+      });
+      const d = await res.json();
+      if (!d.success) return;
+      currPath = d.currentPath;
+      document.getElementById('path-display').innerText = currPath || '/home';
+      const list = document.getElementById('file-list');
+      list.innerHTML = '';
+
+      if (d.data.length === 0) {
+        list.innerHTML = '<div style="text-align:center; padding:50px; color:var(--text-muted);">Empty Directory</div>';
         return;
       }
-      socket.emit('input', cmd);
-      input.value = '';
-    }
 
-    document.getElementById('cmd-input').addEventListener('keydown', e => {
-      if (e.key === 'Enter') sendCmd();
-    });
-
-    async function loadFiles(p = currPath) {
-      try {
-        const res = await fetch('/files', {
-          method: 'POST',
-          headers: getHead(),
-          body: JSON.stringify({ path: p })
-        });
-        const d = await res.json();
-        if (!d.success) return;
-        currPath = d.currentPath;
-        document.getElementById('path-display').innerText = currPath || '/home';
-        const list = document.getElementById('file-list');
-        list.innerHTML = '';
-
-        if (d.data.length === 0) {
-          list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">Empty Directory</div>';
-          return;
-        }
-
-        d.data.forEach((f, index) => {
-          const icon = f.isDir ? 'ri-folder-fill' : 'ri-file-code-line';
-          const col = f.isDir ? 'var(--warning)' : 'var(--primary)';
-          const isZip = !f.isDir && f.name.toLowerCase().endsWith('.zip');
-          const item = document.createElement('div');
-          item.className = 'file-item';
-          item.style.animationDelay = `${index * 0.05}s`;
-          item.innerHTML = `
-            <div style="display:flex; align-items:center; gap:10px; flex:1; cursor:${f.isDir ? 'pointer' : 'default'}" onclick="${f.isDir ? `loadFiles('${f.path}')` : ''}">
-              <i class="${icon}" style="color:${col}; font-size:18px;"></i>
-              <span style="font-size:13px; font-weight:500;">${f.name}</span>
+      d.data.forEach((f, i) => {
+        const icon = f.isDir ? 'ri-folder-fill' : 'ri-file-code-line';
+        const col = f.isDir ? '#fbbf24' : 'var(--primary)';
+        const isZip = !f.isDir && f.name.toLowerCase().endsWith('.zip');
+        const item = document.createElement('div');
+        item.className = 'file-item';
+        item.style.animationDelay = (i * 0.05) + 's';
+        
+        item.innerHTML = `
+          <div style="display:flex; align-items:center; gap:15px; flex:1; cursor:${f.isDir ? 'pointer' : 'default'}" onclick="${f.isDir ? `loadFiles('${f.path}')` : ''}">
+            <div style="width:38px; height:38px; background:${f.isDir ? 'rgba(251, 191, 36, 0.1)' : 'rgba(56, 189, 248, 0.1)'}; display:flex; align-items:center; justify-content:center; border-radius:10px;">
+              <i class="${icon}" style="color:${col}; font-size:20px;"></i>
             </div>
-            <div class="file-actions">
-              ${isZip ? `<button onclick="unzipFile('${f.path}')" title="Extract ZIP"><i class="ri-file-zip-line" style="color:var(--primary)"></i></button>` : ''}
-              <button onclick="deleteFile('${f.path}')" title="Delete"><i class="ri-delete-bin-line" style="color:var(--danger)"></i></button>
-            </div>
-          `;
-          list.appendChild(item);
-        });
-      } catch (e) {
-        toast('Error loading files', 'error');
-      }
+            <span style="font-size:14px; font-weight:500;">${f.name}</span>
+          </div>
+          <div class="file-actions">
+            ${isZip ? `<button onclick="unzipFile('${f.path}')"><i class="ri-file-zip-line"></i></button>` : ''}
+            <button onclick="deleteFile('${f.path}')"><i class="ri-delete-bin-5-line" style="color:var(--danger)"></i></button>
+          </div>
+        `;
+        list.appendChild(item);
+      });
+    } catch (e) {
+      toast('Failed to load files', 'error');
     }
+  }
 
-    async function unzipFile(filename) {
-      const res = await req('/unzip', { filename });
-      if (res && res.success) {
-        toast('Extract completed', 'success');
+  async function unzipFile(filename) {
+    const res = await req('/unzip', { filename });
+    if (res && res.success) {
+      toast('Extraction Complete', 'success');
+      loadFiles(currPath);
+    }
+  }
+
+  async function deleteFile(filename) {
+    if (!confirm('Permanently delete this file?')) return;
+    const res = await req('/delete', { filename });
+    if (res && res.success) {
+      loadFiles(currPath);
+    }
+  }
+
+  function goUp() {
+    if (currPath) {
+      const s = currPath.split('/');
+      s.pop();
+      loadFiles(s.join('/'));
+    }
+  }
+
+  async function uploadFile() {
+    const file = document.getElementById('up-file').files[0];
+    if (!file) return;
+    const fd = new FormData();
+    fd.append('file', file);
+    toast('Uploading...', 'normal');
+    try {
+      const res = await fetch('/upload', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data.success) {
+        toast('Upload Successful', 'success');
         loadFiles(currPath);
+      } else {
+        toast('Upload Failed', 'error');
       }
+    } catch (e) {
+      toast('Upload Error', 'error');
     }
+    document.getElementById('up-file').value = '';
+  }
 
-    async function deleteFile(filename) {
-      if (!confirm('Hapus file ini?')) return;
-      const res = await req('/delete', { filename });
-      if (res && res.success) {
-        loadFiles(currPath);
-      }
+  function toast(msg, type = 'normal') {
+    const container = document.getElementById('toast-container');
+    const toastEl = document.createElement('div');
+    toastEl.className = 'toast';
+    let icon = 'ri-information-fill';
+    let col = 'white';
+    if (type === 'success') {
+      icon = 'ri-checkbox-circle-fill';
+      col = 'var(--success)';
+    } else if (type === 'error') {
+      icon = 'ri-close-circle-fill';
+      col = 'var(--danger)';
     }
+    toastEl.innerHTML = `<i class="${icon}" style="color:${col}; font-size:18px;"></i> ${msg}`;
+    container.appendChild(toastEl);
+    setTimeout(() => {
+      toastEl.style.opacity = '0';
+      setTimeout(() => toastEl.remove(), 300);
+    }, 3000);
+  }
 
-    function goUp() {
-      if (currPath) {
-        const s = currPath.split('/');
-        s.pop();
-        loadFiles(s.join('/'));
-      }
-    }
-
-    async function uploadFile() {
-      const file = document.getElementById('up-file').files[0];
-      if (!file) return;
-      const fd = new FormData();
-      fd.append('file', file);
-      toast('Uploading...', 'normal');
-      try {
-        const res = await fetch('/upload', { method: 'POST', body: fd });
-        const data = await res.json();
-        if (data.success) {
-          toast('Upload success', 'success');
-          loadFiles(currPath);
-        } else {
-          toast('Upload failed', 'error');
-        }
-      } catch (e) {
-        toast('Upload error', 'error');
-      }
-      document.getElementById('up-file').value = '';
-    }
-
-    function toast(msg, type = 'normal') {
-      const container = document.getElementById('toast-container');
-      const toastEl = document.createElement('div');
-      toastEl.className = 'toast';
-      let color = 'var(--text-main)';
-      let icon = 'ri-information-line';
-      if (type === 'success') {
-        color = 'var(--success)';
-        icon = 'ri-checkbox-circle-fill';
-      } else if (type === 'error') {
-        color = 'var(--danger)';
-        icon = 'ri-error-warning-fill';
-      }
-      toastEl.style.color = color;
-      toastEl.innerHTML = `<i class="${icon}"></i> ${msg}`;
-      container.appendChild(toastEl);
-      setTimeout(() => toastEl.remove(), 3000);
-    }
-
-    function switchTab(id, btn) {
-      document.querySelectorAll('.tab-view').forEach(e => e.classList.remove('active'));
-      document.querySelectorAll('.dock-btn').forEach(e => e.classList.remove('active'));
-      document.getElementById('tab-' + id).classList.add('active');
-      btn.classList.add('active');
-      if (id === 'files') loadFiles();
-    }
-  </script>
+  function switchTab(id, btn) {
+    document.querySelectorAll('.tab-view').forEach(e => e.classList.remove('active'));
+    document.querySelectorAll('.dock-btn').forEach(e => e.classList.remove('active'));
+    document.getElementById('tab-' + id).classList.add('active');
+    btn.classList.add('active');
+    if (id === 'files') loadFiles();
+  }
+</script>
 </body>
 </html>

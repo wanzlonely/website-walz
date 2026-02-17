@@ -36,6 +36,10 @@ body.light-mode {
   outline: none;
 }
 
+html {
+  scroll-behavior: smooth;
+}
+
 body {
   background-color: var(--bg-core);
   color: var(--text-main);
@@ -116,6 +120,8 @@ body {
   pointer-events: none;
   transition: 0.3s ease;
   transform: translateY(10px);
+  overflow-y: auto;
+  scroll-behavior: smooth;
 }
 
 .tab-view.active {

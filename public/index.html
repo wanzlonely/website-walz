@@ -3,130 +3,185 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>WALZ EXPLOIT V3</title>
+    <title>WALZ CONTROL PANEL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
+
+    <div class="cyber-bg"></div>
+    <div class="grid-overlay"></div>
     <div id="toast-container"></div>
 
     <div id="view-login">
-        <div class="login-card">
-            <div class="brand-title">WALZ<span>EXPLOIT</span></div>
-            <p class="brand-desc">Professional Bot Controller Interface</p>
-            <div class="input-group">
-                <input type="text" id="token-input" placeholder="Masukkan Token / Password" autocomplete="off">
+        <div class="login-box">
+            <div class="secure-badge"><i class="ri-shield-check-line"></i> SECURE GATEWAY V4.0</div>
+            <div class="logo-text">WALZ EXPLOIT</div>
+            <p style="color:var(--text-mute); margin-bottom: 30px; font-size:14px;">Masukkan Kunci Akses</p>
+            
+            <div class="input-zone">
+                <input type="password" id="token-input" class="input-field" placeholder="ACCESS_TOKEN" autocomplete="off">
+                <i class="ri-lock-password-line"></i>
             </div>
-            <button class="btn-main" onclick="auth()">MASUK DASHBOARD</button>
-            <p style="margin-top: 25px; font-size: 12px; color: #555;">Gunakan password admin jika token error.</p>
+            
+            <button class="btn-login" onclick="attemptLogin()">
+                <span id="btn-text">UNLOCK SYSTEM</span>
+                <i class="ri-arrow-right-line"></i>
+            </button>
+            <p style="margin-top:20px; font-size:12px; color:#444;">Protected by AES-256 Encryption</p>
         </div>
     </div>
 
-    <div class="app-content">
-        <div id="tab-console" class="tab-view active">
-            <div class="page-header">
-                <div class="page-title">Console</div>
-                <div class="status-pill">
-                    <span class="dot" id="status-dot"></span>
-                    <span id="status-text">OFFLINE</span>
+    <div class="app-container">
+        
+        <div id="tab-console" class="tab-content active">
+            <div class="top-bar">
+                <div class="page-title">Terminal</div>
+                <div class="status-indicator">
+                    <div class="blink-dot" id="status-dot"></div>
+                    <span id="status-text">DISCONNECTED</span>
                 </div>
             </div>
 
-            <div class="console-box">
-                <div class="console-log" id="logs"></div>
-                <div class="console-input-area">
-                    <span style="color:var(--primary)">$</span>
-                    <input type="text" id="cmd-input" class="console-input" placeholder="Ketik perintah...">
+            <div class="terminal-wrapper">
+                <div class="terminal-head">
+                    <div class="win-btn r"></div><div class="win-btn y"></div><div class="win-btn g"></div>
+                </div>
+                <div class="terminal-body" id="logs">
+                    <div style="opacity:0.5; margin-bottom:10px;">> System Initialized...</div>
+                </div>
+                <div class="terminal-input">
+                    <span style="color:var(--success)">root@walz:~#</span>
+                    <input type="text" id="cmd-input" class="cmd-input" placeholder="type command...">
                 </div>
             </div>
 
-            <div class="action-grid">
-                <button class="btn-action btn-start" onclick="req('/start')">▶ MULAI BOT</button>
-                <button class="btn-action btn-stop" onclick="req('/stop')">■ STOP</button>
+            <div class="controls">
+                <button class="btn-act btn-start" onclick="req('/start')">
+                    <i class="ri-play-fill"></i> RUN BOT
+                </button>
+                <button class="btn-act btn-stop" onclick="req('/stop')">
+                    <i class="ri-stop-fill"></i> TERMINATE
+                </button>
             </div>
         </div>
 
-        <div id="tab-files" class="tab-view">
-            <div class="page-header">
-                <div class="page-title">Manager</div>
-                <div class="status-pill" onclick="document.getElementById('up').click()" style="cursor:pointer; border-color:var(--primary); color:var(--primary);">
-                    + Upload
+        <div id="tab-files" class="tab-content">
+            <div class="top-bar">
+                <div class="page-title">File Manager</div>
+                <button onclick="document.getElementById('up-file').click()" style="background:var(--primary); border:none; color:white; padding:8px 16px; border-radius:8px; font-weight:600; cursor:pointer;">
+                    <i class="ri-upload-cloud-2-line"></i> Upload
+                </button>
+                <input type="file" id="up-file" hidden onchange="uploadFile()">
+            </div>
+
+            <div class="file-path-bar">
+                <span id="path-display" style="color:var(--secondary)">/home/container</span>
+                <button onclick="goUp()" style="background:none; border:none; color:white; cursor:pointer; font-size:16px;"><i class="ri-arrow-up-circle-line"></i></button>
+            </div>
+
+            <div class="file-list" id="file-list">
                 </div>
-                <input type="file" id="up" hidden onchange="uploadFile()">
-            </div>
-
-            <div class="path-display">
-                <span id="current-path">/</span>
-                <button onclick="goUp()" style="background:none; border:none; color:white; font-size:18px; cursor:pointer;">⬆</button>
-            </div>
-
-            <div class="file-grid" id="file-list"></div>
         </div>
+
     </div>
 
-    <div id="editor-view">
-        <div class="editor-toolbar">
-            <button onclick="closeEditor()" style="background:none; border:none; color:#ef4444; font-size:24px; cursor:pointer;">✕</button>
-            <span id="editor-filename" style="font-family:'JetBrains Mono'; font-size:13px; color:#fff;">script.js</span>
-            <button onclick="saveFile()" style="background:none; border:none; color:var(--primary); font-size:24px; cursor:pointer;">✔</button>
+    <div id="editor-modal">
+        <div class="editor-nav">
+            <button onclick="closeEdit()" style="background:none; border:none; color:#ef4444; font-size:14px; cursor:pointer;">
+                <i class="ri-close-circle-line"></i> Cancel
+            </button>
+            <span id="edit-filename" style="color:white; font-family:'JetBrains Mono'; font-size:12px;">script.js</span>
+            <button onclick="saveFile()" style="background:none; border:none; color:#22c55e; font-size:14px; cursor:pointer;">
+                Save <i class="ri-save-3-line"></i>
+            </button>
         </div>
-        <textarea id="editor-textarea" spellcheck="false"></textarea>
+        <textarea id="editor-code" spellcheck="false"></textarea>
     </div>
 
-    <div class="bottom-nav">
-        <button class="nav-btn active" onclick="switchTab('console')">
-            <div class="nav-icon">⚡</div>
-            <span>Console</span>
-        </button>
-        <button class="nav-btn" onclick="switchTab('files')">
-            <div class="nav-icon">📂</div>
-            <span>Files</span>
-        </button>
+    <div class="bottom-area">
+        <div class="dock">
+            <button class="dock-btn active" onclick="switchTab('console')">
+                <i class="ri-terminal-box-line"></i>
+                <span>Console</span>
+            </button>
+            <button class="dock-btn" onclick="switchTab('files')">
+                <i class="ri-folder-shield-2-line"></i>
+                <span>Files</span>
+            </button>
+        </div>
+
+        <div class="footer">
+            <div class="social-links">
+                <a href="https://wa.me/62895622529944" target="_blank" class="social-btn wa"><i class="ri-whatsapp-line"></i></a>
+                <a href="https://t.me/WalzOffc" target="_blank" class="social-btn tg"><i class="ri-telegram-fill"></i></a>
+            </div>
+            <div class="copyright" style="margin-top:10px;">
+                &copy; <span id="year"></span> Walz Technology. All rights reserved.
+            </div>
+        </div>
     </div>
 
     <script>
         const socket = io();
-        let currentPath = '';
-        let editingPath = '';
+        let currPath = '';
+        let editPath = '';
+        document.getElementById('year').innerText = new Date().getFullYear();
 
-        if(localStorage.getItem('walz_auth')) {
+        if(localStorage.getItem('walz_token')) {
             document.getElementById('view-login').classList.add('hidden');
         }
 
-        function auth() {
+        function attemptLogin() {
             const t = document.getElementById('token-input').value;
-            fetch('/login', {
-                method: 'POST', headers: {'Content-Type':'application/json'},
-                body: JSON.stringify({token: t})
-            }).then(r=>r.json()).then(d => {
-                if(d.success) {
-                    localStorage.setItem('walz_auth', t);
-                    document.getElementById('view-login').classList.add('hidden');
-                    toast(d.msg || 'Login Berhasil');
-                    loadFiles();
-                } else {
-                    toast(d.msg || 'Token Salah');
-                    document.getElementById('token-input').value = '';
-                }
-            });
+            const btn = document.querySelector('.btn-login');
+            const txt = document.getElementById('btn-text');
+
+            if(!t) return toast('⚠ Token Required', 'error');
+
+            txt.innerText = "DECRYPTING...";
+            btn.style.opacity = "0.7";
+            
+            setTimeout(() => {
+                fetch('/login', {
+                    method: 'POST', headers: {'Content-Type':'application/json'},
+                    body: JSON.stringify({token: t})
+                }).then(r=>r.json()).then(d => {
+                    if(d.success) {
+                        localStorage.setItem('walz_token', t);
+                        document.getElementById('view-login').classList.add('hidden');
+                        toast('✅ Access Granted', 'success');
+                        loadFiles();
+                    } else {
+                        toast('❌ ' + (d.msg || 'Access Denied'), 'error');
+                        document.getElementById('token-input').value = '';
+                        document.querySelector('.login-box').style.animation = 'shake 0.3s';
+                        setTimeout(()=>document.querySelector('.login-box').style.animation='',300);
+                    }
+                    txt.innerText = "UNLOCK SYSTEM";
+                    btn.style.opacity = "1";
+                });
+            }, 800);
         }
 
-        function getHeaders() { 
-            return {'Authorization': localStorage.getItem('walz_auth'), 'Content-Type': 'application/json'}; 
-        }
+        function getHead() { return {'Authorization': localStorage.getItem('walz_token'), 'Content-Type': 'application/json'}; }
+        
         function req(u, b={}) {
-            fetch(u, {method:'POST', headers:getHeaders(), body:JSON.stringify(b)})
-            .then(r=>r.json()).then(d => toast(d.msg || (d.success?'Sukses':'Gagal')));
+            fetch(u, {method:'POST', headers:getHead(), body:JSON.stringify(b)})
+            .then(r=>r.json()).then(d => toast(d.msg || (d.success?'Command Executed':'Failed')));
         }
-        function toast(msg) {
-            const d = document.createElement('div'); d.className = 'toast'; d.innerText = msg;
+
+        function toast(msg, type='normal') {
+            const d = document.createElement('div'); 
+            d.className = 'toast'; 
+            d.innerHTML = `${type=='error'?'<i class="ri-error-warning-fill" style="color:#f87171"></i>':'<i class="ri-notification-3-fill" style="color:#4ade80"></i>'} ${msg}`;
             document.getElementById('toast-container').appendChild(d);
-            setTimeout(()=>d.remove(), 2500);
+            setTimeout(()=>d.remove(), 3000);
         }
 
         function switchTab(id) {
-            document.querySelectorAll('.tab-view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-btn').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.tab-content').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.dock-btn').forEach(e => e.classList.remove('active'));
             document.getElementById('tab-'+id).classList.add('active');
             event.currentTarget.classList.add('active');
             if(id === 'files') loadFiles();
@@ -134,78 +189,78 @@
 
         socket.on('log', d => {
             const l = document.getElementById('logs');
-            l.innerHTML += d.replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                            .replace(/\x1b\[31m/g, '<span class="ansi-red">')
-                            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+            l.innerHTML += d.replace(/\x1b\[32m/g, '<span class="text-green">')
+                            .replace(/\x1b\[31m/g, '<span class="text-red">')
+                            .replace(/\x1b\[33m/g, '<span class="text-yellow">')
                             .replace(/\x1b\[0m/g, '</span>');
             l.scrollTop = l.scrollHeight;
         });
         socket.on('stats', d => {
             document.getElementById('status-text').innerText = d.status;
-            document.getElementById('status-dot').className = 'dot ' + (d.status==='ONLINE'?'online':'');
+            document.getElementById('status-dot').className = 'blink-dot ' + (d.status==='ONLINE'?'on':'');
         });
         document.getElementById('cmd-input').addEventListener('keydown', e => {
             if(e.key === 'Enter') { socket.emit('input', e.target.value); e.target.value = ''; }
         });
 
-        function loadFiles(path = currentPath) {
-            fetch('/files', {method:'POST', headers:getHeaders(), body:JSON.stringify({path})})
+        function loadFiles(p = currPath) {
+            fetch('/files', {method:'POST', headers:getHead(), body:JSON.stringify({path:p})})
             .then(r=>r.json()).then(d => {
                 if(!d.success) return;
-                currentPath = d.currentPath;
-                document.getElementById('current-path').innerText = currentPath || '/';
-                const list = document.getElementById('file-list');
-                list.innerHTML = '';
+                currPath = d.currentPath;
+                document.getElementById('path-display').innerText = currPath || '/';
+                const l = document.getElementById('file-list');
+                l.innerHTML = '';
+                
                 d.data.forEach(f => {
-                    const safePath = f.path.replace(/'/g, "\\'");
-                    const icon = f.isDir ? '📁' : '📄';
-                    const action = f.isDir ? `loadFiles('${safePath}')` : `openEditor('${safePath}')`;
+                    const safe = f.path.replace(/'/g, "\\'");
+                    const icon = f.isDir ? '<i class="ri-folder-5-fill f-icon"></i>' : '<i class="ri-file-code-line f-icon" style="color:#94a3b8"></i>';
+                    const click = f.isDir ? `loadFiles('${safe}')` : `openEdit('${safe}')`;
                     
-                    let btns = `<button style="background:none;border:none;color:#ef4444;font-size:16px;cursor:pointer" onclick="act('/delete','${safePath}')">🗑</button>`;
-                    if(f.name.endsWith('.zip')) btns = `<button style="background:none;border:none;color:#fff;font-size:16px;margin-right:10px;cursor:pointer" onclick="act('/unzip','${safePath}')">📦</button>` + btns;
+                    let acts = `<button onclick="act('/delete','${safe}')" style="background:none;border:none;color:#f43f5e;font-size:18px;cursor:pointer"><i class="ri-delete-bin-line"></i></button>`;
+                    if(f.name.endsWith('.zip')) acts = `<button onclick="act('/unzip','${safe}')" style="background:none;border:none;color:white;font-size:18px;margin-right:10px;cursor:pointer"><i class="ri-file-zip-line"></i></button>` + acts;
 
-                    list.innerHTML += `
-                    <div class="file-card">
-                        <div class="file-info" onclick="${action}">
-                            <div style="font-size:20px">${icon}</div>
-                            <div class="file-name">${f.name}</div>
+                    l.innerHTML += `
+                    <div class="file-item">
+                        <div class="f-left" onclick="${click}">
+                            ${icon}
+                            <div class="f-name">${f.name}</div>
                         </div>
-                        <div>${btns}</div>
+                        <div>${acts}</div>
                     </div>`;
                 });
             });
         }
-
-        function goUp() {
-            if(!currentPath) return;
-            const s = currentPath.split('/'); s.pop(); loadFiles(s.join('/'));
-        }
-
+        
+        function goUp() { if(currPath) { const s = currPath.split('/'); s.pop(); loadFiles(s.join('/')); } }
         function uploadFile() {
-            const f = document.getElementById('up').files[0];
+            const f = document.getElementById('up-file').files[0];
             const fd = new FormData(); fd.append('file', f);
-            toast('Mengupload...');
-            fetch('/upload', {method:'POST', body:fd}).then(() => { toast('Upload Selesai'); loadFiles(); });
+            toast('Uploading...');
+            fetch('/upload', {method:'POST', body:fd}).then(() => { toast('Upload Complete'); loadFiles(); });
         }
+        function act(u, n) { if(confirm('Are you sure?')) req(u, {filename:n}); setTimeout(()=>loadFiles(currPath), 500); }
 
-        function act(u, n) { if(confirm('Lanjutkan aksi ini?')) req(u, {filename:n}); setTimeout(()=>loadFiles(currentPath), 500); }
-
-        function openEditor(p) {
-            fetch('/read', {method:'POST', headers:getHeaders(), body:JSON.stringify({path:p})})
+        function openEdit(p) {
+            fetch('/read', {method:'POST', headers:getHead(), body:JSON.stringify({path:p})})
             .then(r=>r.json()).then(d => {
                 if(d.success) {
-                    editingPath = p;
-                    document.getElementById('editor-filename').innerText = p;
-                    document.getElementById('editor-textarea').value = d.content;
-                    document.getElementById('editor-view').classList.add('open');
+                    editPath = p;
+                    document.getElementById('edit-filename').innerText = p;
+                    document.getElementById('editor-code').value = d.content;
+                    document.getElementById('editor-modal').classList.add('open');
                 }
             });
         }
         function saveFile() {
-            req('/save', {path:editingPath, content:document.getElementById('editor-textarea').value});
-            closeEditor();
+            req('/save', {path:editPath, content:document.getElementById('editor-code').value});
+            closeEdit();
         }
-        function closeEditor() { document.getElementById('editor-view').classList.remove('open'); }
+        function closeEdit() { document.getElementById('editor-modal').classList.remove('open'); }
+        
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `@keyframes shake { 0% { transform: translateX(0); } 25% { transform: translateX(-5px); } 50% { transform: translateX(5px); } 75% { transform: translateX(-5px); } 100% { transform: translateX(0); } }`;
+        document.head.appendChild(styleSheet);
     </script>
 </body>
 </html>

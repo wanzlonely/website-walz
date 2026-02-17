@@ -14,10 +14,8 @@ const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'tokens.json');
 const UPLOAD_DIR = path.join(__dirname, 'uploads');
-const PUBLIC_DIR = path.join(__dirname, 'public');
 
 if (!fs.existsSync(UPLOAD_DIR)) fs.mkdirSync(UPLOAD_DIR);
-if (!fs.existsSync(PUBLIC_DIR)) fs.mkdirSync(PUBLIC_DIR);
 
 let activeTokens = {};
 let currentProcess = null;
@@ -27,7 +25,8 @@ let bot = null;
 function loadTokens() {
   try {
     if (fs.existsSync(DB_FILE)) {
-      activeTokens = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) || {};
+      const raw = fs.readFileSync(DB_FILE, 'utf8');
+      activeTokens = JSON.parse(raw) || {};
     }
   } catch (e) {
     activeTokens = {};
@@ -38,12 +37,12 @@ function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
   } catch (e) {
-    console.error(e);
+    console.error('Database Save Error:', e.message);
   }
 }
 
-function generateToken(len = 16) {
-  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+function generateToken(len = 12) {
+  const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let res = 'WL-';
   for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
   return res;
@@ -53,24 +52,33 @@ loadTokens();
 
 try {
   bot = new TelegramBot(TG_TOKEN, { polling: true });
-  
+  console.log(`[SYSTEM] Bot Telegram Aktif. Owner ID: ${OWNER_ID}`);
+
   bot.onText(/\/id/, (msg) => {
-    bot.sendMessage(msg.chat.id, `ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+    bot.sendMessage(msg.chat.id, `🆔 ID Anda: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
   });
 
   bot.onText(/\/akses (\d+)/, (msg, match) => {
     if (String(msg.chat.id) !== String(OWNER_ID)) return;
+    
+    loadTokens();
+
     const days = parseInt(match[1]);
     const token = generateToken();
-    const exp = Date.now() + (days * 86400000);
+    const exp = Date.now() + (days * 24 * 60 * 60 * 1000);
+    
     activeTokens[token] = exp;
     saveTokens();
-    bot.sendMessage(msg.chat.id, `ACCESS GRANTED\nTOKEN: <code>${token}</code>\nDAYS: ${days}`, { parse_mode: 'HTML' });
+    
+    bot.sendMessage(msg.chat.id, 
+      `✅ <b>AKSES DIBUAT</b>\n\n🔑 Token: <code>${token}</code>\n⏳ Durasi: ${days} Hari\n\nSilakan login di panel.`, 
+      { parse_mode: 'HTML' }
+    );
   });
   
-  bot.on('polling_error', () => {});
+  bot.on('polling_error', (e) => console.log(`[TG ERROR] ${e.message}`));
 } catch (e) {
-  console.log('Telegram Bot Error');
+  console.log('[SYSTEM] Gagal memuat Bot Telegram. Cek Token.');
 }
 
 const app = express();
@@ -78,27 +86,35 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 app.use(express.json());
-app.use(express.static(PUBLIC_DIR));
-
-app.get('/', (req, res) => {
-  res.sendFile(path.join(PUBLIC_DIR, 'index.html'));
-});
+app.use(express.static(__dirname)); 
 
 const checkAuth = (req, res, next) => {
   const token = req.headers['authorization'];
   if (token === ADMIN_PASS) return next();
-  if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
+  
+  loadTokens();
+
+  if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Token Salah/Tidak Ditemukan' });
   if (Date.now() > activeTokens[token]) {
     delete activeTokens[token];
     saveTokens();
-    return res.status(401).json({ success: false, msg: 'Expired' });
+    return res.status(401).json({ success: false, msg: 'Token Kadaluarsa' });
   }
   next();
 };
 
+app.get('/', (req, res) => res.sendFile(path.join(__dirname, 'index.html')));
+
 app.post('/login', (req, res) => {
-  const { token } = req.body;
-  if (token === ADMIN_PASS) return res.json({ success: true, role: 'OWNER', expired: null });
+  let { token } = req.body;
+  token = String(token || '').trim();
+
+  loadTokens();
+
+  if (token === ADMIN_PASS) {
+    return res.json({ success: true, role: 'OWNER', expired: null });
+  }
+
   if (activeTokens[token]) {
     if (Date.now() < activeTokens[token]) {
       res.json({ success: true, role: 'PREMIUM', expired: activeTokens[token] });
@@ -108,7 +124,7 @@ app.post('/login', (req, res) => {
       res.json({ success: false, msg: 'Token Expired' });
     }
   } else {
-    res.json({ success: false, msg: 'Invalid Token' });
+    res.json({ success: false, msg: 'Token Tidak Valid' });
   }
 });
 
@@ -137,6 +153,33 @@ app.post('/files', checkAuth, (req, res) => {
   }
 });
 
+app.post('/read', checkAuth, (req, res) => {
+  try {
+    const target = path.join(UPLOAD_DIR, req.body.path);
+    if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
+    
+    const stats = fs.statSync(target);
+    if (stats.size > 1024 * 1024) return res.json({ success: false, msg: 'File terlalu besar untuk diedit.' });
+
+    const content = fs.readFileSync(target, 'utf8');
+    res.json({ success: true, content });
+  } catch (e) {
+    res.json({ success: false, msg: 'Gagal membaca file' });
+  }
+});
+
+app.post('/save', checkAuth, (req, res) => {
+  try {
+    const target = path.join(UPLOAD_DIR, req.body.path);
+    if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
+    
+    fs.writeFileSync(target, req.body.content);
+    res.json({ success: true, msg: 'File berhasil disimpan' });
+  } catch (e) {
+    res.json({ success: false, msg: 'Gagal menyimpan file' });
+  }
+});
+
 app.post('/delete', checkAuth, (req, res) => {
   try {
     const target = path.join(UPLOAD_DIR, req.body.filename);
@@ -160,7 +203,6 @@ app.post('/upload', upload.single('file'), (req, res) => res.json({ success: tru
 app.post('/unzip', checkAuth, (req, res) => {
   try {
     const target = path.join(UPLOAD_DIR, req.body.filename);
-    if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
     const zip = new AdmZip(target);
     zip.extractAllTo(UPLOAD_DIR, true); 
     fs.unlinkSync(target);
@@ -171,9 +213,9 @@ app.post('/unzip', checkAuth, (req, res) => {
 });
 
 app.post('/start', checkAuth, (req, res) => {
-  if (isRunning) return res.json({ success: false, msg: 'Already Running' });
+  if (isRunning) return res.json({ success: false, msg: 'Bot Sudah Berjalan!' });
 
-  const findMain = (dir) => {
+  const findEntry = (dir) => {
     try {
       const files = fs.readdirSync(dir);
       if (files.includes('package.json')) {
@@ -187,7 +229,7 @@ app.post('/start', checkAuth, (req, res) => {
       for (const f of files) {
         const sub = path.join(dir, f);
         if (fs.statSync(sub).isDirectory() && f !== 'node_modules') {
-          const found = findMain(sub);
+          const found = findEntry(sub);
           if (found) return found;
         }
       }
@@ -195,23 +237,23 @@ app.post('/start', checkAuth, (req, res) => {
     return null;
   };
 
-  const entry = findMain(UPLOAD_DIR);
-  if (!entry) return res.json({ success: false, msg: 'No Entry File Found' });
+  const entry = findEntry(UPLOAD_DIR);
+  if (!entry) return res.json({ success: false, msg: 'File Bot Tidak Ditemukan!' });
 
   const cwd = path.dirname(entry);
   io.emit('log', `\x1b[36m[SYSTEM] Starting: ${path.basename(entry)}\x1b[0m\n`);
 
   if (!fs.existsSync(path.join(cwd, 'node_modules')) && fs.existsSync(path.join(cwd, 'package.json'))) {
-    io.emit('log', `\x1b[33m[INSTALL] Installing dependencies...\x1b[0m\n`);
+    io.emit('log', `\x1b[33m[AUTO-INSTALL] Menjalankan npm install...\x1b[0m\n`);
     const install = spawn('npm', ['install'], { cwd, shell: true });
     install.stdout.on('data', d => io.emit('log', d.toString()));
     install.stderr.on('data', d => io.emit('log', d.toString()));
     install.on('close', (code) => {
       if (code === 0) {
-        io.emit('log', `\x1b[32m[DONE] Dependencies installed.\x1b[0m\n`);
+        io.emit('log', `\x1b[32m[INSTALL SUCCESS] Memulai bot...\x1b[0m\n`);
         spawnBot(entry, cwd);
       } else {
-        io.emit('log', `\x1b[31m[FAIL] Install failed.\x1b[0m\n`);
+        io.emit('log', `\x1b[31m[INSTALL FAIL] Gagal install module.\x1b[0m\n`);
       }
     });
   } else {
@@ -231,7 +273,7 @@ function spawnBot(file, cwd) {
   currentProcess.on('close', (code) => {
     isRunning = false;
     currentProcess = null;
-    io.emit('log', `\n\x1b[31m[EXIT] Code: ${code}\x1b[0m\n`);
+    io.emit('log', `\n\x1b[31m[STOP] Bot berhenti (Kode: ${code})\x1b[0m\n`);
   });
 }
 
@@ -240,10 +282,10 @@ app.post('/stop', checkAuth, (req, res) => {
     currentProcess.kill();
     currentProcess = null;
     isRunning = false;
-    io.emit('log', `\x1b[31m[STOP] Force Stopped.\x1b[0m\n`);
+    io.emit('log', `\x1b[31m[STOP] Mematikan paksa...\x1b[0m\n`);
     res.json({ success: true });
   } else {
-    res.json({ success: false, msg: 'Not Running' });
+    res.json({ success: false, msg: 'Bot tidak berjalan' });
   }
 });
 
@@ -272,4 +314,4 @@ function emitStats() {
 }
 setInterval(emitStats, 2000);
 
-server.listen(PORT, () => console.log(`Server Running on Port ${PORT}`));
+server.listen(PORT, () => console.log(`[SERVER] Berjalan di Port ${PORT}`));

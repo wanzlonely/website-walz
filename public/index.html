@@ -1,222 +1,323 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS DASHBOARD</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>WALZ EXPLOIT PANEL</title>
     <link rel="stylesheet" href="style.css">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
 
-<div id="toast-area"></div>
+    <div id="toast-box"></div>
 
-<div id="auth">
-    <div class="auth-box">
-        <h2 style="letter-spacing: -1px; margin-bottom: 5px;">SYSTEM LOGIN</h2>
-        <p style="color: var(--text-mute); font-size: 12px;">Masukkan kunci akses administrator</p>
-        <input type="password" id="pass" class="auth-input" placeholder="••••••••" autocomplete="off">
-        <button onclick="login()" class="btn btn-primary" style="width: 100%; justify-content: center;">MASUK DASHBOARD</button>
-    </div>
-</div>
-
-<nav>
-    <div class="brand"><span>⚡</span> NEXUS</div>
-    <div class="tabs">
-        <div class="tab active" onclick="page('console')">Console</div>
-        <div class="tab" onclick="page('files')">Files</div>
-    </div>
-</nav>
-
-<main id="p-console" class="page active">
-    <div class="stats-grid">
-        <div class="card">
-            <div class="card-label">Status</div>
-            <div class="card-value"><span id="st-dot" class="status-dot"></span><span id="st-txt" style="font-size:14px">OFFLINE</span></div>
-        </div>
-        <div class="card">
-            <div class="card-label">RAM Usage</div>
-            <div class="card-value" id="st-ram">-- MB</div>
-        </div>
-        <div class="card">
-            <div class="card-label">Uptime</div>
-            <div class="card-value" id="st-time">--:--:--</div>
-        </div>
-        <div class="card">
-            <div class="card-label">Host Memory</div>
-            <div class="card-value" id="st-total">-- GB</div>
+    <div id="login-overlay">
+        <div class="login-card">
+            <h1 class="login-title">WALZ <span style="color:var(--primary)">EXPLOIT</span></h1>
+            <p style="color: var(--text-mute); font-size: 12px;">Sistem Kontrol Bot WhatsApp Profesional</p>
+            
+            <input type="text" id="token-input" class="login-input" placeholder="Masukkan Token Akses (Dari Telegram)" autocomplete="off">
+            
+            <button onclick="authLogin()" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 12px;">
+                🔐 MASUK DASHBOARD
+            </button>
         </div>
     </div>
 
-    <div class="terminal-wrapper">
-        <div class="logs" id="logs"></div>
-        <div class="input-bar">
-            <span class="prompt">➜</span>
-            <input type="text" id="cmd" class="cmd-in" placeholder="Ketik perintah command disini..." autocomplete="off">
+    <div id="editor-overlay">
+        <div class="editor-box">
+            <div class="editor-header">
+                <span id="editor-filename" style="font-family: 'JetBrains Mono'; font-size: 12px;">file.js</span>
+                <div style="display:flex; gap:8px;">
+                    <button class="btn btn-secondary btn-icon" onclick="closeEditor()" title="Tutup">✕</button>
+                    <button class="btn btn-primary" onclick="saveFile()">💾 Simpan</button>
+                </div>
+            </div>
+            <textarea id="code-content" spellcheck="false" placeholder="Loading content..."></textarea>
         </div>
     </div>
 
-    <div class="controls">
-        <button class="btn btn-primary" onclick="req('/start')">▶ Start System</button>
-        <button class="btn" onclick="req('/restart')">↻ Restart</button>
-        <button class="btn btn-danger" onclick="req('/stop')">■ Terminate</button>
+    <nav>
+        <div class="brand">
+            <span>⚡</span> WALZ EXPLOIT
+        </div>
+        <div class="nav-tabs">
+            <button class="tab-btn active" onclick="switchPage('console')">Console</button>
+            <button class="tab-btn" onclick="switchPage('files')">Files</button>
+        </div>
+    </nav>
+
+    <div class="container">
+        
+        <main id="p-console" class="page active">
+            <div class="status-grid">
+                <div class="stat-card">
+                    <div class="stat-title">Bot Status</div>
+                    <div class="stat-value" id="stat-status">
+                        <span class="status-dot"></span> OFFLINE
+                    </div>
+                </div>
+                <div class="stat-card">
+                    <div class="stat-title">RAM Usage</div>
+                    <div class="stat-value" id="stat-ram">-- MB</div>
+                </div>
+            </div>
+
+            <div class="console-actions">
+                <button class="btn btn-primary" onclick="req('/start')">▶ Start Bot</button>
+                <button class="btn btn-secondary" onclick="req('/restart')">↻ Restart</button>
+                <button class="btn btn-danger" onclick="req('/stop')">■ Stop Bot</button>
+            </div>
+
+            <div class="terminal-wrapper">
+                <div class="terminal-output" id="logs">
+                    <div style="color: #666; margin-bottom: 10px;">Welcome to Walz Exploit v1.0.0...</div>
+                </div>
+                <div class="terminal-input-bar">
+                    <span class="prompt">$</span>
+                    <input type="text" id="cmd" class="cmd-input" placeholder="Ketik perintah command disini..." autocomplete="off">
+                </div>
+            </div>
+        </main>
+
+        <main id="p-files" class="page">
+            <div class="file-toolbar">
+                <div style="display: flex; gap: 8px; align-items: center; width: 100%;">
+                    <button class="btn btn-secondary btn-icon" onclick="goUpDir()">⬆</button>
+                    <div class="path-bread" id="current-path">/</div>
+                </div>
+                <div style="display: flex; gap: 8px; margin-top: 5px;">
+                    <button class="btn btn-primary" onclick="document.getElementById('up').click()">+ Upload Zip</button>
+                    <button class="btn btn-secondary" onclick="loadFiles()">↻ Refresh</button>
+                </div>
+                <input type="file" id="up" style="display: none;" onchange="upload()">
+            </div>
+            
+            <div class="file-grid" id="file-list">
+                </div>
+        </main>
+
     </div>
-</main>
 
-<main id="p-files" class="page">
-    <div class="controls" style="justify-content: flex-end;">
-        <button class="btn btn-primary" onclick="document.getElementById('up').click()">+ Upload Zip</button>
-        <input type="file" id="up" style="display: none;" onchange="upload()">
-    </div>
-    <div class="file-list" id="file-list"></div>
-</main>
+    <script>
+        const socket = io();
+        let currentPath = '';
+        let editingFile = '';
 
-<script src="/socket.io/socket.io.js"></script>
-<script>
-    const socket = io();
-
-    if (localStorage.getItem('nexus_auth') === 'true') {
-        document.getElementById('auth').style.display = 'none';
-    }
-
-    function login() {
-        const pass = document.getElementById('pass').value;
-        fetch('/login', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ password: pass })
-        })
-        .then(res => res.json())
-        .then(data => {
-            if (data.success) {
-                localStorage.setItem('nexus_auth', 'true');
-                document.getElementById('auth').style.display = 'none';
-                toast('Login Berhasil', 'success');
-                loadFiles();
-            } else {
-                toast('Password Salah', 'error');
-            }
-        });
-    }
-
-    document.getElementById('pass').addEventListener('keydown', e => {
-        if (e.key === 'Enter') login();
-    });
-
-    socket.on('log', data => {
-        const logs = document.getElementById('logs');
-        logs.innerHTML += data.replace(/\x1b\[31m/g, '<span class="ansi-red">')
-                              .replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                              .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
-                              .replace(/\x1b\[36m/g, '<span class="ansi-cyan">')
-                              .replace(/\x1b\[0m/g, '</span>');
-        logs.scrollTop = logs.scrollHeight;
-    });
-
-    socket.on('stats', stats => {
-        document.getElementById('st-ram').innerText = stats.ram;
-        document.getElementById('st-total').innerText = stats.totalRam;
-        document.getElementById('st-time').innerText = stats.uptime;
-
-        const dot = document.getElementById('st-dot');
-        const txt = document.getElementById('st-txt');
-        if (stats.status === 'ONLINE') {
-            dot.classList.add('on');
-            txt.innerText = 'ONLINE';
-            txt.style.color = 'var(--success)';
-        } else {
-            dot.classList.remove('on');
-            txt.innerText = 'OFFLINE';
-            txt.style.color = 'var(--text-mute)';
+        if (localStorage.getItem('walz_token')) {
+            document.getElementById('login-overlay').style.display = 'none';
         }
-    });
 
-    socket.on('notify', notif => toast(notif.msg, notif.type));
+        function authLogin() {
+            const token = document.getElementById('token-input').value;
+            if(!token) return showToast('Masukkan token!', 'error');
 
-    function req(url) {
-        fetch(url, { method: 'POST' })
-        .then(res => res.json())
-        .then(data => {
-            toast(data.msg || 'Command Sent', data.success ? 'success' : 'error');
-            if (url === '/restart') setTimeout(() => req('/start'), 2500);
-        });
-    }
-
-    document.getElementById('cmd').addEventListener('keydown', e => {
-        if (e.key === 'Enter' && e.target.value.trim()) {
-            socket.emit('input', e.target.value);
-            e.target.value = '';
-        }
-    });
-
-    function page(id) {
-        document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
-        document.getElementById('p-' + id).classList.add('active');
-        event.target.classList.add('active');
-        if (id === 'files') loadFiles();
-    }
-
-    function toast(msg, type = 'success') {
-        const area = document.getElementById('toast-area');
-        const toast = document.createElement('div');
-        toast.className = `toast ${type}`;
-        toast.innerText = msg;
-        area.appendChild(toast);
-        setTimeout(() => toast.remove(), 3000);
-    }
-
-    function loadFiles() {
-        fetch('/files')
-        .then(res => res.json())
-        .then(files => {
-            const list = document.getElementById('file-list');
-            list.innerHTML = '';
-            if (files.length === 0) {
-                list.innerHTML = '<div style="padding:40px;text-align:center;color:#555">Folder Kosong</div>';
-            } else {
-                files.forEach(f => {
-                    const isZip = f.name.endsWith('.zip');
-                    list.innerHTML += `
-                    <div class="file-row">
-                        <div style="font-size:18px;margin-right:12px">${f.isDir ? '📂' : '📄'}</div>
-                        <div class="file-name">${f.name}</div>
-                        <div style="font-size:12px;color:#666;margin-right:20px">${f.size}</div>
-                        <div style="display:flex;gap:8px">
-                            ${isZip ? `<button class="btn" style="padding:6px 12px;font-size:11px" onclick="act('/unzip','${f.name}')">Extract</button>` : ''}
-                            <button class="btn btn-danger" style="padding:6px 12px;font-size:11px" onclick="act('/delete','${f.name}')">Del</button>
-                        </div>
-                    </div>`;
-                });
-            }
-        });
-    }
-
-    function act(url, filename) {
-        if (confirm('Lanjutkan?')) {
-            fetch(url, {
+            fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ filename: filename })
+                body: JSON.stringify({ token })
             })
             .then(res => res.json())
             .then(data => {
-                toast(data.msg, data.success ? 'success' : 'error');
-                loadFiles();
+                if (data.success) {
+                    localStorage.setItem('walz_token', token);
+                    document.getElementById('login-overlay').style.display = 'none';
+                    showToast('Login Berhasil', 'success');
+                    if(data.warning) showToast(data.warning, 'warning');
+                    loadFiles('');
+                } else {
+                    showToast('Token Salah / Kadaluarsa', 'error');
+                }
+            })
+            .catch(() => showToast('Koneksi Gagal', 'error'));
+        }
+
+        function getAuthHeaders() {
+            return {
+                'Authorization': localStorage.getItem('walz_token'),
+                'Content-Type': 'application/json'
+            };
+        }
+
+        function req(url, body = {}) {
+            fetch(url, {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify(body)
+            })
+            .then(res => res.json())
+            .then(data => {
+                showToast(data.msg, data.success ? 'success' : 'error');
+                if(url === '/restart') setTimeout(() => req('/start'), 2000);
             });
         }
-    }
 
-    function upload() {
-        const fileInput = document.getElementById('up');
-        const formData = new FormData();
-        formData.append('file', fileInput.files[0]);
-        toast('Mengupload...', 'success');
-        fetch('/upload', { method: 'POST', body: formData })
-        .then(() => {
-            toast('Selesai');
-            loadFiles();
+        socket.on('log', (data) => {
+            const logDiv = document.getElementById('logs');
+            let formatted = data.replace(/</g, '&lt;')
+                .replace(/\x1b\[31m/g, '<span class="text-danger">')
+                .replace(/\x1b\[32m/g, '<span class="text-success">')
+                .replace(/\x1b\[33m/g, '<span class="text-warning">')
+                .replace(/\x1b\[36m/g, '<span class="text-info">')
+                .replace(/\x1b\[0m/g, '</span>');
+            
+            logDiv.innerHTML += formatted;
+            if (document.getElementById('p-console').classList.contains('active')) {
+                logDiv.scrollTop = logDiv.scrollHeight;
+            }
         });
-    }
-</script>
+
+        socket.on('stats', (data) => {
+            document.getElementById('stat-ram').innerText = data.ram;
+            const statusDiv = document.getElementById('stat-status');
+            if (data.status === 'ONLINE') {
+                statusDiv.innerHTML = '<span class="status-dot online"></span> <span class="text-success">ONLINE</span>';
+            } else {
+                statusDiv.innerHTML = '<span class="status-dot"></span> <span style="color:#777">OFFLINE</span>';
+            }
+        });
+
+        document.getElementById('cmd').addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') {
+                const val = e.target.value;
+                if (val.trim()) {
+                    socket.emit('input', val);
+                    e.target.value = '';
+                }
+            }
+        });
+
+        function loadFiles(path = currentPath) {
+            fetch('/files', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ path })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (!data.success && data.data) return;
+
+                currentPath = data.currentPath || '';
+                document.getElementById('current-path').innerText = currentPath || '/';
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+
+                if (data.data.length === 0) {
+                    list.innerHTML = '<div style="color:#555; padding:20px; text-align:center; grid-column: 1/-1;">Folder Kosong</div>';
+                    return;
+                }
+
+                data.data.forEach(file => {
+                    const icon = file.isDir ? '📂' : '📄';
+                    const safePath = file.path.replace(/\\/g, '/');
+                    const clickAction = file.isDir ? `loadFiles('${safePath}')` : `openEditor('${safePath}')`;
+
+                    let buttons = '';
+                    if (file.name.endsWith('.zip')) {
+                        buttons += `<button class="btn btn-secondary btn-icon" onclick="act('/unzip', '${safePath}')" title="Extract">📦</button>`;
+                    }
+                    buttons += `<button class="btn btn-danger btn-icon" onclick="act('/delete', '${safePath}')" title="Delete">🗑</button>`;
+
+                    const html = `
+                    <div class="file-item">
+                        <div class="file-info" onclick="${clickAction}">
+                            <span class="file-icon">${icon}</span>
+                            <span class="file-name">${file.name}</span>
+                        </div>
+                        <div style="display:flex; gap:5px;">
+                            ${buttons}
+                        </div>
+                    </div>`;
+                    list.innerHTML += html;
+                });
+            })
+            .catch(() => showToast('Gagal memuat file', 'error'));
+        }
+
+        function goUpDir() {
+            if (!currentPath || currentPath === '') return;
+            const parts = currentPath.split('/');
+            parts.pop();
+            loadFiles(parts.join('/'));
+        }
+
+        function act(endpoint, filename) {
+            if (confirm('Apakah anda yakin?')) {
+                req(endpoint, { filename });
+                setTimeout(() => loadFiles(currentPath), 1000);
+            }
+        }
+
+        function upload() {
+            const fileInput = document.getElementById('up');
+            if(fileInput.files.length === 0) return;
+
+            const fd = new FormData();
+            fd.append('file', fileInput.files[0]);
+            
+            showToast('Mengupload...', 'warning');
+            fetch('/upload', { method: 'POST', body: fd })
+            .then(res => res.json())
+            .then(data => {
+                showToast('Upload Selesai', 'success');
+                loadFiles(currentPath);
+            });
+        }
+
+        function openEditor(filePath) {
+            fetch('/read', {
+                method: 'POST',
+                headers: getAuthHeaders(),
+                body: JSON.stringify({ path: filePath })
+            })
+            .then(res => res.json())
+            .then(data => {
+                if (data.success) {
+                    editingFile = filePath;
+                    document.getElementById('editor-filename').innerText = filePath;
+                    document.getElementById('code-content').value = data.content;
+                    document.getElementById('editor-overlay').style.display = 'flex';
+                } else {
+                    showToast('Gagal membaca file', 'error');
+                }
+            });
+        }
+
+        function saveFile() {
+            const content = document.getElementById('code-content').value;
+            req('/save', { path: editingFile, content });
+            document.getElementById('editor-overlay').style.display = 'none';
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-overlay').style.display = 'none';
+        }
+
+        function switchPage(pageId) {
+            document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById('p-' + pageId).classList.add('active');
+            const tabs = document.querySelectorAll('.tab-btn');
+            if(pageId === 'console') tabs[0].classList.add('active');
+            if(pageId === 'files') {
+                tabs[1].classList.add('active');
+                loadFiles(currentPath);
+            }
+        }
+
+        function showToast(msg, type = 'success') {
+            const box = document.getElementById('toast-box');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerText = msg;
+            box.appendChild(el);
+            setTimeout(() => {
+                el.style.opacity = '0';
+                el.style.transform = 'translateX(100%)';
+                setTimeout(() => el.remove(), 300);
+            }, 3000);
+        }
+    </script>
 </body>
 </html>

@@ -40,7 +40,9 @@ function loadTokens() {
 function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
-  } catch (e) {}
+  } catch (e) {
+    console.error('[DB] Gagal menyimpan tokens:', e.message);
+  }
 }
 
 function generateToken(len = 10) {
@@ -88,7 +90,7 @@ app.use(express.static(PUBLIC_DIR));
 const checkAuth = (req, res, next) => {
   let token = req.headers['authorization'];
   if (!token) return res.status(401).json({ success: false, msg: 'No token provided' });
-  token = token.trim();
+  token = token.trim().toUpperCase();
   if (token === ADMIN_PASS) return next();
   loadTokens();
   if (!activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
@@ -106,7 +108,7 @@ app.get('/', (req, res) => {
 
 app.post('/login', (req, res) => {
   let { token } = req.body;
-  token = String(token || '').trim();
+  token = String(token || '').trim().toUpperCase();
   loadTokens();
   if (token === ADMIN_PASS) {
     return res.json({ success: true, role: 'OWNER', expired: null });

@@ -18,55 +18,67 @@
         * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
         body { background: var(--bg); color: var(--text); font-family: 'Inter', sans-serif; height: 100vh; display: flex; flex-direction: column; }
         #auth-overlay { position: fixed; inset: 0; background: #000; z-index: 99; display: flex; justify-content: center; align-items: center; }
-        .auth-box { background: var(--panel); padding: 30px; border-radius: 8px; width: 300px; text-align: center; border: 1px solid var(--border); }
-        .auth-input { width: 100%; padding: 10px; margin: 15px 0; background: var(--bg); border: 1px solid var(--border); color: white; text-align: center; }
+        .auth-box { background: var(--panel); padding: 30px; border-radius: 8px; width: 320px; text-align: center; border: 1px solid var(--border); box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
+        .auth-input { width: 100%; padding: 12px; margin: 20px 0; background: #0a0a0c; border: 1px solid var(--border); color: white; text-align: center; border-radius: 4px; font-size: 16px; }
+        .auth-input:focus { border-color: var(--blue); }
         nav { height: 60px; background: var(--panel); border-bottom: 1px solid var(--border); display: flex; padding: 0 20px; align-items: center; justify-content: space-between; }
-        .logo { font-weight: 700; font-size: 16px; }
+        .logo { font-weight: 700; font-size: 16px; display: flex; align-items: center; gap: 8px; }
         .tabs { display: flex; gap: 20px; height: 100%; }
-        .tab { display: flex; align-items: center; height: 100%; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; }
+        .tab { display: flex; align-items: center; height: 100%; color: var(--sub); cursor: pointer; border-bottom: 2px solid transparent; font-size: 14px; transition: 0.2s; }
+        .tab:hover { color: #fff; }
         .tab.active { color: white; border-bottom-color: var(--blue); }
         .page { display: none; padding: 20px; flex: 1; overflow: hidden; max-width: 1200px; margin: 0 auto; width: 100%; flex-direction: column; gap: 15px; }
         .page.active { display: flex; }
-        .controls { background: var(--panel); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; }
+        .controls { background: var(--panel); padding: 15px; border-radius: 6px; display: flex; justify-content: space-between; align-items: center; border: 1px solid var(--border); }
         .btns { display: flex; gap: 10px; }
-        .btn { padding: 8px 20px; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; }
+        .btn { padding: 8px 20px; border: none; border-radius: 4px; color: white; font-weight: 600; cursor: pointer; transition: 0.2s; font-size: 13px; }
         .btn-start { background: var(--blue); } .btn-start:hover { opacity: 0.8; }
         .btn-stop { background: var(--red); } .btn-stop:hover { opacity: 0.8; }
-        .btn-res { background: #4b5563; }
-        .status-pill { background: #fbbf24; color: #000; padding: 2px 8px; border-radius: 10px; font-size: 12px; font-weight: bold; }
+        .btn-res { background: #4b5563; } .btn-res:hover { opacity: 0.8; }
+        .status-pill { background: #fbbf24; color: #000; padding: 4px 10px; border-radius: 20px; font-size: 12px; font-weight: bold; }
         .status-pill.online { background: #22c55e; color: #fff; }
-        .terminal { flex: 1; background: #101014; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; }
-        .logs { flex: 1; padding: 15px; font-family: 'JetBrains Mono'; font-size: 12px; overflow-y: auto; white-space: pre-wrap; color: #d1d5db; }
-        .input-wrapper { display: flex; border-top: 1px solid var(--border); background: #1f2129; padding: 10px; }
-        .cmd-in { flex: 1; background: transparent; border: none; color: white; font-family: 'JetBrains Mono'; font-size: 13px; }
+        .terminal { flex: 1; background: #101014; border: 1px solid var(--border); border-radius: 6px; display: flex; flex-direction: column; overflow: hidden; }
+        .logs { flex: 1; padding: 15px; font-family: 'JetBrains Mono'; font-size: 12px; overflow-y: auto; white-space: pre-wrap; color: #d1d5db; line-height: 1.5; }
+        .input-wrapper { display: flex; border-top: 1px solid var(--border); background: #18181b; padding: 12px; align-items: center; }
+        .cmd-in { flex: 1; background: transparent; border: none; color: white; font-family: 'JetBrains Mono'; font-size: 13px; margin-left: 10px; }
         .file-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 10px; }
-        .file-list { background: var(--panel); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; }
-        .file-row { display: flex; padding: 12px 15px; border-bottom: 1px solid var(--border); align-items: center; }
-        .file-row:last-child { border-bottom: none; }
-        .file-name { flex: 1; font-family: 'JetBrains Mono'; font-size: 13px; font-weight: 500; }
-        .file-size { width: 100px; color: var(--sub); font-size: 12px; }
-        .file-act { width: 100px; display: flex; gap: 5px; justify-content: flex-end; }
-        .btn-sm { padding: 4px 8px; font-size: 11px; border-radius: 3px; cursor: pointer; border: none; color: white; }
+        .file-list { background: var(--panel); border-radius: 6px; border: 1px solid var(--border); overflow: hidden; flex: 1; overflow-y: auto; }
+        .file-row { display: flex; padding: 12px 15px; border-bottom: 1px solid #27272a; align-items: center; transition: 0.2s; }
+        .file-row:hover { background: #1f1f23; }
+        .file-name { flex: 1; font-family: 'JetBrains Mono'; font-size: 13px; font-weight: 500; display: flex; align-items: center; gap: 8px; }
+        .file-size { width: 100px; color: var(--sub); font-size: 12px; text-align: right; margin-right: 20px; }
+        .file-act { display: flex; gap: 8px; }
+        .btn-sm { padding: 5px 10px; font-size: 11px; border-radius: 4px; cursor: pointer; border: none; color: white; font-weight: 600; }
         .btn-unzip { background: var(--blue); }
         .btn-del { background: var(--red); }
         .ansi-red { color: #ef4444; } .ansi-green { color: #22c55e; } .ansi-yellow { color: #eab308; } .ansi-blue { color: #3b82f6; }
+        ::-webkit-scrollbar { width: 8px; }
+        ::-webkit-scrollbar-track { background: #0e0e12; }
+        ::-webkit-scrollbar-thumb { background: #333; border-radius: 4px; }
+        ::-webkit-scrollbar-thumb:hover { background: #444; }
+        @media (max-width: 768px) { 
+            .controls { flex-direction: column; gap: 10px; align-items: stretch; } 
+            .stats { text-align: center; } 
+        }
     </style>
 </head>
 <body>
 
     <div id="auth-overlay">
         <div class="auth-box">
-            <h3>Login Panel</h3>
-            <input type="password" id="pass" class="auth-input" placeholder="Password">
-            <button onclick="login()" class="btn btn-start" style="width:100%">Enter</button>
+            <h2 style="font-weight:600">Console Access</h2>
+            <p style="color:#71717a; font-size:12px; margin-top:5px;">Enter admin passphrase to continue</p>
+            <input type="password" id="pass" class="auth-input" placeholder="Password (default: admin123)">
+            <button id="btn-login" onclick="login()" class="btn btn-start" style="width:100%; padding:12px;">Login System</button>
+            <div id="login-msg" style="margin-top:15px; font-size:12px; color:#ef4444;"></div>
         </div>
     </div>
 
     <nav>
-        <div class="logo">Pterodactyl</div>
+        <div class="logo">⚡ Pterodactyl Panel</div>
         <div class="tabs">
             <div class="tab active" onclick="switchTab('console')">Console</div>
-            <div class="tab" onclick="switchTab('files')">Files</div>
+            <div class="tab" onclick="switchTab('files')">File Manager</div>
         </div>
     </nav>
 
@@ -77,27 +89,28 @@
                 <button class="btn btn-res" onclick="act('/restart'); setTimeout(()=>act('/start'), 2000)">Restart</button>
                 <button class="btn btn-stop" onclick="act('/stop')">Stop</button>
             </div>
-            <div class="stats">
-                RAM: <span id="ram">0 MB</span> | CPU: <span id="cpu">0%</span> | <span id="status" class="status-pill">Offline</span>
+            <div class="stats" style="font-size:12px; color:#9ca3af; font-family:'JetBrains Mono'">
+                RAM: <span id="ram" style="color:white">0 MB</span> | CPU: <span id="cpu" style="color:white">0%</span> | <span id="status" class="status-pill">Offline</span>
             </div>
         </div>
         <div class="terminal">
             <div class="logs" id="logs">
-                [SYSTEM] Ready to connect...
+                [SYSTEM] Connecting to server socket...
             </div>
             <div class="input-wrapper">
-                <span style="font-weight:bold; margin-right:10px;">$</span>
-                <input type="text" class="cmd-in" id="cmd" placeholder="Type command..." onkeydown="if(event.key==='Enter') sendCmd()">
+                <span style="font-weight:bold; color:#10b981;">user@server:\~$</span>
+                <input type="text" class="cmd-in" id="cmd" placeholder="Type a command..." autocomplete="off">
             </div>
         </div>
     </div>
 
     <div id="p-files" class="page">
         <div class="file-toolbar">
-            <button class="btn btn-start" onclick="document.getElementById('f-up').click()">+ Upload</button>
+            <button class="btn btn-start" onclick="document.getElementById('f-up').click()">+ Upload File</button>
             <input type="file" id="f-up" style="display:none" onchange="uploadFile()">
         </div>
         <div class="file-list" id="file-container">
+            <div style="padding:20px; text-align:center; color:#555">Loading files...</div>
         </div>
     </div>
 
@@ -105,29 +118,57 @@
     <script>
         const socket = io();
         const logs = document.getElementById('logs');
+        const passInput = document.getElementById('pass');
 
-        if(localStorage.getItem('auth') === 'true') {
+        if(localStorage.getItem('auth_token') === 'verified') {
             document.getElementById('auth-overlay').style.display = 'none';
         }
 
+        passInput.addEventListener("keypress", function(event) {
+            if (event.key === "Enter") {
+                event.preventDefault();
+                document.getElementById("btn-login").click();
+            }
+        });
+
         function login() {
-            const p = document.getElementById('pass').value;
-            fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:p}) })
-            .then(r=>r.json()).then(d => {
+            const p = passInput.value;
+            const btn = document.getElementById('btn-login');
+            const msg = document.getElementById('login-msg');
+            
+            btn.innerText = "Checking...";
+            btn.style.opacity = "0.7";
+            msg.innerText = "";
+
+            fetch('/login', { 
+                method:'POST', 
+                headers:{'Content-Type':'application/json'}, 
+                body:JSON.stringify({password:p}) 
+            })
+            .then(r => r.json())
+            .then(d => {
                 if(d.success) {
-                    localStorage.setItem('auth', 'true');
+                    localStorage.setItem('auth_token', 'verified');
                     document.getElementById('auth-overlay').style.display = 'none';
-                } else alert('Salah');
+                } else {
+                    msg.innerText = "❌ Password Salah! Coba 'admin123'";
+                    btn.innerText = "Login System";
+                    btn.style.opacity = "1";
+                    document.querySelector('.auth-box').style.animation = "shake 0.5s";
+                    setTimeout(() => document.querySelector('.auth-box').style.animation = "", 500);
+                }
+            })
+            .catch(err => {
+                msg.innerText = "⚠️ Server Error. Cek Log Railway.";
+                btn.innerText = "Login System";
             });
         }
 
         function switchTab(t) {
             document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
             document.querySelectorAll('.page').forEach(el => el.classList.remove('active'));
-            
             event.target.classList.add('active');
             document.getElementById('p-'+t).classList.add('active');
-            
             if(t === 'files') loadFiles();
         }
 
@@ -135,11 +176,12 @@
             fetch(endpoint, { method: 'POST' });
         }
 
-        function sendCmd() {
-            const i = document.getElementById('cmd');
-            socket.emit('input', i.value);
-            i.value = '';
-        }
+        document.getElementById('cmd').addEventListener('keydown', (e) => {
+            if(e.key === 'Enter') {
+                socket.emit('input', e.target.value);
+                e.target.value = '';
+            }
+        });
 
         socket.on('log', d => {
             const h = d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
@@ -159,7 +201,7 @@
             fetch('/files').then(r=>r.json()).then(files => {
                 const c = document.getElementById('file-container');
                 c.innerHTML = '';
-                if(files.length === 0) c.innerHTML = '<div style="padding:20px; text-align:center; color:#555">Folder Kosong</div>';
+                if(files.length === 0) c.innerHTML = '<div style="padding:40px; text-align:center; color:#555">Folder Uploads Kosong<br><small>Upload file .zip bot kamu di sini</small></div>';
                 
                 files.forEach(f => {
                     const isZip = f.name.endsWith('.zip');
@@ -168,7 +210,7 @@
                         <div class="file-name">${f.isDir ? '📂' : '📄'} ${f.name}</div>
                         <div class="file-size">${f.size}</div>
                         <div class="file-act">
-                            \( {isZip ? `<button class="btn-sm btn-unzip" onclick="unzip(' \){f.name}')">Unzip</button>` : ''}
+                            \( {isZip ? `<button class="btn-sm btn-unzip" onclick="unzip(' \){f.name}')">Extract</button>` : ''}
                             <button class="btn-sm btn-del" onclick="del('${f.name}')">Del</button>
                         </div>
                     </div>`;
@@ -178,24 +220,36 @@
 
         function uploadFile() {
             const file = document.getElementById('f-up').files[0];
+            if(!file) return;
+            const btn = document.querySelector('.file-toolbar button');
+            btn.innerText = "Uploading...";
+            
             const fd = new FormData();
             fd.append('file', file);
-            fetch('/upload', { method:'POST', body:fd }).then(() => loadFiles());
+            
+            fetch('/upload', { method:'POST', body:fd }).then(() => {
+                loadFiles();
+                btn.innerText = "+ Upload File";
+            });
         }
 
         function unzip(n) {
-            if(confirm('Extract '+n+'?')) {
+            if(confirm('Ekstrak file '+n+'?')) {
                 fetch('/unzip', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n}) })
-                .then(() => { alert('Extracted!'); loadFiles(); });
+                .then(() => { loadFiles(); setTimeout(()=>alert('Berhasil diekstrak! Silakan ke tab Console lalu Start.'), 500); });
             }
         }
 
         function del(n) {
-            if(confirm('Hapus '+n+'?')) {
+            if(confirm('Hapus permanen '+n+'?')) {
                 fetch('/delete', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n}) })
                 .then(() => loadFiles());
             }
         }
+
+        const style = document.createElement('style');
+        style.innerHTML = `@keyframes shake { 0% { transform: translate(1px, 1px) rotate(0deg); } 10% { transform: translate(-1px, -2px) rotate(-1deg); } 20% { transform: translate(-3px, 0px) rotate(1deg); } 30% { transform: translate(3px, 2px) rotate(0deg); } 40% { transform: translate(1px, -1px) rotate(1deg); } 50% { transform: translate(-1px, 2px) rotate(-1deg); } 60% { transform: translate(-3px, 1px) rotate(0deg); } 70% { transform: translate(3px, 1px) rotate(-1deg); } 80% { transform: translate(-1px, -1px) rotate(1deg); } 90% { transform: translate(1px, 2px) rotate(0deg); } 100% { transform: translate(1px, -2px) rotate(-1deg); } }`;
+        document.head.appendChild(style);
     </script>
 </body>
 </html>

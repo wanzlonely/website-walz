@@ -1,6 +1,6 @@
 {
-  "name": "vps-pro-panel",
-  "version": "3.5.0",
+  "name": "nexus-vps-pro",
+  "version": "4.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
@@ -9,7 +9,8 @@
     "express": "^4.19.2",
     "socket.io": "^4.7.5",
     "multer": "^1.4.5-lts.1",
-    "adm-zip": "^0.5.10"
+    "adm-zip": "^0.5.10",
+    "mongoose": "^8.2.0"
   },
   "engines": {
     "node": "18.x"

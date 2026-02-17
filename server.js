@@ -40,15 +40,15 @@ function loadTokens() {
 function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
-  } catch (e) {
-    console.log('DB Error');
-  }
+  } catch (e) {}
 }
 
 function generateToken(len = 10) {
   const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
   let res = 'WL-';
-  for (let i = 0; i < len; i++) res += chars.charAt(Math.floor(Math.random() * chars.length));
+  for (let i = 0; i < len; i++) {
+    res += chars.charAt(Math.floor(Math.random() * chars.length));
+  }
   return res;
 }
 
@@ -64,18 +64,15 @@ try {
 
   bot.onText(/\/akses (\d+)/, (msg, match) => {
     if (String(msg.chat.id) !== String(OWNER_ID)) return;
-    
     loadTokens();
     const days = parseInt(match[1]);
     const token = generateToken();
     const exp = Date.now() + (days * 86400000);
-    
     activeTokens[token] = exp;
     saveTokens();
-    
     bot.sendMessage(msg.chat.id, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari`, { parse_mode: 'HTML' });
   });
-  
+
   bot.on('polling_error', () => {});
 } catch (e) {
   console.log('[SYSTEM] Telegram Bot Error');
@@ -89,16 +86,16 @@ app.use(express.json());
 app.use(express.static(PUBLIC_DIR));
 
 const checkAuth = (req, res, next) => {
-  const token = req.headers['authorization'];
+  let token = req.headers['authorization'];
+  if (!token) return res.status(401).json({ success: false, msg: 'No token provided' });
+  token = token.trim();
   if (token === ADMIN_PASS) return next();
-  
   loadTokens();
-  
-  if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
+  if (!activeTokens[token]) return res.status(401).json({ success: false, msg: 'Invalid Token' });
   if (Date.now() > activeTokens[token]) {
     delete activeTokens[token];
     saveTokens();
-    return res.status(401).json({ success: false, msg: 'Expired' });
+    return res.status(401).json({ success: false, msg: 'Token Expired' });
   }
   next();
 };
@@ -110,13 +107,10 @@ app.get('/', (req, res) => {
 app.post('/login', (req, res) => {
   let { token } = req.body;
   token = String(token || '').trim();
-  
   loadTokens();
-
   if (token === ADMIN_PASS) {
     return res.json({ success: true, role: 'OWNER', expired: null });
   }
-
   if (activeTokens[token]) {
     if (Date.now() < activeTokens[token]) {
       res.json({ success: true, role: 'PREMIUM', expired: activeTokens[token] });
@@ -133,21 +127,24 @@ app.post('/login', (req, res) => {
 app.post('/files', checkAuth, (req, res) => {
   const reqPath = req.body.path || '';
   const target = path.join(UPLOAD_DIR, reqPath);
-  
   if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) {
     return res.json({ success: false, data: [] });
   }
-
   try {
     const files = fs.readdirSync(target);
     const data = files.map(f => {
       const fp = path.join(target, f);
       try {
         const s = fs.statSync(fp);
-        return { name: f, isDir: s.isDirectory(), path: path.relative(UPLOAD_DIR, fp).replace(/\\/g, '/') };
-      } catch { return null; }
+        return {
+          name: f,
+          isDir: s.isDirectory(),
+          path: path.relative(UPLOAD_DIR, fp).replace(/\\/g, '/')
+        };
+      } catch {
+        return null;
+      }
     }).filter(Boolean);
-    
     data.sort((a, b) => b.isDir - a.isDir);
     res.json({ success: true, data, currentPath: reqPath });
   } catch {
@@ -159,10 +156,10 @@ app.post('/read', checkAuth, (req, res) => {
   try {
     const target = path.join(UPLOAD_DIR, req.body.path);
     if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
-    
     const stats = fs.statSync(target);
-    if (stats.size > 2 * 1024 * 1024) return res.json({ success: false, msg: 'File too large' });
-
+    if (stats.size > 2 * 1024 * 1024) {
+      return res.json({ success: false, msg: 'File too large' });
+    }
     const content = fs.readFileSync(target, 'utf8');
     res.json({ success: true, content });
   } catch (e) {
@@ -174,7 +171,6 @@ app.post('/save', checkAuth, (req, res) => {
   try {
     const target = path.join(UPLOAD_DIR, req.body.path);
     if (!path.resolve(target).startsWith(path.resolve(UPLOAD_DIR))) throw new Error();
-    
     fs.writeFileSync(target, req.body.content);
     res.json({ success: true, msg: 'Saved' });
   } catch (e) {
@@ -206,7 +202,7 @@ app.post('/unzip', checkAuth, (req, res) => {
   try {
     const target = path.join(UPLOAD_DIR, req.body.filename);
     const zip = new AdmZip(target);
-    zip.extractAllTo(UPLOAD_DIR, true); 
+    zip.extractAllTo(UPLOAD_DIR, true);
     fs.unlinkSync(target);
     res.json({ success: true });
   } catch (e) {
@@ -216,7 +212,6 @@ app.post('/unzip', checkAuth, (req, res) => {
 
 app.post('/start', checkAuth, (req, res) => {
   if (isRunning) return res.json({ success: false, msg: 'Bot Running' });
-
   const findEntry = (dir) => {
     try {
       const files = fs.readdirSync(dir);
@@ -227,7 +222,9 @@ app.post('/start', checkAuth, (req, res) => {
         } catch {}
       }
       const candidates = ['index.js', 'main.js', 'bot.js', 'server.js'];
-      for (const c of candidates) if (files.includes(c)) return path.join(dir, c);
+      for (const c of candidates) {
+        if (files.includes(c)) return path.join(dir, c);
+      }
       for (const f of files) {
         const sub = path.join(dir, f);
         if (fs.statSync(sub).isDirectory() && f !== 'node_modules') {
@@ -238,13 +235,10 @@ app.post('/start', checkAuth, (req, res) => {
     } catch {}
     return null;
   };
-
   const entry = findEntry(UPLOAD_DIR);
   if (!entry) return res.json({ success: false, msg: 'No Bot File Found' });
-
   const cwd = path.dirname(entry);
   io.emit('log', `\x1b[36m[SYSTEM] Starting: ${path.basename(entry)}\x1b[0m\n`);
-
   if (!fs.existsSync(path.join(cwd, 'node_modules')) && fs.existsSync(path.join(cwd, 'package.json'))) {
     io.emit('log', `\x1b[33m[INSTALL] npm install...\x1b[0m\n`);
     const install = spawn('npm', ['install'], { cwd, shell: true });
@@ -269,10 +263,8 @@ function spawnBot(file, cwd) {
   isRunning = true;
   startTime = Date.now();
   currentProcess = spawn('node', [file], { cwd, stdio: 'pipe' });
-  
   currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
   currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
-  
   currentProcess.on('close', (code) => {
     isRunning = false;
     currentProcess = null;
@@ -302,8 +294,9 @@ io.on('connection', (socket) => {
       currentProcess.stdin.write(cmd + '\n');
     } else {
       io.emit('log', `\x1b[36m$ ${cmd}\x1b[0m\n`);
-      if (cmd.startsWith('sudo') || cmd.includes('rm -rf /')) return io.emit('log', `\x1b[31m[DENIED]\x1b[0m\n`);
-      
+      if (cmd.startsWith('sudo') || cmd.includes('rm -rf /')) {
+        return io.emit('log', `\x1b[31m[DENIED]\x1b[0m\n`);
+      }
       exec(cmd, { cwd: UPLOAD_DIR }, (err, stdout, stderr) => {
         if (err) io.emit('log', `\x1b[31m${err.message}\x1b[0m\n`);
         if (stderr) io.emit('log', `\x1b[33m${stderr}\x1b[0m\n`);
@@ -317,7 +310,7 @@ function formatUptime(ms) {
   const s = Math.floor((ms / 1000) % 60);
   const m = Math.floor((ms / 1000 / 60) % 60);
   const h = Math.floor((ms / 1000 / 3600));
-  return `${h.toString().padStart(2,'0')}:${m.toString().padStart(2,'0')}:${s.toString().padStart(2,'0')}`;
+  return `${h.toString().padStart(2, '0')}:${m.toString().padStart(2, '0')}:${s.toString().padStart(2, '0')}`;
 }
 
 function emitStats() {
@@ -327,14 +320,14 @@ function emitStats() {
     uptime = formatUptime(Date.now() - startTime);
   }
   const ping = Math.floor(Math.random() * 20 + 5) + ' ms';
-  
-  io.emit('stats', { 
-    ram, 
+  io.emit('stats', {
+    ram,
     status: isRunning ? 'ONLINE' : 'OFFLINE',
     uptime,
     ping
   });
 }
+
 setInterval(emitStats, 1000);
 
 server.listen(PORT, () => console.log(`[SERVER] Running on Port ${PORT}`));

@@ -18,42 +18,40 @@ const server = http.createServer(app);
 const io = socketIo(server);
 
 let activeTokens = {};
-
 let bot = null;
-if (TG_TOKEN !== '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc') {
-    try {
-        bot = new TelegramBot(TG_TOKEN, { polling: true });
-        console.log('[SYSTEM] Bot Telegram Berjalan...');
 
-        bot.onText(/\/akses (\d+)/, (msg, match) => {
-            const chatId = msg.chat.id;
-            if (String(chatId) !== String(OWNER_ID)) return bot.sendMessage(chatId, '❌ Anda bukan Owner.');
-            
-            const days = parseInt(match[1]);
-            const token = Math.random().toString(36).substring(2, 10).toUpperCase();
-            const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
-            
-            activeTokens[token] = expired;
-            
-            bot.sendMessage(chatId, 
-                `✅ **AKSES DIBUAT**\n\n` +
-                `🔑 Token: \`${token}\`\n` +
-                `Durasi: ${days} Hari\n` +
-                `📅 Expired: ${new Date(expired).toLocaleString()}`, 
-                { parse_mode: 'Markdown' }
-            );
-        });
+try {
+    bot = new TelegramBot(TG_TOKEN, { polling: true });
+    console.log('[SYSTEM] Bot Telegram Berjalan...');
 
-        bot.on('message', (msg) => {
-            if (String(msg.chat.id) === String(OWNER_ID) && msg.text === '/start') {
-                bot.sendMessage(msg.chat.id, "Halo Owner! Ketik `/akses 30` untuk membuat token login web selama 30 hari.");
-            }
-        });
-        
-        bot.on('polling_error', (error) => console.log(`[TG ERROR] ${error.code}`));
-    } catch (e) {
-        console.log('[SYSTEM] Gagal mengaktifkan bot telegram:', e.message);
-    }
+    bot.onText(/\/akses (\d+)/, (msg, match) => {
+        const chatId = msg.chat.id;
+        if (String(chatId) !== String(OWNER_ID)) return bot.sendMessage(chatId, '❌ Anda bukan Owner.');
+
+        const days = parseInt(match[1]);
+        const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
+
+        activeTokens[token] = expired;
+
+        bot.sendMessage(chatId, 
+            `✅ **AKSES DIBUAT**\n\n` +
+            `🔑 Token: \`${token}\`\n` +
+            `Durasi: ${days} Hari\n` +
+            `📅 Expired: ${new Date(expired).toLocaleString()}`, 
+            { parse_mode: 'Markdown' }
+        );
+    });
+
+    bot.on('message', (msg) => {
+        if (String(msg.chat.id) === String(OWNER_ID) && msg.text === '/start') {
+            bot.sendMessage(msg.chat.id, "Halo Owner! Ketik `/akses 30` untuk membuat token login web selama 30 hari.");
+        }
+    });
+
+    bot.on('polling_error', (error) => console.log(`[TG ERROR] ${error.code}`));
+} catch (e) {
+    console.log('[SYSTEM] Gagal mengaktifkan bot telegram:', e.message);
 }
 
 let currentProcess = null;
@@ -72,28 +70,22 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 const checkAuth = (req, res, next) => {
-    if (TG_TOKEN === '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc') return next();
-
     const token = req.headers['authorization'];
-    
+
     if (!token || !activeTokens[token]) {
         return res.status(401).json({ success: false, msg: 'Token Invalid / Tidak Ada' });
     }
-    
+
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
         return res.status(401).json({ success: false, msg: 'Token Sudah Kadaluarsa' });
     }
-    
+
     next();
 };
 
 app.post('/login', (req, res) => {
     const { token } = req.body;
-    
-    if (TG_TOKEN === '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc' && token === 'dev') {
-        return res.json({ success: true, warning: 'Mode Developer (Tanpa Telegram)' });
-    }
 
     if (activeTokens[token] && Date.now() < activeTokens[token]) {
         res.json({ success: true });
@@ -105,7 +97,6 @@ app.post('/login', (req, res) => {
 app.post('/files', checkAuth, (req, res) => {
     const reqPath = req.body.path || '';
     const targetPath = path.join(uploadDir, reqPath);
-    
     if (!targetPath.startsWith(uploadDir)) {
         return res.json({ success: false, msg: 'Akses Ditolak', data: [] });
     }
@@ -125,7 +116,7 @@ app.post('/files', checkAuth, (req, res) => {
         }).filter(Boolean);
 
         data.sort((a, b) => (a.isDir === b.isDir ? 0 : a.isDir ? -1 : 1));
-        
+
         res.json({ success: true, data, currentPath: reqPath });
     } catch (e) {
         res.json({ success: false, msg: 'Gagal membaca folder', data: [] });
@@ -135,7 +126,7 @@ app.post('/files', checkAuth, (req, res) => {
 app.post('/read', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.path);
     if (!target.startsWith(uploadDir)) return res.status(403).json({success: false});
-    
+
     try {
         const stats = fs.statSync(target);
         if (stats.size > 1024 * 1024) return res.json({ success: false, msg: 'File terlalu besar untuk diedit' });
@@ -167,12 +158,12 @@ app.post('/unzip', checkAuth, (req, res) => {
     try {
         const filePath = path.join(uploadDir, req.body.filename);
         const targetDir = path.dirname(filePath);
-        
+
         const zip = new AdmZip(filePath);
         zip.extractAllTo(targetDir, true);
-        
+
         fs.unlinkSync(filePath);
-        
+
         res.json({ success: true, msg: 'Berhasil Extract & Hapus Zip' });
     } catch (e) {
         res.json({ success: false, msg: 'Gagal Extract: ' + e.message });
@@ -182,7 +173,7 @@ app.post('/unzip', checkAuth, (req, res) => {
 app.post('/delete', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.filename);
     if (!target.startsWith(uploadDir)) return res.status(403);
-    
+
     fs.rm(target, { recursive: true, force: true }, (err) => {
         if (err) res.json({ success: false, msg: 'Gagal menghapus' });
         else res.json({ success: true, msg: 'Berhasil dihapus' });
@@ -224,7 +215,7 @@ app.post('/start', checkAuth, (req, res) => {
 
     if (!fs.existsSync(path.join(workDir, 'node_modules')) && fs.existsSync(path.join(workDir, 'package.json'))) {
         io.emit('log', `\x1b[33m[INSTALL] Menjalankan 'npm install'...\x1b[0m\n`);
-        
+
         exec('npm install', { cwd: workDir }, (error, stdout, stderr) => {
             if (error) {
                 io.emit('log', `\x1b[31m[ERROR] Gagal Install: ${stderr}\x1b[0m\n`);
@@ -236,7 +227,7 @@ app.post('/start', checkAuth, (req, res) => {
     } else {
         startBot(entryFile, workDir);
     }
-    
+
     res.json({ success: true, msg: 'Memulai Proses...' });
 });
 
@@ -253,7 +244,7 @@ function startBot(file, cwd) {
     currentProcess.stdout.on('data', (data) => {
         io.emit('log', data.toString());
     });
-    
+
     currentProcess.stderr.on('data', (data) => {
         io.emit('log', `\x1b[31m${data.toString()}\x1b[0m`);
     });
@@ -264,7 +255,7 @@ function startBot(file, cwd) {
         currentProcess = null;
         io.emit('status_update', false);
     });
-    
+
     io.emit('status_update', true);
 }
 
@@ -275,7 +266,7 @@ app.post('/stop', checkAuth, (req, res) => {
         } else {
             try { process.kill(-currentProcess.pid); } catch { currentProcess.kill(); }
         }
-        
+
         currentProcess = null;
         isRunning = false;
         io.emit('status_update', false);

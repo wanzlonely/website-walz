@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>WALZ PANEL V3</title>
+  <title>WALZ CONTROL CENTER</title>
   <link rel="stylesheet" href="style.css">
   <script src="/socket.io/socket.io.js"></script>
 </head>
@@ -13,21 +13,21 @@
 
 <div id="view-login">
   <div class="login-card">
-    <div style="font-size: 48px; color: var(--primary); margin-bottom: 20px; filter: drop-shadow(0 0 15px var(--primary-glow));">
-      <i class="ri-fingerprint-line"></i>
+    <div style="font-size: 48px; color: var(--primary); margin-bottom: 20px;">
+      <i class="ri-shield-keyhole-fill"></i>
     </div>
-    <h2 style="margin-bottom: 10px; font-weight: 700;">SYSTEM ACCESS</h2>
-    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 30px;">
-      Masukkan token autentikasi untuk melanjutkan.
+    <h2 style="margin-bottom: 8px; font-weight: 700;">SYSTEM ACCESS</h2>
+    <p style="color: var(--text-muted); font-size: 13px; margin-bottom: 25px;">
+      Masukkan token autentikasi Anda.
     </p>
     
-    <div class="input-group" style="margin-bottom: 20px; background: rgba(0,0,0,0.05); padding: 12px;">
-      <i class="ri-key-2-line" style="color: var(--text-muted); margin-left: 5px;"></i>
+    <div class="input-group" style="margin-bottom: 20px; padding: 12px; background:rgba(0,0,0,0.05);">
+      <i class="ri-key-2-line" style="color: var(--text-muted);"></i>
       <input type="password" id="token-input" class="cmd-input" placeholder="WL-XXXXXXXX" style="text-align: center; color: var(--text-main); font-size: 16px;">
     </div>
 
     <button class="ctrl-btn btn-start" onclick="login()">
-      VERIFY ACCESS <i class="ri-arrow-right-line"></i>
+      VERIFY TOKEN <i class="ri-arrow-right-line"></i>
     </button>
   </div>
 </div>
@@ -35,10 +35,13 @@
 <div id="editor-modal">
   <div class="editor-container">
     <div class="editor-head">
-      <span id="editor-filename" style="font-weight: 600; font-family: 'JetBrains Mono';">filename.js</span>
+      <div style="display:flex; align-items:center; gap:10px;">
+        <i class="ri-file-edit-line" style="color:var(--primary)"></i>
+        <span id="editor-filename" style="font-weight: 600; font-family: 'JetBrains Mono';">filename.js</span>
+      </div>
       <div style="display:flex; gap:10px;">
-        <button class="ctrl-btn btn-stop" style="padding: 8px 15px; width:auto; font-size:12px;" onclick="closeEditor()">CANCEL</button>
-        <button class="ctrl-btn btn-start" style="padding: 8px 15px; width:auto; font-size:12px;" onclick="saveFile()">SAVE CHANGE</button>
+        <button class="ctrl-btn btn-stop" style="padding: 8px 16px; width:auto; font-size:12px;" onclick="closeEditor()">CLOSE</button>
+        <button class="ctrl-btn btn-start" style="padding: 8px 16px; width:auto; font-size:12px;" onclick="saveFile()">SAVE</button>
       </div>
     </div>
     <textarea id="editor-content" class="editor-area" spellcheck="false"></textarea>
@@ -50,8 +53,8 @@
     <div class="header-brand">
       <div class="brand-icon"><i class="ri-command-fill"></i></div>
       <div>
-        <h2 style="font-size: 18px; font-weight: 700;">WALZ<span style="color:var(--primary)">PANEL</span></h2>
-        <span id="role-display" style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--primary); padding: 2px 8px; border-radius: 4px; font-weight: 600;">LOCKED</span>
+        <h2 style="font-size: 18px; font-weight: 800;">WALZ<span style="color:var(--primary)">PANEL</span></h2>
+        <span id="role-display" style="font-size: 10px; background: rgba(59,130,246,0.1); color: var(--primary); padding: 3px 8px; border-radius: 6px; font-weight: 700; border:1px solid rgba(59,130,246,0.2);">LOCKED</span>
       </div>
     </div>
     <button class="theme-toggle" onclick="toggleTheme()">
@@ -62,8 +65,8 @@
   <div class="content-area">
     <div id="tab-console" class="tab-view active">
       <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 15px;">
-        <button class="ctrl-btn btn-start" onclick="req('/start')"><i class="ri-play-fill"></i> START BOT</button>
-        <button class="ctrl-btn btn-stop" onclick="req('/stop')"><i class="ri-shut-down-line"></i> STOP BOT</button>
+        <button class="ctrl-btn btn-start" onclick="req('/start')"><i class="ri-play-fill"></i> START SYSTEM</button>
+        <button class="ctrl-btn btn-stop" onclick="req('/stop')"><i class="ri-shut-down-line"></i> SHUTDOWN</button>
       </div>
 
       <div class="terminal-wrapper">
@@ -74,15 +77,15 @@
           <span style="font-size: 11px; color: #94a3b8; font-family: 'JetBrains Mono';">root@walz-server:~</span>
         </div>
         <div class="terminal-logs" id="logs">
-          <div style="opacity: 0.5;">> System Ready...</div>
+          <div style="opacity: 0.5;">> System Ready... Waiting for input.</div>
         </div>
         <div class="terminal-footer">
           <div class="input-group">
             <span style="color: var(--success); font-weight: bold; margin-left:5px;">$</span>
-            <input type="text" id="cmd-input" class="cmd-input" placeholder="Type command..." autocomplete="off">
+            <input type="text" id="cmd-input" class="cmd-input" placeholder="Type command here..." autocomplete="off">
             <button class="btn-send" onclick="sendCmd()"><i class="ri-send-plane-fill"></i></button>
           </div>
-          <div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:12px; font-family:'JetBrains Mono';">
+          <div style="display:flex; justify-content:space-between; color:var(--text-muted); font-size:11px; font-family:'JetBrains Mono'; margin-top:5px;">
             <span id="ram-val">RAM: 0 MB</span>
             <span id="status-val" style="color:var(--danger)">OFFLINE</span>
           </div>
@@ -92,12 +95,12 @@
 
     <div id="tab-files" class="tab-view">
       <div class="file-toolbar">
-        <div style="display:flex; align-items:center; gap:10px;">
-          <button onclick="goUp()" style="background:none; border:none; color:var(--text-main); font-size:20px; cursor:pointer;"><i class="ri-arrow-left-circle-line"></i></button>
-          <span class="path-txt" id="path-display" style="font-weight:600; font-family:'JetBrains Mono'; font-size:14px;">/home</span>
+        <div style="display:flex; align-items:center; gap:12px;">
+          <button onclick="goUp()" style="background:none; border:none; color:var(--text-main); font-size:22px; cursor:pointer;"><i class="ri-arrow-left-circle-fill"></i></button>
+          <span class="path-txt" id="path-display" style="font-weight:600; font-family:'JetBrains Mono'; font-size:13px; color:var(--primary);">/home</span>
         </div>
-        <label for="up-file" style="background: var(--primary); color: white; padding: 6px 12px; border-radius: 8px; font-size: 12px; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 5px;">
-          <i class="ri-upload-2-line"></i> UPLOAD
+        <label for="up-file" style="background: var(--primary); color: white; padding: 8px 16px; border-radius: 8px; font-size: 12px; font-weight: 700; cursor: pointer; display: flex; align-items: center; gap: 6px; box-shadow: 0 4px 10px var(--primary-glow);">
+          <i class="ri-upload-cloud-line"></i> UPLOAD
         </label>
         <input type="file" id="up-file" hidden onchange="uploadFile()">
       </div>
@@ -142,7 +145,7 @@
 
   async function login() {
     const t = document.getElementById('token-input').value.trim();
-    if(!t) return toast('Masukkan Token', 'error');
+    if(!t) return toast('Token required', 'error');
     
     const btn = document.querySelector('.login-card button');
     const oriText = btn.innerHTML;
@@ -159,7 +162,7 @@
         localStorage.setItem('walz_token', t);
         document.getElementById('view-login').style.display = 'none';
         document.getElementById('role-display').innerText = d.role;
-        toast('Login Berhasil', 'success');
+        toast('Access Granted', 'success');
         loadFiles();
       } else {
         toast(d.msg, 'error');
@@ -171,7 +174,7 @@
   socket.on('log', d => {
     const l = document.getElementById('logs');
     const div = document.createElement('div');
-    div.innerHTML = d.replace(/\x1b\[32m/g, '<span style="color:#10b981">').replace(/\x1b\[31m/g, '<span style="color:#ef4444">').replace(/\x1b\[33m/g, '<span style="color:#f59e0b">').replace(/\x1b\[0m/g, '</span>');
+    div.innerHTML = d.replace(/\x1b\[32m/g, '<span style="color:#10b981">').replace(/\x1b\[31m/g, '<span style="color:#ef4444">').replace(/\x1b\[33m/g, '<span style="color:#f59e0b">').replace(/\x1b\[36m/g, '<span style="color:#3b82f6">').replace(/\x1b\[0m/g, '</span>');
     l.appendChild(div);
     l.scrollTop = l.scrollHeight;
   });
@@ -185,8 +188,9 @@
 
   function sendCmd() {
     const i = document.getElementById('cmd-input');
-    if(i.value.trim() === 'clear') { document.getElementById('logs').innerHTML = ''; i.value = ''; return; }
-    socket.emit('input', i.value);
+    const v = i.value.trim();
+    if(v === 'clear') { document.getElementById('logs').innerHTML = ''; i.value = ''; return; }
+    if(v) socket.emit('input', v);
     i.value = '';
   }
   
@@ -202,7 +206,7 @@
     const list = document.getElementById('file-list');
     list.innerHTML = '';
 
-    if (d.data.length === 0) list.innerHTML = '<div style="text-align:center; padding:20px; color:var(--text-muted)">Kosong</div>';
+    if (d.data.length === 0) list.innerHTML = '<div style="text-align:center; padding:30px; color:var(--text-muted); font-size:12px;">Directory Empty</div>';
 
     d.data.forEach(f => {
       const item = document.createElement('div');
@@ -215,12 +219,12 @@
       item.innerHTML = `
         <div style="display:flex; align-items:center; gap:15px; cursor:pointer; flex:1;" ${actionClick}>
           ${icon}
-          <span style="font-size:14px; font-weight:500;">${f.name}</span>
+          <span style="font-size:13px; font-weight:500;">${f.name}</span>
         </div>
         <div class="file-actions">
-          ${!f.isDir ? `<button class="file-btn" onclick="editFile('${f.path}')" title="Edit"><i class="ri-edit-2-line"></i></button>` : ''}
+          ${!f.isDir ? `<button class="file-btn" onclick="editFile('${f.path}')" title="Edit"><i class="ri-edit-line"></i></button>` : ''}
           ${isZip ? `<button class="file-btn" onclick="req('/unzip', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-file-zip-line"></i></button>` : ''}
-          <button class="file-btn del" onclick="if(confirm('Hapus?')) req('/delete', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-delete-bin-line"></i></button>
+          <button class="file-btn del" onclick="if(confirm('Delete file?')) req('/delete', {filename: '${f.path}'}).then(() => loadFiles(currPath))"><i class="ri-delete-bin-line"></i></button>
         </div>
       `;
       list.appendChild(item);
@@ -270,9 +274,11 @@
     const c = document.getElementById('toast-container');
     const d = document.createElement('div');
     d.className = 'toast';
-    d.innerHTML = type === 'error' ? `<i class="ri-error-warning-fill" style="color:var(--danger)"></i> ${msg}` : `<i class="ri-checkbox-circle-fill" style="color:var(--success)"></i> ${msg}`;
+    const icon = type === 'error' ? 'ri-error-warning-fill' : 'ri-checkbox-circle-fill';
+    const col = type === 'error' ? 'var(--danger)' : 'var(--success)';
+    d.innerHTML = `<i class="${icon}" style="color:${col}; font-size:16px;"></i> ${msg}`;
     c.appendChild(d);
-    setTimeout(() => d.remove(), 3000);
+    setTimeout(() => { d.style.opacity='0'; setTimeout(()=>d.remove(),300); }, 3000);
   }
 
   function switchTab(id, btn) {

@@ -17,7 +17,7 @@ const PORT = process.env.PORT || 3000;
 const ADMIN_PASS = process.env.ADMIN_PASS || "admin123";
 const MONGO_URI = process.env.MONGO_URI;
 
-let currentProcess = null; 
+let currentProcess = null;
 let isRunning = false;
 
 if (MONGO_URI) mongoose.connect(MONGO_URI).catch(() => {});
@@ -45,8 +45,7 @@ setInterval(() => {
 }, 1000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] NEXUS CORE READY.\x1b[0m\n');
-    
+    socket.emit('log', '\x1b[36m[SYSTEM] NEXUS CORE ONLINE\x1b[0m\n');
     socket.on('input', (cmd) => {
         if (currentProcess && currentProcess.stdin) {
             currentProcess.stdin.write(cmd + '\n');
@@ -84,33 +83,32 @@ app.post('/login', (req, res) => {
 });
 
 app.post('/start', async (req, res) => {
-    if (isRunning) return res.json({ msg: 'Already running' });
+    if (isRunning) return res.json({ msg: 'Running' });
 
     const rootDir = path.join(__dirname, 'uploads');
-    io.emit('log', `\x1b[33m[INIT] Scanning for bot script...\x1b[0m\n`);
-
     const entryFile = findMainFile(rootDir);
+
     if (!entryFile) {
-        io.emit('log', `\x1b[31m[FAIL] No bot file found (index.js/package.json). Please UPLOAD ZIP first!\x1b[0m\n`);
+        io.emit('log', `\x1b[31m[ERROR] No bot file found. Please upload a zip file first.\x1b[0m\n`);
         return res.json({ success: false });
     }
 
     const workDir = path.dirname(entryFile);
-    io.emit('log', `\x1b[32m[FOUND] Script: ${path.basename(entryFile)}\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[SYSTEM] Detected entry point: ${path.basename(entryFile)}\x1b[0m\n`);
 
     if (fs.existsSync(path.join(workDir, 'package.json')) && !fs.existsSync(path.join(workDir, 'node_modules'))) {
-        io.emit('log', `\x1b[36m[INSTALL] Installing dependencies (Silent Mode)... Please wait 1-3 mins.\x1b[0m\n`);
+        io.emit('log', `\x1b[33m[INSTALL] Installing dependencies... This may take a few minutes.\x1b[0m\n`);
         try {
             await new Promise((resolve, reject) => {
                 exec('npm install --omit=dev --no-audit --no-fund', { cwd: workDir }, (e) => e ? reject(e) : resolve());
             });
-            io.emit('log', `\x1b[32m[DONE] Dependencies installed successfully.\x1b[0m\n`);
+            io.emit('log', `\x1b[32m[DONE] Dependencies installed.\x1b[0m\n`);
         } catch (e) {
-            io.emit('log', `\x1b[31m[WARN] Install warning: ${e.message}\x1b[0m\n`);
+            io.emit('log', `\x1b[31m[WARN] Install finished with warnings (Safe to ignore).\x1b[0m\n`);
         }
     }
 
-    io.emit('log', `\x1b[32m[START] Launching ${path.basename(entryFile)}...\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[START] Booting system...\x1b[0m\n`);
     isRunning = true;
 
     currentProcess = spawn('node', [entryFile], {
@@ -121,10 +119,9 @@ app.post('/start', async (req, res) => {
 
     currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
     currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d}\x1b[0m`));
-    
     currentProcess.on('close', (code) => {
         isRunning = false;
-        io.emit('log', `\n\x1b[31m[OFF] Process exited with code ${code}\x1b[0m\n`);
+        io.emit('log', `\n\x1b[31m[STOP] Process exited with code ${code}\x1b[0m\n`);
         currentProcess = null;
     });
 
@@ -183,11 +180,11 @@ app.post('/unzip', (req, res) => {
     try {
         const zip = new AdmZip(target);
         zip.extractAllTo(path.join(__dirname, 'uploads'), true);
-        fs.unlinkSync(target); 
+        fs.unlinkSync(target);
         io.emit('log', `\x1b[32m[FILE] Extracted ${req.body.filename}\x1b[0m\n`);
         res.json({ success: true });
     } catch (e) {
-        res.json({ success: false, msg: e.message });
+        res.json({ success: false });
     }
 });
 

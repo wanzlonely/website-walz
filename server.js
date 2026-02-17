@@ -13,11 +13,31 @@ const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRz
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const PORT = process.env.PORT || 3000;
 
+const DB_FILE = path.join(__dirname, 'tokens.json');
+
+function loadTokens() {
+    try {
+        if (fs.existsSync(DB_FILE)) {
+            return JSON.parse(fs.readFileSync(DB_FILE));
+        }
+    } catch (e) {
+        console.log('Error load DB:', e);
+    }
+    return {};
+}
+
+function saveTokens(data) {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2));
+    } catch (e) {
+        console.log('Error save DB:', e);
+    }
+}
+
+let activeTokens = loadTokens();
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-
-let activeTokens = {};
 let bot = null;
 
 try {
@@ -29,35 +49,35 @@ try {
         if (String(chatId) !== String(OWNER_ID)) return bot.sendMessage(chatId, '❌ Anda bukan Owner.');
 
         const days = parseInt(match[1]);
-        const token = Math.random().toString(36).substring(2, 10).toUpperCase();
+        const token = Math.floor(10000000 + Math.random() * 90000000).toString();
         const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
 
         activeTokens[token] = expired;
+        saveTokens(activeTokens);
 
-        bot.sendMessage(chatId, 
+        bot.sendMessage(chatId,
             `✅ **AKSES DIBUAT**\n\n` +
             `🔑 Token: \`${token}\`\n` +
-            `Durasi: ${days} Hari\n` +
-            `📅 Expired: ${new Date(expired).toLocaleString()}`, 
+            `⏳ Durasi: ${days} Hari\n` +
+            `📅 Expired: ${new Date(expired).toLocaleString('id-ID')}`,
             { parse_mode: 'Markdown' }
         );
     });
 
     bot.on('message', (msg) => {
         if (String(msg.chat.id) === String(OWNER_ID) && msg.text === '/start') {
-            bot.sendMessage(msg.chat.id, "Halo Owner! Ketik `/akses 30` untuk membuat token login web selama 30 hari.");
+            bot.sendMessage(msg.chat.id, "Halo Owner! Ketik `/akses 30` untuk membuat token login web.");
         }
     });
 
-    bot.on('polling_error', (error) => console.log(`[TG ERROR] ${error.code}`));
+    bot.on('polling_error', () => {});
 } catch (e) {
-    console.log('[SYSTEM] Gagal mengaktifkan bot telegram:', e.message);
+    console.log('[SYSTEM] Gagal bot:', e.message);
 }
 
 let currentProcess = null;
 let isRunning = false;
 const uploadDir = path.join(__dirname, 'uploads');
-
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 app.use(express.static('public'));
@@ -67,17 +87,19 @@ const storage = multer.diskStorage({
     destination: (req, file, cb) => cb(null, uploadDir),
     filename: (req, file, cb) => cb(null, file.originalname)
 });
-const upload = multer({ storage: storage });
+const upload = multer({ storage });
 
 const checkAuth = (req, res, next) => {
     const token = req.headers['authorization'];
+    activeTokens = loadTokens();
 
     if (!token || !activeTokens[token]) {
-        return res.status(401).json({ success: false, msg: 'Token Invalid / Tidak Ada' });
+        return res.status(401).json({ success: false, msg: 'Token Salah / Tidak Ditemukan' });
     }
 
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
+        saveTokens(activeTokens);
         return res.status(401).json({ success: false, msg: 'Token Sudah Kadaluarsa' });
     }
 
@@ -85,7 +107,9 @@ const checkAuth = (req, res, next) => {
 };
 
 app.post('/login', (req, res) => {
-    const { token } = req.body;
+    let { token } = req.body;
+    token = token.trim();
+    activeTokens = loadTokens();
 
     if (activeTokens[token] && Date.now() < activeTokens[token]) {
         res.json({ success: true });
@@ -97,9 +121,7 @@ app.post('/login', (req, res) => {
 app.post('/files', checkAuth, (req, res) => {
     const reqPath = req.body.path || '';
     const targetPath = path.join(uploadDir, reqPath);
-    if (!targetPath.startsWith(uploadDir)) {
-        return res.json({ success: false, msg: 'Akses Ditolak', data: [] });
-    }
+    if (!targetPath.startsWith(uploadDir)) return res.json({ success: false, data: [] });
 
     try {
         const files = fs.readdirSync(targetPath);
@@ -110,91 +132,76 @@ app.post('/files', checkAuth, (req, res) => {
                 return {
                     name: f,
                     isDir: stats.isDirectory(),
-                    path: path.relative(uploadDir, fullPath).split(path.sep).join('/') 
+                    path: path.relative(uploadDir, fullPath).split(path.sep).join('/')
                 };
-            } catch { return null; }
+            } catch {
+                return null;
+            }
         }).filter(Boolean);
-
         data.sort((a, b) => (a.isDir === b.isDir ? 0 : a.isDir ? -1 : 1));
-
         res.json({ success: true, data, currentPath: reqPath });
-    } catch (e) {
-        res.json({ success: false, msg: 'Gagal membaca folder', data: [] });
+    } catch {
+        res.json({ success: false, data: [] });
     }
 });
 
 app.post('/read', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.path);
-    if (!target.startsWith(uploadDir)) return res.status(403).json({success: false});
-
+    if (!target.startsWith(uploadDir)) return res.status(403);
     try {
-        const stats = fs.statSync(target);
-        if (stats.size > 1024 * 1024) return res.json({ success: false, msg: 'File terlalu besar untuk diedit' });
-
         const content = fs.readFileSync(target, 'utf8');
         res.json({ success: true, content });
     } catch {
-        res.json({ success: false, msg: 'Gagal membaca file' });
+        res.json({ success: false });
     }
 });
 
 app.post('/save', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.path);
-    if (!target.startsWith(uploadDir)) return res.status(403).json({success: false});
-
+    if (!target.startsWith(uploadDir)) return res.status(403);
     try {
         fs.writeFileSync(target, req.body.content);
-        res.json({ success: true, msg: 'File berhasil disimpan' });
+        res.json({ success: true, msg: 'Disimpan.' });
     } catch {
-        res.json({ success: false, msg: 'Gagal menyimpan file' });
+        res.json({ success: false });
     }
 });
 
-app.post('/upload', upload.single('file'), (req, res) => {
-    res.json({ success: true, msg: 'Upload Berhasil' });
-});
+app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
 
 app.post('/unzip', checkAuth, (req, res) => {
     try {
         const filePath = path.join(uploadDir, req.body.filename);
-        const targetDir = path.dirname(filePath);
-
         const zip = new AdmZip(filePath);
-        zip.extractAllTo(targetDir, true);
-
+        zip.extractAllTo(path.dirname(filePath), true);
         fs.unlinkSync(filePath);
-
-        res.json({ success: true, msg: 'Berhasil Extract & Hapus Zip' });
-    } catch (e) {
-        res.json({ success: false, msg: 'Gagal Extract: ' + e.message });
+        res.json({ success: true, msg: 'Extracted.' });
+    } catch {
+        res.json({ success: false, msg: 'Gagal.' });
     }
 });
 
 app.post('/delete', checkAuth, (req, res) => {
     const target = path.join(uploadDir, req.body.filename);
     if (!target.startsWith(uploadDir)) return res.status(403);
-
-    fs.rm(target, { recursive: true, force: true }, (err) => {
-        if (err) res.json({ success: false, msg: 'Gagal menghapus' });
-        else res.json({ success: true, msg: 'Berhasil dihapus' });
-    });
+    fs.rm(target, { recursive: true, force: true }, () => res.json({ success: true }));
 });
 
 app.post('/start', checkAuth, (req, res) => {
-    if (isRunning) return res.json({ success: false, msg: 'Bot sudah berjalan!' });
+    if (isRunning) return res.json({ success: false, msg: 'Sudah jalan!' });
 
     const findEntry = (dir) => {
         try {
             const files = fs.readdirSync(dir);
             if (files.includes('package.json')) {
-                try { 
+                try {
                     const pkg = require(path.join(dir, 'package.json'));
                     if (pkg.main) return path.join(dir, pkg.main);
                 } catch {}
             }
-            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js', 'server.js'];
-            for (const c of candidates) {
-                if (files.includes(c)) return path.join(dir, c);
+            const candidates = ['index.js', 'main.js', 'bot.js', 'server.js'];
+            for (const f of candidates) {
+                if (files.includes(f)) return path.join(dir, f);
             }
             for (const f of files) {
                 const full = path.join(dir, f);
@@ -207,107 +214,63 @@ app.post('/start', checkAuth, (req, res) => {
         return null;
     };
 
-    const entryFile = findEntry(uploadDir);
-    if (!entryFile) return res.json({ success: false, msg: 'Script Bot Tidak Ditemukan!' });
+    const entry = findEntry(uploadDir);
+    if (!entry) return res.json({ success: false, msg: 'File bot tidak ketemu.' });
 
-    const workDir = path.dirname(entryFile);
-    io.emit('log', `\x1b[36m[SYSTEM] Entry point: ${path.basename(entryFile)}\x1b[0m\n`);
-
-    if (!fs.existsSync(path.join(workDir, 'node_modules')) && fs.existsSync(path.join(workDir, 'package.json'))) {
-        io.emit('log', `\x1b[33m[INSTALL] Menjalankan 'npm install'...\x1b[0m\n`);
-
-        exec('npm install', { cwd: workDir }, (error, stdout, stderr) => {
-            if (error) {
-                io.emit('log', `\x1b[31m[ERROR] Gagal Install: ${stderr}\x1b[0m\n`);
-                return;
-            }
-            io.emit('log', `\x1b[32m[DONE] Installasi selesai.\x1b[0m\n`);
-            startBot(entryFile, workDir);
-        });
+    const wd = path.dirname(entry);
+    if (!fs.existsSync(path.join(wd, 'node_modules')) && fs.existsSync(path.join(wd, 'package.json'))) {
+        io.emit('log', '\x1b[33m[INSTALL] Menginstall node_modules...\x1b[0m\n');
+        exec('npm install', { cwd: wd }, () => startProcess(entry, wd));
     } else {
-        startBot(entryFile, workDir);
+        startProcess(entry, wd);
     }
-
-    res.json({ success: true, msg: 'Memulai Proses...' });
+    res.json({ success: true, msg: 'Starting...' });
 });
 
-function startBot(file, cwd) {
-    io.emit('log', `\x1b[32m[START] Meluncurkan bot...\x1b[0m\n`);
+function startProcess(entry, cwd) {
+    io.emit('log', `\x1b[32m[START] ${path.basename(entry)}\x1b[0m\n`);
     isRunning = true;
+    currentProcess = spawn('node', [entry], { cwd, stdio: ['pipe', 'pipe', 'pipe'], shell: true });
 
-    currentProcess = spawn('node', [file], {
-        cwd: cwd,
-        stdio: ['pipe', 'pipe', 'pipe'],
-        shell: true 
-    });
-
-    currentProcess.stdout.on('data', (data) => {
-        io.emit('log', data.toString());
-    });
-
-    currentProcess.stderr.on('data', (data) => {
-        io.emit('log', `\x1b[31m${data.toString()}\x1b[0m`);
-    });
-
-    currentProcess.on('close', (code) => {
+    currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
+    currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d}\x1b[0m`));
+    currentProcess.on('close', c => {
         isRunning = false;
-        io.emit('log', `\n\x1b[33m[STOP] Bot berhenti (Exit Code: ${code})\x1b[0m\n`);
-        currentProcess = null;
+        io.emit('log', `\n\x1b[31m[STOP] Code: ${c}\x1b[0m\n`);
         io.emit('status_update', false);
     });
-
     io.emit('status_update', true);
 }
 
 app.post('/stop', checkAuth, (req, res) => {
     if (currentProcess) {
-        if (os.platform() === 'win32') {
-            exec(`taskkill /pid ${currentProcess.pid} /T /F`);
-        } else {
-            try { process.kill(-currentProcess.pid); } catch { currentProcess.kill(); }
-        }
-
+        if (os.platform() === 'win32') exec(`taskkill /pid ${currentProcess.pid} /T /F`);
+        else try { process.kill(-currentProcess.pid); } catch { currentProcess.kill(); }
         currentProcess = null;
         isRunning = false;
         io.emit('status_update', false);
-        res.json({ success: true, msg: 'Bot Dimatikan.' });
+        res.json({ success: true, msg: 'Stopped.' });
     } else {
-        res.json({ success: false, msg: 'Bot tidak sedang berjalan.' });
+        res.json({ success: false, msg: 'Not running.' });
     }
 });
 
-app.post('/restart', checkAuth, (req, res) => {
-    res.json({ success: true });
-});
+app.post('/restart', checkAuth, (req, res) => res.json({ success: true }));
 
-io.on('connection', (socket) => {
-    socket.emit('stats', { 
-        ram: getRamUsage(), 
-        status: isRunning ? 'ONLINE' : 'OFFLINE' 
-    });
-
-    socket.on('input', (cmd) => {
-        if (currentProcess && currentProcess.stdin) {
-            currentProcess.stdin.write(cmd + '\n');
-            io.emit('log', `\x1b[36m> ${cmd}\x1b[0m\n`);
-        } else {
-            socket.emit('log', `\x1b[31m[ERROR] Bot belum jalan.\x1b[0m\n`);
+io.on('connection', s => {
+    s.emit('stats', { ram: getRam(), status: isRunning ? 'ONLINE' : 'OFFLINE' });
+    s.on('input', c => {
+        if (currentProcess) {
+            currentProcess.stdin.write(c + '\n');
+            io.emit('log', `> ${c}\n`);
         }
     });
 });
 
-function getRamUsage() {
-    const used = process.memoryUsage().rss / 1024 / 1024;
-    return `${Math.round(used)} MB`;
+function getRam() {
+    return `${Math.round(process.memoryUsage().rss / 1024 / 1024)} MB`;
 }
 
-setInterval(() => {
-    io.emit('stats', {
-        ram: getRamUsage(),
-        status: isRunning ? 'ONLINE' : 'OFFLINE'
-    });
-}, 2000);
+setInterval(() => io.emit('stats', { ram: getRam(), status: isRunning ? 'ONLINE' : 'OFFLINE' }), 2000);
 
-server.listen(PORT, '0.0.0.0', () => {
-    console.log(`Server berjalan di port ${PORT}`);
-});
+server.listen(PORT, () => console.log('Server Ready.'));

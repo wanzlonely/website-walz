@@ -11,14 +11,21 @@ const TelegramBot = require('node-telegram-bot-api');
 const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const PORT = process.env.PORT || 3000;
+const ADMIN_PASS = 'walz123';
 const DB_FILE = path.join(__dirname, 'tokens.json');
 
 function loadTokens() {
-    try { if (fs.existsSync(DB_FILE)) return JSON.parse(fs.readFileSync(DB_FILE)); } catch {}
+    try {
+        if (fs.existsSync(DB_FILE)) {
+            const data = fs.readFileSync(DB_FILE, 'utf8');
+            return JSON.parse(data);
+        }
+    } catch (e) { console.log('[DB READ ERR]', e.message); }
     return {};
 }
+
 function saveTokens(data) {
-    try { fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2)); } catch {}
+    try { fs.writeFileSync(DB_FILE, JSON.stringify(data, null, 2)); } catch (e) { console.log('[DB WRITE ERR]', e.message); }
 }
 
 let activeTokens = loadTokens();
@@ -37,19 +44,16 @@ try {
         const token = Math.floor(100000 + Math.random() * 900000).toString();
         const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
 
+        activeTokens = loadTokens();
         activeTokens[token] = expired;
         saveTokens(activeTokens);
 
-        bot.sendMessage(msg.chat.id, 
-            `✅ **AKSES DIBUAT**\n\n🔑 Token: \`${token}\`\n⏳ Durasi: ${days} Hari\n📅 Exp: ${new Date(expired).toLocaleString('id-ID')}`, 
+        console.log(`[TOKEN DIBUAT] ${token} untuk ${days} hari.`);
+
+        bot.sendMessage(msg.chat.id,
+            `✅ **AKSES DIBUAT**\n\n🔑 Token: \`${token}\`\n⏳ Durasi: ${days} Hari\n📅 Exp: ${new Date(expired).toLocaleString('id-ID')}\n\n_Jika token gagal, gunakan password admin: ${ADMIN_PASS}_`,
             { parse_mode: 'Markdown' }
         );
-    });
-    
-    bot.onText(/\/list/, (msg) => {
-        if (String(msg.chat.id) !== String(OWNER_ID)) return;
-        console.log('Active Tokens:', activeTokens);
-        bot.sendMessage(msg.chat.id, 'Cek console server untuk list token.');
     });
 
 } catch (e) { console.log('[TG ERROR]', e.message); }
@@ -69,9 +73,11 @@ const upload = multer({ storage: multer.diskStorage({
 
 const checkAuth = (req, res, next) => {
     const token = req.headers['authorization'];
+    if (token === ADMIN_PASS) return next();
+
     activeTokens = loadTokens();
-    
     if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Token Salah' });
+
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
         saveTokens(activeTokens);
@@ -82,10 +88,31 @@ const checkAuth = (req, res, next) => {
 
 app.post('/login', (req, res) => {
     let { token } = req.body;
-    token = token ? token.trim() : "";
+    token = token ? String(token).trim() : "";
+    console.log(`[LOGIN ATTEMPT] Mencoba login dengan: "${token}"`);
+
+    if (token === ADMIN_PASS) {
+        console.log('[LOGIN SUCCESS] Menggunakan Admin Pass.');
+        return res.json({ success: true, msg: 'Login Admin Berhasil' });
+    }
+
     activeTokens = loadTokens();
-    if (activeTokens[token] && Date.now() < activeTokens[token]) res.json({ success: true });
-    else res.json({ success: false });
+
+    if (activeTokens[token]) {
+        if (Date.now() < activeTokens[token]) {
+            console.log('[LOGIN SUCCESS] Token Valid.');
+            res.json({ success: true });
+        } else {
+            console.log('[LOGIN FAIL] Token Expired.');
+            delete activeTokens[token];
+            saveTokens(activeTokens);
+            res.json({ success: false, msg: 'Token Kadaluarsa' });
+        }
+    } else {
+        console.log('[LOGIN FAIL] Token Tidak Ditemukan di Database.');
+        console.log('List Token Aktif:', Object.keys(activeTokens));
+        res.json({ success: false, msg: 'Token Tidak Ditemukan' });
+    }
 });
 
 app.post('/files', checkAuth, (req, res) => {
@@ -108,12 +135,12 @@ app.post('/files', checkAuth, (req, res) => {
 });
 
 app.post('/read', checkAuth, (req, res) => {
-    try { res.json({ success: true, content: fs.readFileSync(path.join(uploadDir, req.body.path), 'utf8') }); } 
+    try { res.json({ success: true, content: fs.readFileSync(path.join(uploadDir, req.body.path), 'utf8') }); }
     catch { res.json({ success: false }); }
 });
 
 app.post('/save', checkAuth, (req, res) => {
-    try { fs.writeFileSync(path.join(uploadDir, req.body.path), req.body.content); res.json({ success: true, msg: 'Saved.' }); } 
+    try { fs.writeFileSync(path.join(uploadDir, req.body.path), req.body.content); res.json({ success: true, msg: 'Saved.' }); }
     catch { res.json({ success: false }); }
 });
 
@@ -139,14 +166,14 @@ app.post('/start', checkAuth, (req, res) => {
         try {
             const files = fs.readdirSync(dir);
             if (files.includes('package.json')) {
-                try { 
+                try {
                     const pkg = require(path.join(dir, 'package.json'));
                     if (pkg.main && fs.existsSync(path.join(dir, pkg.main))) return path.join(dir, pkg.main);
                 } catch {}
             }
-            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js'];
+            const candidates = ['index.js', 'main.js', 'bot.js', 'app.js', 'server.js'];
             for (const c of candidates) if (files.includes(c)) return path.join(dir, c);
-            
+
             for (const f of files) {
                 const sub = path.join(dir, f);
                 if (fs.statSync(sub).isDirectory() && f !== 'node_modules') {
@@ -180,7 +207,7 @@ function startBot(file, cwd) {
     if(isRunning) return;
     io.emit('log', `\x1b[32m[START] Executing...\x1b[0m\n`);
     isRunning = true;
-    
+
     currentProcess = spawn('node', [file], { cwd, stdio: ['pipe','pipe','pipe'] });
 
     currentProcess.stdout.on('data', d => io.emit('log', d.toString()));

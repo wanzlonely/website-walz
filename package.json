@@ -1,6 +1,6 @@
 {
-  "name": "pterodactyl-lite",
-  "version": "5.0.0",
+  "name": "pterodactyl-core",
+  "version": "6.0.0",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"

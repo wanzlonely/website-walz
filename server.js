@@ -38,7 +38,9 @@ function logActivity(message) {
   const timestamp = new Date().toISOString();
   const logLine = `[${timestamp}] ${message}\n`;
   console.log(message);
-  fs.appendFile(LOG_FILE, logLine, (err) => { if (err) console.error('Log error:', err); });
+  fs.appendFile(LOG_FILE, logLine, (err) => {
+    if (err) console.error('Log error:', err);
+  });
 }
 
 function loadTokens() {

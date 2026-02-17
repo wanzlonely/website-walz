@@ -9,13 +9,11 @@ const AdmZip = require('adm-zip');
 const TelegramBot = require('node-telegram-bot-api');
 const rateLimit = require('express-rate-limit');
 const helmet = require('helmet');
-const crypto = require('crypto');
 
 const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;
-const NODE_ENV = process.env.NODE_ENV || 'production';
 const MAX_RESTARTS = 5;
 
 const DB_FILE = path.join(__dirname, 'tokens.json');
@@ -32,7 +30,6 @@ let isRunning = false;
 let startTime = null;
 let bot = null;
 let restartCount = 0;
-let restartTimer = null;
 
 const TOKEN_CHARS = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const TOKEN_REGEX = /^WL-[A-Z2-9]{10}$/;
@@ -41,7 +38,7 @@ function logActivity(message) {
   const timestamp = new Date().toISOString();
   const logLine = `[${timestamp}] ${message}\n`;
   console.log(message);
-  fs.appendFile(LOG_FILE, logLine, () => {});
+  fs.appendFile(LOG_FILE, logLine, (err) => { if (err) console.error('Log error:', err); });
 }
 
 function loadTokens() {
@@ -58,7 +55,6 @@ function loadTokens() {
 function saveTokens() {
   try {
     fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
-    fs.writeFileSync(DB_FILE + '.backup', JSON.stringify(activeTokens, null, 2));
   } catch (e) {}
 }
 
@@ -71,11 +67,6 @@ function generateToken(len = 10) {
 }
 
 loadTokens();
-setInterval(() => {
-  try {
-    fs.copyFileSync(DB_FILE, DB_FILE + '.backup');
-  } catch (e) {}
-}, 60000);
 
 try {
   bot = new TelegramBot(TG_TOKEN, { polling: true });
@@ -94,7 +85,7 @@ try {
     activeTokens[token] = exp;
     saveTokens();
     bot.sendMessage(msg.chat.id, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari`, { parse_mode: 'HTML' });
-    logActivity(`[BOT] Token created: ${token} for ${days} days by ${msg.chat.id}`);
+    logActivity(`[BOT] Token created: ${token} for ${days} days`);
   });
 
   bot.on('polling_error', (err) => {
@@ -108,10 +99,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, { cors: { origin: '*' } });
 
-app.use(helmet({
-  contentSecurityPolicy: false,
-}));
-
+app.use(helmet({ contentSecurityPolicy: false, crossOriginEmbedderPolicy: false }));
 app.use(express.json({ limit: '10mb' }));
 app.use(express.urlencoded({ extended: true, limit: '10mb' }));
 app.use(express.static(PUBLIC_DIR));
@@ -282,7 +270,7 @@ app.post('/unzip', apiLimiter, checkAuth, (req, res) => {
   }
 });
 
-function spawnBotWithRestart(file, cwd) {
+function spawnBot(file, cwd) {
   if (isRunning) return;
   isRunning = true;
   startTime = Date.now();
@@ -302,7 +290,7 @@ function spawnBotWithRestart(file, cwd) {
       restartCount++;
       io.emit('log', `\x1b[33m[SYSTEM] Restarting (${restartCount}/${MAX_RESTARTS})...\x1b[0m\n`);
       setTimeout(() => {
-        if (!isRunning) spawnBotWithRestart(file, cwd);
+        if (!isRunning) spawnBot(file, cwd);
       }, 3000);
     }
   });
@@ -349,13 +337,13 @@ app.post('/start', apiLimiter, checkAuth, (req, res) => {
     install.on('close', (code) => {
       if (code === 0) {
         io.emit('log', `\x1b[32m[OK] Install done. Starting...\x1b[0m\n`);
-        spawnBotWithRestart(entry, cwd);
+        spawnBot(entry, cwd);
       } else {
         io.emit('log', `\x1b[31m[FAIL] Install error.\x1b[0m\n`);
       }
     });
   } else {
-    spawnBotWithRestart(entry, cwd);
+    spawnBot(entry, cwd);
   }
   res.json({ success: true });
 });
@@ -444,7 +432,7 @@ function emitStats() {
 setInterval(emitStats, 1000);
 
 server.listen(PORT, () => {
-  logActivity(`[SERVER] Running on Port ${PORT} (${NODE_ENV} mode)`);
+  logActivity(`[SERVER] Running on Port ${PORT}`);
 });
 
 process.on('uncaughtException', (err) => {

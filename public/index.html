@@ -3,281 +3,191 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>NEXUS Hyper-Console</title>
+    <title>NEXUS HYPER-V</title>
     <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Rajdhani:wght@500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
     <style>
         :root {
-            --bg-deep: #050505;
-            --bg-card: #0a0a0c;
-            --border: #222;
-            --accent-cyan: #00f3ff;
-            --accent-cyan-dim: rgba(0, 243, 255, 0.15);
-            --accent-red: #ff2a6d;
-            --accent-green: #05ffa1;
-            --text-main: #eee;
-            --text-mute: #777;
-            --glass: rgba(10, 10, 12, 0.7);
+            --bg: #050508;
+            --panel: rgba(15, 15, 20, 0.7);
+            --cyan: #00f0ff;
+            --red: #ff003c;
+            --green: #00ff9f;
+            --border: rgba(0, 240, 255, 0.2);
         }
-
-        * { margin: 0; padding: 0; box-sizing: border-box; outline: none; }
+        * { margin:0; padding:0; box-sizing:border-box; outline:none; }
         body { 
-            background: var(--bg-deep); 
-            color: var(--text-main); 
-            font-family: 'Space Grotesk', sans-serif; 
-            height: 100vh; 
-            display: flex; flex-direction: column; overflow: hidden;
-            background-image: radial-gradient(circle at 50% 10%, #111 0%, #000 70%);
+            background: var(--bg); color: #fff; font-family: 'Rajdhani', sans-serif; 
+            height: 100vh; overflow: hidden; display: flex; flex-direction: column;
+            background-image: radial-gradient(circle at 50% -20%, #1a1a2e, #000);
         }
-
-        .particles { position: absolute; top: 0; left: 0; width: 100%; height: 100%; z-index: -1; overflow: hidden; }
-        .particle { position: absolute; background: rgba(255,255,255,0.03); border-radius: 50%; animation: float 10s infinite linear; }
-        @keyframes float { 0% { transform: translateY(100vh) scale(0); opacity: 0; } 50% { opacity: 1; } 100% { transform: translateY(-10vh) scale(1); opacity: 0; } }
-
-        .btn { 
-            padding: 10px 20px; border: 1px solid var(--border); background: var(--bg-card); 
-            color: var(--text-main); border-radius: 6px; font-weight: 600; cursor: pointer; 
-            font-family: 'Space Grotesk', sans-serif; transition: 0.3s; position: relative; overflow: hidden;
-            text-transform: uppercase; font-size: 11px; letter-spacing: 1px;
+        #auth-layer {
+            position: fixed; inset: 0; background: #000; z-index: 9999;
+            display: flex; justify-content: center; align-items: center;
         }
-        .btn:hover { border-color: var(--accent-cyan); box-shadow: 0 0 15px var(--accent-cyan-dim); color: var(--accent-cyan); }
-        .btn::after { content: ''; position: absolute; top: 0; left: -100%; width: 100%; height: 100%; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.1), transparent); transition: 0.4s; }
-        .btn:hover::after { left: 100%; }
-
-        .btn-red:hover { border-color: var(--accent-red); box-shadow: 0 0 15px rgba(255, 42, 109, 0.3); color: var(--accent-red); }
-
-        #auth-overlay { 
-            position: fixed; inset: 0; z-index: 999; 
-            display: flex; justify-content: center; align-items: center; 
-            background: rgba(0,0,0,0.8); backdrop-filter: blur(15px);
-            opacity: 1; transition: opacity 0.5s ease;
+        .login-card {
+            width: 320px; padding: 40px; border: 1px solid var(--border);
+            background: rgba(10,10,10,0.9); border-radius: 4px; text-align: center;
+            box-shadow: 0 0 30px rgba(0, 240, 255, 0.1);
         }
-        .login-box { 
-            width: 380px; padding: 40px; background: rgba(10,10,12,0.9); border: 1px solid var(--border); 
-            border-radius: 12px; text-align: center; box-shadow: 0 20px 50px rgba(0,0,0,0.6);
-            transform: translateY(0); animation: slideUp 0.6s cubic-bezier(0.16, 1, 0.3, 1);
+        .inp {
+            width: 100%; padding: 12px; margin: 20px 0; background: #080808; 
+            border: 1px solid #333; color: var(--cyan); text-align: center;
+            font-family: 'JetBrains Mono'; font-size: 16px; letter-spacing: 2px;
         }
-        @keyframes slideUp { from { transform: translateY(50px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
-        
-        .inp-code { 
-            width: 100%; padding: 15px; margin: 20px 0; background: #000; border: 1px solid var(--border); 
-            color: var(--accent-cyan); font-family: 'JetBrains Mono'; text-align: center; font-size: 18px; letter-spacing: 3px; border-radius: 6px; 
+        .btn-login {
+            width: 100%; padding: 12px; background: var(--cyan); border: none;
+            color: #000; font-weight: bold; cursor: pointer; font-size: 16px;
+            clip-path: polygon(10px 0, 100% 0, 100% calc(100% - 10px), calc(100% - 10px) 100%, 0 100%, 0 10px);
             transition: 0.3s;
         }
-        .inp-code:focus { border-color: var(--accent-cyan); box-shadow: 0 0 20px var(--accent-cyan-dim); }
-
-        nav { 
-            height: 70px; display: flex; align-items: center; justify-content: space-between; padding: 0 40px; 
-            border-bottom: 1px solid var(--border); background: var(--glass); z-index: 10;
+        .btn-login:hover { box-shadow: 0 0 15px var(--cyan); }
+        nav {
+            height: 65px; border-bottom: 1px solid var(--border);
+            display: flex; align-items: center; justify-content: space-between;
+            padding: 0 30px; background: var(--panel); backdrop-filter: blur(10px);
         }
-        .brand { font-size: 20px; font-weight: 700; color: #fff; letter-spacing: 2px; display: flex; align-items: center; gap: 10px; }
-        .brand span { color: var(--accent-cyan); text-shadow: 0 0 10px var(--accent-cyan); }
-        
-        .tabs { display: flex; gap: 5px; background: #000; padding: 5px; border-radius: 8px; border: 1px solid var(--border); }
-        .tab { 
-            padding: 8px 20px; color: var(--text-mute); font-size: 12px; font-weight: 600; 
-            cursor: pointer; border-radius: 6px; transition: 0.3s; 
+        .brand { font-size: 22px; font-weight: 700; letter-spacing: 2px; color: #fff; }
+        .brand span { color: var(--cyan); }
+        .tabs { display: flex; gap: 2px; }
+        .tab {
+            padding: 10px 25px; cursor: pointer; color: #888; font-weight: 600;
+            transition: 0.3s; clip-path: polygon(10% 0, 100% 0, 90% 100%, 0% 100%);
         }
-        .tab.active { background: var(--bg-card); color: var(--text-main); box-shadow: 0 2px 10px rgba(0,0,0,0.5); }
-        .tab:hover:not(.active) { color: #fff; }
-
-        .page { display: none; flex: 1; padding: 30px; flex-direction: column; gap: 20px; animation: fadeIn 0.4s ease; height: calc(100vh - 70px); }
-        .page.active { display: flex; }
-        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-
-        .status-bar { 
-            display: flex; justify-content: space-between; align-items: center; 
-            background: var(--bg-card); padding: 15px 25px; border-radius: 10px; border: 1px solid var(--border); 
+        .tab:hover { color: #fff; background: rgba(255,255,255,0.05); }
+        .tab.active { background: var(--cyan); color: #000; }
+        .container { flex: 1; padding: 20px; display: none; flex-direction: column; gap: 15px; }
+        .container.active { display: flex; animation: fadeUp 0.4s ease; }
+        @keyframes fadeUp { from{opacity:0; transform:translateY(10px)} to{opacity:1; transform:translateY(0)} }
+        .term-box {
+            flex: 1; background: rgba(5,5,5,0.8); border: 1px solid #333;
+            border-radius: 4px; display: flex; flex-direction: column;
+            font-family: 'JetBrains Mono'; position: relative;
         }
-        .live-indicator { display: flex; align-items: center; gap: 10px; font-size: 12px; font-weight: 600; color: var(--text-mute); }
-        .dot { width: 8px; height: 8px; border-radius: 50%; background: #333; transition: 0.3s; }
-        .dot.on { background: var(--accent-green); box-shadow: 0 0 10px var(--accent-green); }
-
-        .terminal-window { 
-            flex: 1; background: #050505; border: 1px solid var(--border); border-radius: 10px; 
-            display: flex; flex-direction: column; overflow: hidden; position: relative;
+        .term-logs {
+            flex: 1; padding: 15px; overflow-y: auto; font-size: 13px; color: #ccc;
+            white-space: pre-wrap; text-shadow: 0 0 2px rgba(0,0,0,0.5);
         }
-        .terminal-window::before { 
-            content: ''; position: absolute; top: 0; left: 0; right: 0; height: 100%; 
-            background: linear-gradient(to bottom, rgba(0,243,255,0.02) 1px, transparent 1px);
-            background-size: 100% 4px; pointer-events: none; z-index: 0;
+        .term-input {
+            display: flex; padding: 10px; border-top: 1px solid #333; background: #0a0a0a;
         }
-        .logs { 
-            flex: 1; padding: 20px; font-family: 'JetBrains Mono', monospace; font-size: 13px; line-height: 1.6; 
-            color: #ccc; overflow-y: auto; z-index: 1; text-shadow: 0 0 2px rgba(0,0,0,0.5);
+        .cmd {
+            flex: 1; background: transparent; border: none; color: #fff;
+            font-family: 'JetBrains Mono'; margin-left: 10px; font-size: 14px;
         }
-        .input-area { 
-            display: flex; align-items: center; background: var(--bg-card); 
-            border-top: 1px solid var(--border); padding: 15px; z-index: 2;
+        .controls { display: flex; gap: 10px; align-items: center; }
+        .btn {
+            padding: 8px 20px; border: 1px solid #333; background: #111;
+            color: #fff; cursor: pointer; font-family: 'Rajdhani'; font-weight: 600;
+            transition: 0.2s;
         }
-        .prompt { color: var(--accent-cyan); font-weight: bold; margin-right: 15px; font-family: 'JetBrains Mono'; }
-        .cmd-input { 
-            flex: 1; background: transparent; border: none; color: #fff; font-family: 'JetBrains Mono'; 
-            font-size: 14px; caret-color: var(--accent-cyan); 
-        }
-
-        .file-container { 
-            flex: 1; background: var(--bg-card); border: 1px solid var(--border); 
-            border-radius: 10px; display: flex; flex-direction: column; overflow: hidden; 
-        }
-        .file-head { display: flex; padding: 15px 25px; border-bottom: 1px solid var(--border); color: var(--text-mute); font-size: 11px; text-transform: uppercase; font-weight: 700; letter-spacing: 1px; }
-        .file-scroll { flex: 1; overflow-y: auto; }
-        .file-row { display: flex; align-items: center; padding: 15px 25px; border-bottom: 1px solid #1a1a1a; transition: 0.2s; }
-        .file-row:hover { background: #111; }
-        .f-icon { margin-right: 15px; font-size: 16px; opacity: 0.7; }
-        .f-name { flex: 1; font-family: 'JetBrains Mono'; font-size: 13px; color: var(--text-main); }
-        .f-size { width: 80px; text-align: right; font-size: 12px; color: var(--text-mute); margin-right: 30px; }
-        
-        ::-webkit-scrollbar { width: 5px; }
-        ::-webkit-scrollbar-thumb { background: #333; border-radius: 5px; }
-        ::-webkit-scrollbar-thumb:hover { background: var(--accent-cyan); }
-
-        .ansi-red { color: #ff2a6d; } .ansi-green { color: #05ffa1; } .ansi-yellow { color: #ffe600; } .ansi-blue { color: #00f3ff; }
+        .btn:hover { border-color: var(--cyan); color: var(--cyan); }
+        .btn-red:hover { border-color: var(--red); color: var(--red); }
+        .status-dot { width: 8px; height: 8px; border-radius: 50%; background: #333; margin-left: auto; }
+        .status-dot.on { background: var(--green); box-shadow: 0 0 10px var(--green); }
+        .file-list { flex: 1; overflow-y: auto; border: 1px solid #333; background: rgba(0,0,0,0.3); }
+        .row { display: flex; padding: 12px 20px; border-bottom: 1px solid #222; align-items: center; }
+        .row:hover { background: rgba(255,255,255,0.03); }
+        .ansi-red {color:var(--red)} .ansi-green {color:var(--green)} .ansi-yellow {color:#ffd700} .ansi-blue {color:var(--cyan)}
     </style>
 </head>
 <body>
 
-    <div class="particles" id="particles"></div>
-
-    <div id="auth-overlay">
-        <div class="login-box">
-            <h2 style="font-weight:700; font-size:24px; color:#fff; margin-bottom:10px;">SYSTEM LOCKED</h2>
-            <p style="color:var(--text-mute); font-size:13px;">Enter authorization sequence</p>
-            <input type="password" id="pass" class="inp-code" placeholder="PASSCODE" autocomplete="off">
-            <button id="btn-login" onclick="login()" class="btn" style="width:100%; padding:15px; background:var(--accent-cyan); color:#000; border:none;">INITIALIZE</button>
-            <div id="login-msg" style="margin-top:20px; font-size:12px; color:var(--accent-red); height:15px;"></div>
+    <div id="auth-layer">
+        <div class="login-card">
+            <h2 style="margin-bottom:5px">SYSTEM ACCESS</h2>
+            <p style="color:#666; font-size:12px">IDENTITY VERIFICATION</p>
+            <input type="password" id="pass" class="inp" placeholder="ACCESS CODE" autocomplete="off">
+            <button onclick="login()" class="btn-login" id="btn-log">INITIALIZE</button>
+            <div id="msg" style="color:var(--red); font-size:12px; margin-top:15px; font-weight:bold;"></div>
         </div>
     </div>
 
     <nav>
-        <div class="brand"><span>//</span> NEXUS</div>
+        <div class="brand">NEXUS <span>HYPER-V</span></div>
         <div class="tabs">
-            <div class="tab active" onclick="switchTab('console')">TERMINAL</div>
-            <div class="tab" onclick="switchTab('files')">FILES</div>
+            <div class="tab active" onclick="page('console', this)">TERMINAL</div>
+            <div class="tab" onclick="page('files', this)">DATABASE</div>
         </div>
     </nav>
 
-    <div id="p-console" class="page active">
-        <div class="status-bar">
-            <div style="display:flex; gap:10px;">
-                <button class="btn" onclick="act('/start')">▶ START</button>
-                <button class="btn" onclick="act('/restart')">↻ RESTART</button>
-                <button class="btn btn-red" onclick="act('/stop')">■ STOP</button>
-            </div>
-            <div class="live-indicator">
+    <div id="p-console" class="container active">
+        <div class="controls">
+            <button class="btn" onclick="req('/start')">▶ START SYSTEM</button>
+            <button class="btn" onclick="req('/restart')">↻ REBOOT</button>
+            <button class="btn btn-red" onclick="req('/stop')">■ TERMINATE</button>
+            <div style="margin-left:auto; display:flex; align-items:center; gap:15px; font-size:14px; color:#888;">
                 RAM: <span id="ram" style="color:#fff">--</span>
-                <span style="margin:0 10px; opacity:0.2">|</span>
-                STATUS <div class="dot" id="status-dot"></div>
+                <div id="led" class="status-dot"></div>
             </div>
         </div>
-
-        <div class="terminal-window">
-            <div class="logs" id="logs"></div>
-            <div class="input-area">
-                <span class="prompt">root@nexus:\~$</span>
-                <input type="text" class="cmd-input" id="cmd" placeholder="Execute command..." autocomplete="off">
+        <div class="term-box">
+            <div class="term-logs" id="logs"></div>
+            <div class="term-input">
+                <span style="color:var(--cyan)">root@nexus:~#</span>
+                <input type="text" id="cmd" class="cmd" placeholder="Execute command...">
             </div>
         </div>
     </div>
 
-    <div id="p-files" class="page">
-        <div style="display:flex; justify-content:flex-end;">
-            <button class="btn" onclick="document.getElementById('f-up').click()">+ UPLOAD DATA</button>
-            <input type="file" id="f-up" style="display:none" onchange="uploadFile()">
+    <div id="p-files" class="container">
+        <div style="text-align:right">
+            <button class="btn" onclick="document.getElementById('up').click()">+ UPLOAD DATA (.ZIP)</button>
+            <input type="file" id="up" style="display:none" onchange="upload()">
         </div>
-        <div class="file-container">
-            <div class="file-head">
-                <div style="flex:1">FILENAME</div>
-                <div style="width:80px; text-align:right; margin-right:30px;">SIZE</div>
-                <div style="width:120px;">ACTION</div>
-            </div>
-            <div class="file-scroll" id="file-list"></div>
-        </div>
+        <div class="file-list" id="list"></div>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const particleContainer = document.getElementById('particles');
-        for(let i=0; i<30; i++){
-            let p = document.createElement('div');
-            p.className = 'particle';
-            p.style.left = Math.random()*100 + '%';
-            p.style.width = p.style.height = (Math.random()*3 + 1) + 'px';
-            p.style.animationDelay = Math.random()*5 + 's';
-            p.style.animationDuration = (Math.random()*10 + 10) + 's';
-            particleContainer.appendChild(p);
-        }
-
         const socket = io();
         
-        if(localStorage.getItem('nexus_key') === 'granted') {
-            document.getElementById('auth-overlay').style.display = 'none';
+        function checkAuth() {
+            if(localStorage.getItem('nexus_token') === 'verified') {
+                const layer = document.getElementById('auth-layer');
+                if(layer) layer.remove();
+            }
         }
-
-        const passInput = document.getElementById('pass');
-        const loginBtn = document.getElementById('btn-login');
-
-        passInput.addEventListener('keydown', e => { if(e.key==='Enter') loginBtn.click() });
+        checkAuth();
 
         function login() {
-            const p = passInput.value;
-            loginBtn.innerText = "VERIFYING...";
-            loginBtn.style.opacity = "0.7";
+            const p = document.getElementById('pass').value;
+            const btn = document.getElementById('btn-log');
             
-            fetch('/login', { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({password:p}) })
-            .then(r => r.json()).then(d => {
+            btn.innerText = "VERIFYING...";
+            
+            fetch('/login', { 
+                method: 'POST', 
+                headers: {'Content-Type': 'application/json'}, 
+                body: JSON.stringify({ password: p }) 
+            })
+            .then(r => r.json())
+            .then(d => {
                 if(d.success) {
-                    localStorage.setItem('nexus_key', 'granted');
-                    loginBtn.innerText = "ACCESS GRANTED";
-                    loginBtn.style.background = "#05ffa1";
-                    setTimeout(() => {
-                        document.getElementById('auth-overlay').style.opacity = '0';
-                        setTimeout(() => document.getElementById('auth-overlay').style.display = 'none', 500);
-                        typeWriter("[SYSTEM] Connection established...\n[SYSTEM] Welcome back, Administrator.");
-                    }, 500);
+                    localStorage.setItem('nexus_token', 'verified');
+                    location.reload();
                 } else {
-                    document.getElementById('login-msg').innerText = "ACCESS DENIED // INCORRECT PASSCODE";
-                    loginBtn.innerText = "INITIALIZE";
-                    loginBtn.style.opacity = "1";
-                    const box = document.querySelector('.login-box');
-                    box.animate([{transform:'translateX(0)'},{transform:'translateX(-5px)'},{transform:'translateX(5px)'},{transform:'translateX(0)'}], {duration:300});
+                    document.getElementById('msg').innerText = "ACCESS DENIED";
+                    btn.innerText = "INITIALIZE";
                 }
-            });
+            })
+            .catch(() => btn.innerText = "ERROR");
         }
 
-        function typeWriter(text) {
-            const logs = document.getElementById('logs');
-            let i = 0;
-            logs.innerHTML = '';
-            function type() {
-                if (i < text.length) {
-                    logs.innerHTML += text.charAt(i);
-                    i++;
-                    setTimeout(type, 20);
-                }
-            }
-            type();
-        }
+        document.getElementById('pass').addEventListener('keydown', e => { if(e.key==='Enter') login() });
 
-        function switchTab(t) {
+        function page(id, el) {
+            document.querySelectorAll('.container').forEach(e => e.classList.remove('active'));
             document.querySelectorAll('.tab').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.page').forEach(e => e.classList.remove('active'));
-            event.target.classList.add('active');
-            
-            const p = document.getElementById('p-'+t);
-            p.classList.add('active');
-            p.style.animation = 'none';
-            p.offsetHeight;
-            p.style.animation = 'fadeIn 0.4s ease';
-
-            if(t==='files') loadFiles();
+            document.getElementById('p-'+id).classList.add('active');
+            el.classList.add('active');
+            if(id === 'files') loadFiles();
         }
 
-        function act(end) { fetch(end, {method:'POST'}); }
-        
+        function req(u) { fetch(u, { method: 'POST' }); }
+
         document.getElementById('cmd').addEventListener('keydown', e => {
-            if(e.key==='Enter') {
+            if(e.key === 'Enter') {
                 socket.emit('input', e.target.value);
                 e.target.value = '';
             }
@@ -285,46 +195,44 @@
 
         socket.on('log', d => {
             const l = document.getElementById('logs');
-            l.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">').replace(/\x1b\[32m/g, '<span class="ansi-green">').replace(/\x1b\[33m/g, '<span class="ansi-yellow">').replace(/\x1b\[36m/g, '<span class="ansi-blue">').replace(/\x1b\[0m/g, '</span>');
+            l.innerHTML += d.replace(/\x1b\[31m/g, '<span class="ansi-red">')
+                            .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+                            .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
+                            .replace(/\x1b\[36m/g, '<span class="ansi-blue">')
+                            .replace(/\x1b\[0m/g, '</span>');
             l.scrollTop = l.scrollHeight;
         });
 
         socket.on('stats', s => {
             document.getElementById('ram').innerText = s.ram;
-            const dot = document.getElementById('status-dot');
-            if(s.status === 'Running') dot.classList.add('on');
-            else dot.classList.remove('on');
+            const led = document.getElementById('led');
+            if(s.status === 'ONLINE') led.classList.add('on');
+            else led.classList.remove('on');
         });
 
         function loadFiles() {
-            fetch('/files').then(r=>r.json()).then(files => {
-                const c = document.getElementById('file-list');
-                c.innerHTML = '';
-                if(files.length === 0) c.innerHTML = '<div style="padding:40px; text-align:center; color:#333;">NO DATA FOUND</div>';
-                
-                files.forEach(f => {
-                    const isZip = f.name.endsWith('.zip');
-                    c.innerHTML += `
-                    <div class="file-row">
-                        <div class="f-icon">${f.isDir ? '📂' : '📄'}</div>
-                        <div class="f-name">${f.name}</div>
-                        <div class="f-size">${f.size}</div>
-                        <div style="display:flex; gap:10px;">
-                            \( {isZip ? `<button class="btn" style="padding:5px 10px; font-size:10px;" onclick="unzip(' \){f.name}')">UNZIP</button>` : ''}
-                            <button class="btn btn-red" style="padding:5px 10px; font-size:10px;" onclick="del('${f.name}')">DEL</button>
-                        </div>
+            fetch('/files').then(r=>r.json()).then(f => {
+                const l = document.getElementById('list'); l.innerHTML = '';
+                if(f.length === 0) l.innerHTML = '<div style="padding:20px;text-align:center;color:#555">NO DATA FOUND</div>';
+                f.forEach(i => {
+                    const isZip = i.name.endsWith('.zip');
+                    l.innerHTML += `
+                    <div class="row">
+                        <div style="width:30px; font-size:18px">${i.isDir ? '📂' : '📄'}</div>
+                        <div style="flex:1; font-family:'JetBrains Mono'; font-size:13px">${i.name}</div>
+                        ${isZip ? `<button class="btn" style="padding:4px 8px; font-size:11px; margin-right:5px" onclick="act('/unzip','${i.name}')">UNZIP</button>` : ''}
+                        <button class="btn btn-red" style="padding:4px 8px; font-size:11px" onclick="act('/delete','${i.name}')">DEL</button>
                     </div>`;
                 });
             });
         }
 
-        function uploadFile() {
-            const fd = new FormData();
-            fd.append('file', document.getElementById('f-up').files[0]);
-            fetch('/upload', {method:'POST', body:fd}).then(loadFiles);
+        function act(u, n) { if(confirm('Confirm Action?')) fetch(u, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({filename:n})}).then(loadFiles); }
+        function upload() { 
+            const fd = new FormData(); 
+            fd.append('file', document.getElementById('up').files[0]);
+            fetch('/upload', {method:'POST',body:fd}).then(loadFiles); 
         }
-        function unzip(n) { fetch('/unzip', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n})}).then(()=> { loadFiles(); switchTab('console'); }); }
-        function del(n) { if(confirm('Delete '+n+'?')) fetch('/delete', {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify({filename:n})}).then(loadFiles); }
     </script>
 </body>
 </html>

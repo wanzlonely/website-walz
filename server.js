@@ -92,7 +92,7 @@ const getStats = () => {
         const h = String(Math.floor(diff / 3600)).padStart(2, '0');
         const m = String(Math.floor((diff % 3600) / 60)).padStart(2, '0');
         const s = String(diff % 60).padStart(2, '0');
-        uptimeStr = `\( {h}: \){m}:${s}`;
+        uptimeStr = `${h}:${m}:${s}`;
     }
     const ramUsed = Math.round((os.totalmem() - os.freemem()) / 1024 / 1024);
     return {
@@ -116,6 +116,14 @@ const upload = multer({
 app.post('/api/login', (req, res) => {
     const token = String(req.body.token || '').trim();
     if (token === ADMIN_PASS || token === 'walzexploit') {
+        return res.json({ success: true });
+    }
+    if (activeTokens[token]) {
+        if (Date.now() > activeTokens[token]) {
+            delete activeTokens[token];
+            saveTokens();
+            return res.json({ success: false, msg: 'Token Expired' });
+        }
         return res.json({ success: true });
     }
     res.json({ success: false, msg: 'Token Invalid' });

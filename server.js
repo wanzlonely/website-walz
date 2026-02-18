@@ -13,8 +13,10 @@ const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRz
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;
-const DB_FILE = path.join(__dirname, 'tokens.json');  
+const DB_FILE = path.join(__dirname, 'tokens.json');
+
 let activeTokens = {};
+const uploadDir = path.join(__dirname, 'uploads');
 
 function loadTokens() {
     try {
@@ -23,30 +25,32 @@ function loadTokens() {
 }
 
 function saveTokens() {
-    try {
-        fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
-        return true;
-    } catch (e) { return false; }
+    try { fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2)); } catch (e) {}
 }
 
 function generateHardToken() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    let result = '';
+    let result = 'WL-';
     for (let i = 0; i < 16; i++) result += chars.charAt(Math.floor(Math.random() * chars.length));
-    return `WL-${result}`;
+    return result;
 }
 
 loadTokens();
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, {
-    cors: { origin: '*', methods: ['GET', 'POST'] }
-});
+const io = socketIo(server, { cors: { origin: '*', methods: ['GET', 'POST'] } });
 
 let bot = null;
 try {
     bot = new TelegramBot(TG_TOKEN, { polling: true });
+    bot.on('polling_error', (error) => {
+        if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
+            console.log('⚠️ Telegram Bot: Instance lain sudah berjalan.');
+            if (bot) bot.stopPolling().catch(() => {});
+        }
+    });
     bot.onText(/\/id/, (msg) => {
         bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
     });
@@ -56,19 +60,18 @@ try {
         const days = parseInt(match[1]);
         if (!days) return;
         const token = generateHardToken();
-        const expired = Date.now() + (days * 24 * 60 * 60 * 1000);
+        const expired = Date.now() + (days * 86400000);
         activeTokens[token] = expired;
         saveTokens();
-        bot.sendMessage(chatId, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari\n📅: ${new Date(expired).toLocaleDateString('id-ID')}\n\nLogin di Web Panel sekarang.`, { parse_mode: 'HTML' });
+        bot.sendMessage(chatId, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari\n📅: ${new Date(expired).toLocaleDateString('id-ID')}`, { parse_mode: 'HTML' });
     });
-} catch (e) {}
+} catch (e) {
+    console.log('Telegram Bot tidak aktif');
+}
 
 let currentProcess = null;
 let isRunning = false;
 let startTime = null;
-
-const uploadDir = path.join(__dirname, 'uploads');
-if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
@@ -85,7 +88,7 @@ const checkAuth = (req, res, next) => {
     next();
 };
 
-function getStats() {
+const getStats = () => {
     let uptimeStr = "00:00:00";
     if (startTime) {
         const diff = Math.floor((Date.now() - startTime) / 1000);
@@ -95,51 +98,51 @@ function getStats() {
         uptimeStr = `\( {h}: \){m}:${s}`;
     }
     const ramUsed = Math.round((os.totalmem() - os.freemem()) / 1024 / 1024);
-    const cpuLoad = os.loadavg()[0].toFixed(2);
     return {
-        ram: ramUsed.toFixed(0),
-        cpu: cpuLoad,
+        cpu: os.loadavg()[0].toFixed(2),
+        ram: ramUsed.toString(),
         status: isRunning ? 'ONLINE' : 'OFFLINE',
         uptime: uptimeStr
     };
-}
+};
 
-function broadcastStats() {
-    io.emit('stats', getStats());
-}
+const broadcastStats = () => io.emit('stats', getStats());
+
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (req, file, cb) => cb(null, uploadDir),
+        filename: (req, file, cb) => cb(null, file.originalname)
+    }),
+    limits: { fileSize: 200 * 1024 * 1024 }
+});
 
 app.post('/api/login', (req, res) => {
     const token = String(req.body.token || '').trim();
     if (token === ADMIN_PASS || (activeTokens[token] && Date.now() < activeTokens[token])) {
         return res.json({ success: true });
     }
-    if (activeTokens[token]) {
-        delete activeTokens[token];
-        saveTokens();
-        return res.json({ success: false, msg: 'Token Expired' });
-    }
-    res.json({ success: false, msg: 'Token Tidak Ditemukan' });
+    res.json({ success: false, msg: activeTokens[token] ? 'Token Expired' : 'Token Tidak Ditemukan' });
 });
 
 app.post('/api/files', checkAuth, (req, res) => {
-    const reqPath = req.body.path || '';
+    let reqPath = String(req.body.path || '').trim();
+    if (reqPath.startsWith('/root/home')) reqPath = reqPath.replace('/root/home', '');
     const target = path.join(uploadDir, reqPath);
     if (!path.resolve(target).startsWith(path.resolve(uploadDir))) {
         return res.json({ success: false, data: [] });
     }
     try {
+        if (!fs.existsSync(target)) return res.json({ success: true, data: [] });
         const files = fs.readdirSync(target);
         const data = files.map(f => {
             const fp = path.join(target, f);
-            try {
-                const s = fs.statSync(fp);
-                return {
-                    name: f,
-                    isDir: s.isDirectory(),
-                    path: path.relative(uploadDir, fp).replace(/\\/g, '/'),
-                    size: s.size
-                };
-            } catch { return null; }
+            const s = fs.statSync(fp);
+            return {
+                name: f,
+                isDir: s.isDirectory(),
+                path: path.relative(uploadDir, fp).replace(/\\/g, '/'),
+                size: s.size
+            };
         }).filter(Boolean);
         data.sort((a, b) => b.isDir - a.isDir);
         res.json({ success: true, data });
@@ -153,9 +156,9 @@ app.post('/api/delete', checkAuth, (req, res) => {
         const target = path.join(uploadDir, req.body.filename);
         if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
         fs.rmSync(target, { recursive: true, force: true });
-        res.json({ success: true });
+        res.json({ success: true, msg: 'File deleted' });
     } catch {
-        res.json({ success: false });
+        res.json({ success: false, msg: 'Delete failed' });
     }
 });
 
@@ -166,7 +169,7 @@ app.post('/api/read', checkAuth, (req, res) => {
         const content = fs.readFileSync(target, 'utf8');
         res.json({ success: true, content });
     } catch {
-        res.json({ success: false });
+        res.json({ success: false, msg: 'Cannot read file' });
     }
 });
 
@@ -174,20 +177,16 @@ app.post('/api/save', checkAuth, (req, res) => {
     try {
         const target = path.join(uploadDir, req.body.filename);
         if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
-        fs.writeFileSync(target, req.body.content, 'utf8');
-        res.json({ success: true });
+        fs.writeFileSync(target, req.body.content || '');
+        res.json({ success: true, msg: 'Saved successfully' });
     } catch {
-        res.json({ success: false });
+        res.json({ success: false, msg: 'Save failed' });
     }
 });
 
-const upload = multer({
-    storage: multer.diskStorage({
-        destination: (req, file, cb) => cb(null, uploadDir),
-        filename: (req, file, cb) => cb(null, file.originalname)
-    })
+app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => {
+    res.json({ success: true, msg: 'Upload berhasil' });
 });
-app.post('/api/upload', checkAuth, upload.single('file'), (req, res) => res.json({ success: true }));
 
 app.post('/api/unzip', checkAuth, (req, res) => {
     try {
@@ -195,22 +194,22 @@ app.post('/api/unzip', checkAuth, (req, res) => {
         if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
         new AdmZip(target).extractAllTo(path.dirname(target), true);
         fs.unlinkSync(target);
-        res.json({ success: true });
+        res.json({ success: true, msg: 'Unzip berhasil' });
     } catch {
-        res.json({ success: false });
+        res.json({ success: false, msg: 'Unzip gagal' });
     }
 });
 
 app.post('/api/start', checkAuth, (req, res) => {
-    if (isRunning) return res.json({ success: false, msg: 'Server is already running' });
+    if (isRunning) return res.json({ success: false, msg: 'Server sudah berjalan' });
     const cmd = String(req.body.command || 'npm install && npm start').trim();
-    if (!cmd) return res.json({ success: false, msg: 'Invalid command' });
+    if (!cmd) return res.json({ success: false, msg: 'Command tidak valid' });
 
     isRunning = true;
     startTime = Date.now();
     broadcastStats();
 
-    currentProcess = spawn(cmd, { cwd: uploadDir, shell: true, stdio: ['pipe', 'pipe', 'pipe'] });
+    currentProcess = spawn(cmd, { cwd: uploadDir, shell: true });
     currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
     currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
     currentProcess.on('close', (code) => {
@@ -218,9 +217,10 @@ app.post('/api/start', checkAuth, (req, res) => {
         startTime = null;
         currentProcess = null;
         broadcastStats();
-        io.emit('log', `\n\x1b[31m[SYSTEM]\x1b[0m Process terminated (Code: ${code})\n`);
+        io.emit('log', `\n\x1b[31m[SYSTEM] Process terminated (Code: ${code})\x1b[0m\n`);
     });
-    res.json({ success: true });
+
+    res.json({ success: true, msg: 'Server started' });
 });
 
 app.post('/api/stop', checkAuth, (req, res) => {
@@ -230,27 +230,25 @@ app.post('/api/stop', checkAuth, (req, res) => {
         isRunning = false;
         startTime = null;
         broadcastStats();
-        res.json({ success: true });
-    } else res.json({ success: false });
+        res.json({ success: true, msg: 'Server stopped' });
+    } else {
+        res.json({ success: false, msg: 'Server tidak berjalan' });
+    }
 });
 
 io.on('connection', (socket) => {
-    const emitStats = () => socket.emit('stats', getStats());
-    emitStats();
-    const interval = setInterval(emitStats, 2000);
+    socket.emit('stats', getStats());
+    const interval = setInterval(() => socket.emit('stats', getStats()), 2000);
     socket.on('disconnect', () => clearInterval(interval));
 
     socket.on('input', (data) => {
         const cmd = String(data || '').trim();
         if (!cmd) return;
         if (currentProcess && isRunning) {
-            try {
-                currentProcess.stdin.write(cmd + '\n');
-                io.emit('log', `\x1b[32m> ${cmd}\x1b[0m\n`);
-            } catch (e) {}
+            currentProcess.stdin.write(cmd + '\n');
+            io.emit('log', `\x1b[32m> ${cmd}\x1b[0m\n`);
         } else {
             io.emit('log', `\x1b[32m$ ${cmd}\x1b[0m\n`);
-            if (cmd.includes('rm -rf /') || cmd.startsWith('sudo')) return;
             const shell = spawn(cmd, { cwd: uploadDir, shell: true });
             shell.stdout.on('data', d => io.emit('log', d.toString()));
             shell.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
@@ -258,10 +256,8 @@ io.on('connection', (socket) => {
     });
 });
 
-app.get('*', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
-});
+app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 server.listen(PORT, () => {
-    console.log(`🚀 NEXUS Panel berjalan di http://localhost:${PORT}`);
+    console.log(`🚀 NEXUS Panel v2.1 berjalan di http://localhost:${PORT}`);
 });

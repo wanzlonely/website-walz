@@ -6,191 +6,135 @@
     <title>NEXUS Panel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <style>
-        #bg-canvas{pointer-events:none!important;z-index:-1!important}
-        #login-screen,.glass-bg{z-index:1000!important}
-        .login-box{border:2px solid #22d3ee;box-shadow:0 0 80px rgba(34,211,238,0.7);transition:all 0.4s ease}
-        .login-box:hover{transform:scale(1.03);box-shadow:0 0 120px rgba(192,38,211,0.7)}
-        .login-icon{font-size:48px;background:linear-gradient(45deg,#22d3ee,#c026d3);background-clip:text;-webkit-background-clip:text;color:transparent}
-        #token-input{background:rgba(15,23,42,0.9);border:2px solid #334155;color:#e0f2fe;font-size:16px;padding:16px 20px 16px 52px;border-radius:12px;transition:0.3s}
-        #token-input:focus{border-color:#22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,0.3)}
-        #login-btn{background:linear-gradient(90deg,#22d3ee,#c026d3);color:#fff;font-size:17px;font-weight:700;padding:16px 32px;border-radius:12px;box-shadow:0 0 40px rgba(34,211,238,0.6);transition:all 0.3s}
-        #login-btn:hover{transform:translateY(-4px);box-shadow:0 0 70px rgba(192,38,211,0.8)}
-        #login-btn:active{transform:scale(0.96)}
-    </style>
 </head>
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
     
     <div id="login-screen" class="glass-bg">
-        <div class="login-box holo-card">
-            <div class="login-icon neon-glow">
+        <div class="login-box">
+            <div class="login-icon">
                 <i class="ri-instance-line"></i>
             </div>
-            <h1 class="brand" data-text="NEXUS">NEXUS</h1>
-            <p class="subtitle">Secure Environment Authentication</p>
+            <h1 class="brand">NEXUS</h1>
+            <p class="subtitle">SECURE ENVIRONMENT AUTHENTICATION</p>
             <div class="input-group">
                 <i class="ri-key-2-line"></i>
                 <input type="password" id="token-input" placeholder="Enter Access Key">
             </div>
-            <button id="login-btn" onclick="login()" class="btn-primary neon-btn">
-                Connect to Server <i class="ri-arrow-right-line"></i>
-            </button>
+            <button id="login-btn" onclick="login()">CONNECT TO SERVER</button>
         </div>
     </div>
 
     <div id="editor-modal" class="modal hidden">
-        <div class="modal-content holo-card">
+        <div class="modal-content">
             <div class="modal-header">
                 <div class="modal-title">
-                    <i class="ri-code-box-line"></i> 
+                    <i class="ri-code-box-line"></i>
                     <span id="edit-filename">file.js</span>
                 </div>
-                <div class="modal-actions">
-                    <button onclick="saveFile()" class="btn-sm btn-success neon-btn">
-                        <i class="ri-save-3-line"></i> Save
-                    </button>
-                    <button onclick="closeEditor()" class="btn-sm btn-close">✕</button>
-                </div>
+                <button onclick="closeEditor()" class="btn-close">✕</button>
             </div>
             <textarea id="code-editor" spellcheck="false"></textarea>
+            <div class="modal-footer">
+                <button onclick="saveFile()">SAVE CHANGES</button>
+            </div>
         </div>
     </div>
 
-    <div id="app" class="hidden animate-fade-in">
+    <div id="app" class="hidden">
         <aside class="sidebar">
             <div class="sidebar-brand">
-                <i class="ri-instance-line brand-icon neon-glow"></i>
-                <h2 class="neon-text">NEXUS</h2>
+                <i class="ri-instance-line brand-icon"></i>
+                <h2>NEXUS</h2>
             </div>
             <nav class="nav-menu">
-                <p class="nav-label">Core Modules</p>
-                <a href="#" class="nav-item active neon-hover" onclick="switchTab('dashboard', this)">
-                    <i class="ri-dashboard-line"></i> <span>Server Console</span>
+                <a href="#" class="nav-item active" onclick="switchTab('dashboard', this)">
+                    <i class="ri-dashboard-line"></i><span>Server Console</span>
                 </a>
-                <a href="#" class="nav-item neon-hover" onclick="switchTab('files', this)">
-                    <i class="ri-folder-open-line"></i> <span>File Manager</span>
+                <a href="#" class="nav-item" onclick="switchTab('files', this)">
+                    <i class="ri-folder-open-line"></i><span>File Manager</span>
                 </a>
-                <div class="nav-spacer"></div>
-                <a href="#" class="nav-item danger-item neon-hover" onclick="logout()">
-                    <i class="ri-logout-box-line"></i> <span>Disconnect Session</span>
+                <a href="#" class="nav-item danger" onclick="logout()">
+                    <i class="ri-logout-box-line"></i><span>Disconnect</span>
                 </a>
             </nav>
         </aside>
 
         <main class="main-content">
-            <header class="topbar glass-holo">
+            <header class="topbar">
                 <div class="server-info">
-                    <h3 id="role-display">Production Node</h3>
-                    <div class="status-indicator pulse-ring" id="status-badge">
-                        <span class="status-dot offline"></span> 
+                    <h3>PRODUCTION NODE</h3>
+                    <div class="status-indicator" id="status-badge">
+                        <span class="status-dot offline"></span>
                         <span class="status-text">OFFLINE</span>
                     </div>
                 </div>
                 <div class="power-controls">
-                    <button class="btn btn-start neon-btn" onclick="reqStart()" title="Start"><i class="ri-play-fill"></i></button>
-                    <button class="btn btn-restart neon-btn" onclick="req('/api/stop'); setTimeout(()=>reqStart(), 1000)" title="Restart"><i class="ri-restart-line"></i></button>
-                    <button class="btn btn-stop neon-btn" onclick="req('/api/stop')" title="Stop"><i class="ri-stop-fill"></i></button>
+                    <button class="power-btn start" onclick="reqStart()"><i class="ri-play-fill"></i></button>
+                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)"><i class="ri-restart-line"></i></button>
+                    <button class="power-btn stop" onclick="req('/api/stop')"><i class="ri-stop-fill"></i></button>
                 </div>
             </header>
 
             <div class="content-wrapper">
                 <div id="tab-dashboard" class="tab-content active">
                     <div class="dashboard-grid">
-                        <div class="stats-column">
-                            <div class="card stat-card holo-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">Startup Command</span>
-                                    <i class="ri-terminal-window-line text-accent"></i>
-                                </div>
-                                <div class="cmd-input-wrapper">
-                                    <input type="text" id="startup-cmd" value="npm install && npm start">
-                                </div>
+                        <div class="stats-grid">
+                            <div class="stat-card">
+                                <span class="stat-label">STARTUP CMD</span>
+                                <input type="text" id="startup-cmd" value="npm install && npm start">
                             </div>
-                            <div class="card stat-card holo-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">CPU Load</span>
-                                    <i class="ri-cpu-line text-accent"></i>
-                                </div>
-                                <h3 class="stat-value neon-text" id="cpu-val">0.00%</h3>
+                            <div class="stat-card">
+                                <span class="stat-label">CPU LOAD</span>
+                                <h2 id="cpu-val" class="stat-value">0.00%</h2>
                             </div>
-                            <div class="card stat-card holo-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">Memory Usage</span>
-                                    <i class="ri-ram-2-line text-accent"></i>
-                                </div>
-                                <h3 class="stat-value neon-text" id="ram-val">0 MB</h3>
+                            <div class="stat-card">
+                                <span class="stat-label">MEMORY</span>
+                                <h2 id="ram-val" class="stat-value">0 MB</h2>
                             </div>
-                            <div class="card stat-card holo-card">
-                                <div class="stat-header">
-                                    <span class="stat-title">System Uptime</span>
-                                    <i class="ri-time-line text-accent"></i>
-                                </div>
-                                <h3 class="stat-value neon-text" id="uptime-val">00:00:00</h3>
+                            <div class="stat-card">
+                                <span class="stat-label">UPTIME</span>
+                                <h2 id="uptime-val" class="stat-value">00:00:00</h2>
                             </div>
                         </div>
-
-                        <div class="terminal-wrapper card holo-card crt-terminal">
+                        <div class="terminal-wrapper">
                             <div class="terminal-header">
                                 <div class="mac-dots">
                                     <div class="dot r"></div>
                                     <div class="dot y"></div>
                                     <div class="dot g"></div>
                                 </div>
-                                <div class="term-title">nexus-daemon@root:\~</div>
+                                <span class="term-title">root@nexus:\~</span>
                             </div>
                             <div class="terminal-logs" id="terminal-logs"></div>
-                            <div class="scanline"></div>
                             <div class="terminal-input-area">
                                 <span class="prompt">\~#</span>
-                                <input type="text" id="cmd-input" placeholder="Enter shell command..." autocomplete="off">
+                                <input type="text" id="cmd-input" placeholder="Enter command...">
                             </div>
                         </div>
                     </div>
                 </div>
 
                 <div id="tab-files" class="tab-content hidden">
-                    <div class="card file-manager holo-card">
+                    <div class="file-manager">
                         <div class="file-toolbar">
-                            <div class="path-bread" id="current-path">
-                                <i class="ri-folder-shield-2-line"></i> /root/home
-                            </div>
-                            <div class="file-actions-main">
-                                <button onclick="loadFiles('')" class="btn-sm btn-secondary neon-btn">
-                                    <i class="ri-home-4-line"></i> Home
-                                </button>
-                                <label for="file-upload" class="btn-sm btn-primary neon-btn cursor-pointer">
-                                    <i class="ri-upload-cloud-2-line"></i> Upload
-                                </label>
+                            <div id="current-path" class="path-bread"><i class="ri-folder-shield-2-line"></i> /root/home</div>
+                            <label class="upload-btn">
+                                <i class="ri-upload-cloud-2-line"></i> UPLOAD
                                 <input type="file" id="file-upload" hidden onchange="uploadFile()">
-                            </div>
+                            </label>
                         </div>
                         <div class="file-list-header">
-                            <div class="col-name">Name</div>
-                            <div class="col-size">Size</div>
-                            <div class="col-actions">Actions</div>
+                            <div>Name</div>
+                            <div>Size</div>
+                            <div>Actions</div>
                         </div>
-                        <div id="file-list" class="file-list-container"></div>
+                        <div id="file-list" class="file-list"></div>
                     </div>
                 </div>
             </div>
-
-            <footer class="main-footer glass-holo">
-                <div class="footer-content">
-                    <span>NEXUS Control Panel V9 © 2026</span>
-                    <span class="system-ping pulse-slow">
-                        <span class="ping-dot"></span> Secure Connection Active
-                    </span>
-                </div>
-            </footer>
         </main>
-
-        <nav class="mobile-nav">
-            <a href="#" class="nav-item active neon-hover" onclick="switchTab('dashboard', this)"><i class="ri-dashboard-line"></i></a>
-            <a href="#" class="nav-item neon-hover" onclick="switchTab('files', this)"><i class="ri-folder-open-line"></i></a>
-            <a href="#" class="nav-item text-danger neon-hover" onclick="logout()"><i class="ri-logout-box-line"></i></a>
-        </nav>
     </div>
 
     <script src="/socket.io/socket.io.js"></script>
@@ -225,10 +169,10 @@
                     toast('Authentication Successful','success');
                     loadFiles();
                 }else{
-                    toast(data.msg||'Token Invalid or Expired','error');
+                    toast(data.msg||'Token Invalid','error');
                 }
             }catch(e){
-                toast('Network Error - Server tidak merespons','error');
+                toast('Network Error','error');
             }
         }
         function logout(){
@@ -255,11 +199,9 @@
             document.getElementById('uptime-val').textContent=d.uptime;
             const badge=document.getElementById('status-badge');
             if(d.status==='ONLINE'){
-                badge.innerHTML=`<span class="status-dot online"></span><span class="status-text text-success">ONLINE</span>`;
-                badge.classList.add('pulse-ring');
+                badge.innerHTML=`<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
             }else{
-                badge.innerHTML=`<span class="status-dot offline"></span><span class="status-text text-danger">OFFLINE</span>`;
-                badge.classList.remove('pulse-ring');
+                badge.innerHTML=`<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
             }
         });
         const term=document.getElementById('terminal-logs');
@@ -294,27 +236,31 @@
             const i=Math.floor(Math.log(bytes)/Math.log(k));
             return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
         }
-        async function loadFiles(p=''){
-            const d=await req('/api/files',{path:p});
-            if(d&&d.success){
-                const list=document.getElementById('file-list');
-                if(d.data.length===0){
-                    list.innerHTML='<div class="empty-state">Folder is empty</div>';
+        async function loadFiles(p = '') {
+            const d = await req('/api/files', { path: p });
+            if (d && d.success) {
+                const list = document.getElementById('file-list');
+                if (!d.data || d.data.length === 0) {
+                    list.innerHTML = '<div class="empty-state">Folder is empty</div>';
                     return;
                 }
-                list.innerHTML=d.data.map(f=>`
-                    <div class="list-item">
-                        <div class="col-name" onclick="\( {f.isDir?`loadFiles(' \){f.path}')`:''}" style="${f.isDir?'cursor:pointer;font-weight:600;':''}">
-                            <i class="ri-${f.isDir?'folder-fill text-accent':'file-text-line text-muted'}"></i> ${f.name}
+                list.innerHTML = d.data.map(f => {
+                    const safePath = f.path.replace(/'/g, "\\'");
+                    const safeName = f.name.replace(/'/g, "\\'");
+                    return `
+                        <div class="list-item">
+                            <div class="col-name" onclick="\( {f.isDir ? `loadFiles(' \){safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
+                                <i class="ri-${f.isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
+                            </div>
+                            <div class="col-size">${f.isDir ? '--' : formatSize(f.size)}</div>
+                            <div class="col-actions">
+                                \( {!f.isDir ? `<button onclick="editFile(' \){safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
+                                \( {!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
+                                <button onclick="if(confirm('Hapus \( {safeName}?')) req('/api/delete',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
+                            </div>
                         </div>
-                        <div class="col-size">${f.isDir?'--':formatSize(f.size)}</div>
-                        <div class="col-actions">
-                            \( {!f.isDir?`<button onclick="editFile(' \){f.path}')" class="act-btn"><i class="ri-edit-2-line"></i></button>`:''}
-                            \( {!f.isDir&&f.name.endsWith('.zip')?`<button onclick="req('/api/unzip',{filename:' \){f.path}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>`:''}
-                            <button onclick="if(confirm('Delete \( {f.name}?')) req('/api/delete',{filename:' \){f.path}'}).then(()=>loadFiles())" class="act-btn text-danger"><i class="ri-delete-bin-line"></i></button>
-                        </div>
-                    </div>
-                `).join('');
+                    `;
+                }).join('');
             }
         }
         async function editFile(path){
@@ -340,7 +286,7 @@
             if(!f)return;
             const fd=new FormData();
             fd.append('file',f);
-            toast('Uploading file...','normal');
+            toast('Uploading...','normal');
             try{
                 const r=await fetch('/api/upload',{method:'POST',headers:{'Authorization':token},body:fd});
                 const resData=await r.json();
@@ -366,9 +312,9 @@
             }
             update(){this.x+=this.speedX;this.y+=this.speedY;}
             draw(){
-                ctx.fillStyle='#22d3ee';
+                ctx.fillStyle='#67e8f9';
                 ctx.shadowBlur=15;
-                ctx.shadowColor='#22d3ee';
+                ctx.shadowColor='#67e8f9';
                 ctx.fillRect(this.x,this.y,this.size,this.size);
             }
         }
@@ -384,7 +330,7 @@
                     const dy=particles[i].y-particles[j].y;
                     const dist=Math.sqrt(dx*dx+dy*dy);
                     if(dist<140){
-                        ctx.strokeStyle=`rgba(34,211,238,${1-dist/140})`;
+                        ctx.strokeStyle=`rgba(103,232,249,${1-dist/140})`;
                         ctx.lineWidth=1.1;
                         ctx.beginPath();
                         ctx.moveTo(particles[i].x,particles[i].y);
@@ -405,8 +351,9 @@
             canvas.height=window.innerHeight;
             initParticles();
         }
-        function countUp(el,target,suffix,duration=1400){
+        function countUp(el,target,suffix){
             let start=parseFloat(el.textContent)||0;
+            const duration=1400;
             const startTime=Date.now();
             const step=()=>{
                 const progress=Math.min((Date.now()-startTime)/duration,1);
@@ -416,22 +363,10 @@
             };
             step();
         }
-        function createRipple(e){
-            const btn=e.currentTarget;
-            const circle=document.createElement('span');
-            const d=Math.max(btn.clientWidth,btn.clientHeight);
-            circle.style.width=circle.style.height=d+'px';
-            circle.style.left=(e.offsetX-d/2)+'px';
-            circle.style.top=(e.offsetY-d/2)+'px';
-            circle.classList.add('ripple');
-            btn.appendChild(circle);
-            setTimeout(()=>circle.remove(),700);
-        }
         window.onload=()=>{
             resizeCanvas();
             window.addEventListener('resize',resizeCanvas);
             animateParticles();
-            document.querySelectorAll('button,.cursor-pointer').forEach(b=>b.addEventListener('click',createRipple));
         };
     </script>
 </body>

@@ -101,7 +101,7 @@
                     <div class="stats-grid">
                         <div class="stat-card">
                             <span class="stat-label">startup cmd</span>
-                            <input type="text" id="startup-cmd" value="npm install && npm start">
+                            <input type="text" id="startup-cmd" value="npm start">
                         </div>
                         <div class="stat-card">
                             <span class="stat-label">cpu load</span>
@@ -154,9 +154,9 @@
                             <i class="ri-timer-flash-line"></i>
                             <h3>Masa Aktif</h3>
                         </div>
-                        <div class="sub-time" id="expiry-time">15 Hari 07 Jam 23 Menit</div>
+                        <div class="sub-time" id="expiry-time">Memuat...</div>
                         <div class="sub-progress">
-                            <div class="progress-bar" style="width: 75%"></div>
+                            <div class="progress-bar" id="expiry-progress" style="width: 0%"></div>
                         </div>
                         <p class="sub-note">Perpanjang sekarang untuk akses tanpa gangguan</p>
                     </div>
@@ -223,6 +223,7 @@
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
             loadFiles();
+            loadExpiry();
         }
 
         function toast(msg, type = 'normal') {
@@ -254,6 +255,7 @@
                     document.getElementById('app').classList.remove('hidden');
                     toast('Authentication Successful', 'success');
                     loadFiles();
+                    loadExpiry();
                 } else {
                     toast(data.msg || 'Token Invalid', 'error');
                 }
@@ -277,6 +279,34 @@
                 return data;
             } catch (e) {
                 toast('Network Error', 'error');
+            }
+        }
+
+        async function loadExpiry() {
+            try {
+                const res = await fetch('/api/expiry', {
+                    headers: { 'Authorization': token }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const expiryTime = document.getElementById('expiry-time');
+                    const progressBar = document.getElementById('expiry-progress');
+                    if (data.expired) {
+                        expiryTime.innerText = 'Telah kedaluwarsa';
+                        progressBar.style.width = '0%';
+                    } else {
+                        const total = data.totalSeconds;
+                        const remaining = data.remainingSeconds;
+                        const days = Math.floor(remaining / 86400);
+                        const hours = Math.floor((remaining % 86400) / 3600);
+                        const minutes = Math.floor((remaining % 3600) / 60);
+                        expiryTime.innerText = `${days} Hari ${hours} Jam ${minutes} Menit`;
+                        const percent = ((total - remaining) / total) * 100;
+                        progressBar.style.width = `${percent}%`;
+                    }
+                }
+            } catch (e) {
+                document.getElementById('expiry-time').innerText = 'Gagal memuat';
             }
         }
 
@@ -325,6 +355,7 @@
                 document.querySelector('.files').classList.remove('hidden');
             } else {
                 document.querySelector('.subscription').classList.remove('hidden');
+                loadExpiry();
             }
             el.classList.add('active');
             if (id === 'files') loadFiles();

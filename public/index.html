@@ -11,7 +11,6 @@
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
 
-    <!-- Modal Konfirmasi -->
     <div id="confirm-modal" class="modal hidden">
         <div class="modal-panel glass">
             <div class="modal-head">
@@ -31,7 +30,6 @@
         </div>
     </div>
 
-    <!-- Layar Login -->
     <div id="login-screen">
         <div class="login-card glass">
             <div class="login-icon">
@@ -47,7 +45,6 @@
         </div>
     </div>
 
-    <!-- Modal Editor -->
     <div id="editor-modal" class="modal hidden">
         <div class="modal-panel glass">
             <div class="modal-head">
@@ -64,7 +61,6 @@
         </div>
     </div>
 
-    <!-- Aplikasi Utama -->
     <div id="app" class="hidden">
         <aside class="sidebar glass">
             <div class="sidebar-header">
@@ -101,7 +97,6 @@
             </header>
 
             <div class="content" id="content-scroll">
-                <!-- DASHBOARD TAB -->
                 <div id="tab-dashboard" class="dashboard">
                     <div class="stats-grid">
                         <div class="stat-card glass">
@@ -137,7 +132,6 @@
                     </div>
                 </div>
 
-                <!-- FILES TAB -->
                 <div id="tab-files" class="files hidden">
                     <div class="files-toolbar glass">
                         <div id="current-path" class="path"><i class="ri-folder-3-line"></i> /root</div>
@@ -154,7 +148,6 @@
                     <div id="file-list" class="files-list"></div>
                 </div>
 
-                <!-- SUBSCRIPTION TAB -->
                 <div id="tab-subscription" class="subscription hidden">
                     <div class="sub-card glass">
                         <div class="sub-header">
@@ -221,8 +214,339 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // (JavaScript tetap sama seperti sebelumnya, tidak ada perubahan)
-        // ... kode JS yang sudah ada ...
+        const socket = io();
+        let token = localStorage.getItem('nexus_token');
+        let currentEditFile = '';
+        let pendingDeletePath = '';
+
+        if (token) {
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            loadFiles();
+            loadExpiry();
+        }
+
+        function toast(msg, type = 'normal') {
+            const container = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast toast-${type}`;
+            el.innerHTML = `<i class="ri-${type === 'success' ? 'checkbox-circle-fill' : type === 'error' ? 'error-warning-fill' : 'information-fill'}"></i> ${msg}`;
+            container.appendChild(el);
+            setTimeout(() => el.remove(), 3200);
+        }
+
+        async function login() {
+            const t = document.getElementById('token-input').value.trim();
+            if (!t) {
+                toast('Token required', 'error');
+                return;
+            }
+            try {
+                const res = await fetch('/api/login', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ token: t })
+                });
+                const data = await res.json();
+                if (data.success) {
+                    localStorage.setItem('nexus_token', t);
+                    token = t;
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    toast('Authentication Successful', 'success');
+                    loadFiles();
+                    loadExpiry();
+                } else {
+                    toast(data.msg || 'Token Invalid', 'error');
+                }
+            } catch (e) {
+                toast('Network Error', 'error');
+            }
+        }
+
+        async function req(ep, body = {}) {
+            try {
+                const res = await fetch(ep, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': token,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify(body)
+                });
+                const data = await res.json();
+                if (data.msg) toast(data.msg, data.success ? 'success' : 'error');
+                return data;
+            } catch (e) {
+                toast('Network Error', 'error');
+            }
+        }
+
+        async function loadExpiry() {
+            try {
+                const res = await fetch('/api/expiry', {
+                    headers: { 'Authorization': token }
+                });
+                const data = await res.json();
+                if (data.success) {
+                    const expiryTime = document.getElementById('expiry-time');
+                    const progressBar = document.getElementById('expiry-progress');
+                    if (data.expired) {
+                        expiryTime.innerText = 'Telah kedaluwarsa';
+                        progressBar.style.width = '0%';
+                    } else {
+                        const total = data.totalSeconds;
+                        const remaining = data.remainingSeconds;
+                        const days = Math.floor(remaining / 86400);
+                        const hours = Math.floor((remaining % 86400) / 3600);
+                        const minutes = Math.floor((remaining % 3600) / 60);
+                        expiryTime.innerText = `${days} Hari ${hours} Jam ${minutes} Menit`;
+                        const percent = ((total - remaining) / total) * 100;
+                        progressBar.style.width = `${percent}%`;
+                    }
+                }
+            } catch (e) {
+                document.getElementById('expiry-time').innerText = 'Gagal memuat';
+            }
+        }
+
+        function reqStart() {
+            req('/api/start', { command: document.getElementById('startup-cmd').value });
+        }
+
+        socket.on('stats', (d) => {
+            countUp('cpu-val', parseFloat(d.cpu), '%');
+            countUp('ram-val', parseFloat(d.ram), ' MB');
+            document.getElementById('uptime-val').textContent = d.uptime;
+            const badge = document.getElementById('status-badge');
+            if (d.status === 'ONLINE') {
+                badge.innerHTML = `<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
+            } else {
+                badge.innerHTML = `<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
+            }
+        });
+
+        const term = document.getElementById('terminal-logs');
+        socket.on('log', (log) => {
+            const span = document.createElement('span');
+            span.innerHTML = log.replace(/\n/g, '<br>')
+                .replace(/\x1b\[31m/g, '<span class="term-red">')
+                .replace(/\x1b\[32m/g, '<span class="term-green">')
+                .replace(/\x1b\[33m/g, '<span class="term-yellow">')
+                .replace(/\x1b\[36m/g, '<span class="term-blue">')
+                .replace(/\x1b\[0m/g, '</span>');
+            term.appendChild(span);
+            term.scrollTop = term.scrollHeight;
+        });
+
+        document.getElementById('cmd-input').addEventListener('keypress', (e) => {
+            if (e.key === 'Enter' && e.target.value.trim()) {
+                socket.emit('input', e.target.value);
+                e.target.value = '';
+            }
+        });
+
+        function switchTab(id, el) {
+            document.querySelectorAll('.dashboard, .files, .subscription').forEach(e => e.classList.add('hidden'));
+            document.querySelectorAll('.sidebar-nav a, .bottom-nav a').forEach(e => e.classList.remove('active'));
+            if (id === 'dashboard') {
+                document.querySelector('.dashboard').classList.remove('hidden');
+            } else if (id === 'files') {
+                document.querySelector('.files').classList.remove('hidden');
+            } else {
+                document.querySelector('.subscription').classList.remove('hidden');
+                loadExpiry();
+            }
+            el.classList.add('active');
+            if (id === 'files') loadFiles();
+        }
+
+        function formatSize(bytes) {
+            if (bytes === 0) return '0 B';
+            const k = 1024;
+            const sizes = ['B', 'KB', 'MB', 'GB'];
+            const i = Math.floor(Math.log(bytes) / Math.log(k));
+            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
+        }
+
+        async function loadFiles(p = '') {
+            const d = await req('/api/files', { path: p });
+            if (d && d.success) {
+                const list = document.getElementById('file-list');
+                const pathEl = document.getElementById('current-path');
+                pathEl.innerHTML = `<i class="ri-folder-3-line"></i> ${p || '/root'}`;
+                if (!d.data || d.data.length === 0) {
+                    list.innerHTML = '<div class="empty">folder is empty</div>';
+                    return;
+                }
+                list.innerHTML = d.data.map(f => {
+                    const safePath = f.path.replace(/'/g, "\\'");
+                    const safeName = f.name.replace(/'/g, "\\'");
+                    const isDir = f.isDir;
+                    const isZip = !isDir && f.name.toLowerCase().endsWith('.zip');
+                    const actions = [];
+                    if (!isDir) {
+                        if (isZip) {
+                            actions.push(`<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="file-action" title="unzip"><i class="ri-file-zip-line"></i></button>`);
+                        } else {
+                            actions.push(`<button onclick="editFile('${safePath}')" class="file-action" title="edit"><i class="ri-pencil-line"></i></button>`);
+                        }
+                    }
+                    actions.push(`<button onclick="confirmDelete('${safePath}', '${safeName}')" class="file-action" title="delete"><i class="ri-delete-bin-line"></i></button>`);
+                    return `
+                        <div class="file-row">
+                            <div class="file-name" onclick="${isDir ? `loadFiles('${safePath}')` : ''}" style="${isDir ? 'cursor:pointer;' : ''}">
+                                <i class="ri-${isDir ? 'folder-3-line' : 'file-line'}"></i> ${f.name}
+                            </div>
+                            <div class="file-size">${isDir ? '—' : formatSize(f.size)}</div>
+                            <div class="file-actions">${actions.join('')}</div>
+                        </div>
+                    `;
+                }).join('');
+            }
+        }
+
+        function confirmDelete(path, name) {
+            pendingDeletePath = path;
+            document.getElementById('confirm-message').innerText = `Hapus ${name}?`;
+            document.getElementById('confirm-modal').classList.remove('hidden');
+        }
+
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            pendingDeletePath = '';
+        }
+
+        async function executeDelete() {
+            if (!pendingDeletePath) return;
+            const res = await req('/api/delete', { filename: pendingDeletePath });
+            if (res && res.success) {
+                loadFiles();
+            }
+            closeConfirmModal();
+        }
+
+        async function editFile(path) {
+            const res = await req('/api/read', { filename: path });
+            if (res && res.success) {
+                currentEditFile = path;
+                document.getElementById('edit-filename').innerText = path.split('/').pop();
+                document.getElementById('code-editor').value = res.content;
+                document.getElementById('editor-modal').classList.remove('hidden');
+            }
+        }
+
+        async function saveFile() {
+            const content = document.getElementById('code-editor').value;
+            const res = await req('/api/save', { filename: currentEditFile, content });
+            if (res && res.success) closeEditor();
+        }
+
+        function closeEditor() {
+            document.getElementById('editor-modal').classList.add('hidden');
+            currentEditFile = '';
+        }
+
+        async function uploadFile() {
+            const f = document.getElementById('file-upload').files[0];
+            if (!f) return;
+            const fd = new FormData();
+            fd.append('file', f);
+            toast('Uploading...', 'normal');
+            try {
+                const r = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': token },
+                    body: fd
+                });
+                const resData = await r.json();
+                if (resData.success) {
+                    toast('Upload Success', 'success');
+                    loadFiles();
+                }
+            } catch (e) {
+                toast('Upload Failed', 'error');
+            }
+            document.getElementById('file-upload').value = '';
+        }
+
+        const canvas = document.getElementById('bg-canvas');
+        const ctx = canvas.getContext('2d');
+        let particles = [];
+
+        class Particle {
+            constructor() {
+                this.x = Math.random() * canvas.width;
+                this.y = Math.random() * canvas.height;
+                this.size = Math.random() * 1.5 + 0.5;
+                this.speedX = Math.random() * 0.4 - 0.2;
+                this.speedY = Math.random() * 0.4 - 0.2;
+            }
+            update() { this.x += this.speedX; this.y += this.speedY; }
+            draw() {
+                ctx.fillStyle = '#3b82f6';
+                ctx.shadowBlur = 10;
+                ctx.shadowColor = '#3b82f6';
+                ctx.fillRect(this.x, this.y, this.size, this.size);
+            }
+        }
+
+        function initParticles() {
+            particles = [];
+            const num = Math.floor(canvas.width * canvas.height / 12000);
+            for (let i = 0; i < num; i++) particles.push(new Particle());
+        }
+
+        function connectParticles() {
+            for (let i = 0; i < particles.length; i++) {
+                for (let j = i + 1; j < particles.length; j++) {
+                    const dx = particles[i].x - particles[j].x;
+                    const dy = particles[i].y - particles[j].y;
+                    const dist = Math.sqrt(dx * dx + dy * dy);
+                    if (dist < 120) {
+                        ctx.strokeStyle = `rgba(59,130,246,${1 - dist/120})`;
+                        ctx.lineWidth = 0.8;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x, particles[i].y);
+                        ctx.lineTo(particles[j].x, particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+
+        function animateParticles() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            particles.forEach(p => { p.update(); p.draw(); });
+            connectParticles();
+            requestAnimationFrame(animateParticles);
+        }
+
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+            initParticles();
+        }
+
+        function countUp(id, target, suffix) {
+            const el = document.getElementById(id);
+            let start = parseFloat(el.textContent) || 0;
+            const duration = 1200;
+            const startTime = Date.now();
+            const step = () => {
+                const progress = Math.min((Date.now() - startTime) / duration, 1);
+                const value = start + (target - start) * (1 - Math.pow(1 - progress, 3));
+                el.textContent = suffix.includes('%') ? value.toFixed(2) + '%' : Math.floor(value) + suffix;
+                if (progress < 1) requestAnimationFrame(step);
+            };
+            step();
+        }
+
+        window.onload = () => {
+            resizeCanvas();
+            window.addEventListener('resize', resizeCanvas);
+            animateParticles();
+        };
     </script>
 </body>
 </html>

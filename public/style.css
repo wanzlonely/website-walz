@@ -452,6 +452,7 @@ body {
     display: flex;
     flex-direction: column;
     overflow: hidden;
+    height: 100%;
 }
 
 .terminal-header {
@@ -461,6 +462,7 @@ body {
     display: flex;
     align-items: center;
     gap: 14px;
+    flex-shrink: 0;
 }
 
 .terminal-dots {
@@ -502,7 +504,7 @@ body {
     overflow-y: auto;
     scroll-behavior: smooth;
     position: relative;
-    min-height: 300px;
+    min-height: 200px;
 }
 
 .terminal-body::after {
@@ -532,6 +534,7 @@ body {
     padding: 12px 20px;
     background: rgba(0,0,0,0.4);
     border-top: 1px solid var(--border);
+    flex-shrink: 0;
 }
 
 .prompt {

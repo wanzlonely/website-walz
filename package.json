@@ -1,6 +1,6 @@
 {
   "name": "nexus-control-v6",
-  "version": "6.1.0",
+  "version": "6.2.0",
   "description": "Professional Bot Controller",
   "main": "server.js",
   "scripts": {
@@ -15,7 +15,7 @@
     "cors": "^2.8.5"
   },
   "engines": {
-    "node": "23.x"
+    "node": ">=18.0.0"
   },
   "author": "Walz",
   "license": "MIT"

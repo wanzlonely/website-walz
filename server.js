@@ -8,8 +8,9 @@ const { spawn, exec } = require('child_process');
 const fs = require('fs');
 const path = require('path');
 const os = require('os');
-const diskusage = require('diskusage');
 const crypto = require('crypto');
+const util = require('util');
+const execPromise = util.promisify(exec);
 
 const app = express();
 const server = http.createServer(app);
@@ -61,12 +62,26 @@ app.post('/logout', (req, res) => {
   res.json({ success: true });
 });
 
+async function getDiskUsage() {
+  try {
+    const { stdout } = await execPromise('df -k ' + storageRoot);
+    const lines = stdout.trim().split('\n');
+    const parts = lines[1].split(/\s+/);
+    const total = parseInt(parts[1]) * 1024;
+    const used = parseInt(parts[2]) * 1024;
+    const free = parseInt(parts[3]) * 1024;
+    return { total, used, free };
+  } catch {
+    return { total: 0, used: 0, free: 0 };
+  }
+}
+
 app.get('/api/stats', authMiddleware, async (req, res) => {
   try {
     const ram = process.memoryUsage().heapUsed / 1024 / 1024;
     const cpu = os.loadavg()[0];
     const uptime = os.uptime();
-    const disk = await diskusage.check(storageRoot);
+    const disk = await getDiskUsage();
     const network = os.networkInterfaces();
     res.json({
       ram: `${Math.round(ram)} MB`,
@@ -74,7 +89,7 @@ app.get('/api/stats', authMiddleware, async (req, res) => {
       uptime,
       diskTotal: disk.total,
       diskFree: disk.free,
-      diskUsed: disk.total - disk.free,
+      diskUsed: disk.used,
       network: Object.keys(network).map(iface => ({
         interface: iface,
         addresses: network[iface].map(addr => addr.address)

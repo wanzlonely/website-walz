@@ -1,349 +1,284 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>CYBER PANEL ELITE</title>
-  <link rel="stylesheet" href="/style.css">
-  <script src="/socket.io/socket.io.js"></script>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WALZ NEXUS // CONTROL</title>
+    <link rel="stylesheet" href="style.css">
+    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
+    <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-  <div id="loginOverlay" class="login-overlay">
-    <div class="login-card">
-      <div class="login-header">
-        <span class="glitch">NEXUS SECURE</span>
-        <span class="sub">ADMIN ACCESS</span>
-      </div>
-      <input type="password" id="password" class="login-input" placeholder="••••••••">
-      <button class="btn-glow" onclick="login()">AUTHENTICATE</button>
+
+    <div id="toast-container"></div>
+
+    <div id="auth-layer">
+        <div class="auth-card">
+            <div class="glitch-wrapper">
+                <h1 class="auth-title" data-text="SYSTEM ACCESS">SYSTEM ACCESS</h1>
+            </div>
+            <p class="auth-sub">Identity Verification Required</p>
+            <div class="input-group">
+                <input type="password" id="auth-pass" placeholder="ENTER ACCESS CODE" autocomplete="off">
+                <div class="input-line"></div>
+            </div>
+            <button onclick="authenticate()" class="btn-cyber">INITIALIZE <span class="btn-glare"></span></button>
+        </div>
     </div>
-  </div>
 
-  <div class="app">
-    <aside class="sidebar" id="sidebar">
-      <div class="sidebar-header">
-        <span class="logo">⚡NEXUS</span>
-        <button class="collapse-btn" onclick="toggleSidebar()">◀</button>
-      </div>
-      <nav class="sidebar-nav">
-        <a href="#" class="nav-item active" data-page="dashboard">📊 DASHBOARD</a>
-        <a href="#" class="nav-item" data-page="console">💻 CONSOLE</a>
-        <a href="#" class="nav-item" data-page="terminal">🖥️ TERMINAL</a>
-        <a href="#" class="nav-item" data-page="files">📁 FILES</a>
-        <a href="#" class="nav-item" data-page="settings">⚙️ SETTINGS</a>
-      </nav>
-      <div class="sidebar-footer">
-        <button class="theme-toggle" onclick="toggleTheme()">🌗</button>
-        <button class="logout" onclick="logout()">⤿ LOGOUT</button>
-      </div>
-    </aside>
+    <div id="main-interface">
+        <nav class="glass-nav">
+            <div class="brand">
+                <div class="logo-icon">⚡</div>
+                <div class="logo-text">NEXUS <span style="color:var(--accent)">V6</span></div>
+            </div>
+            <div class="nav-links">
+                <button class="nav-item active" onclick="setView('console')">TERMINAL</button>
+                <button class="nav-item" onclick="setView('files')">DATABASE</button>
+            </div>
+            <div class="status-badge" id="nav-status">OFFLINE</div>
+        </nav>
 
-    <main class="content">
-      <div id="toastContainer" class="toast-container"></div>
+        <main id="view-console" class="view active">
+            <div class="stats-grid">
+                <div class="stat-box">
+                    <div class="stat-icon">🧠</div>
+                    <div class="stat-info">
+                        <span class="stat-label">RAM USAGE</span>
+                        <span class="stat-val" id="val-ram">-- MB</span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">⚡</div>
+                    <div class="stat-info">
+                        <span class="stat-label">CPU LOAD</span>
+                        <span class="stat-val" id="val-cpu">-- %</span>
+                    </div>
+                </div>
+                <div class="stat-box">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-info">
+                        <span class="stat-label">SERVER TIME</span>
+                        <span class="stat-val" id="val-time">--:--:--</span>
+                    </div>
+                </div>
+            </div>
 
-      <section id="page-dashboard" class="page active">
-        <h2 class="page-title">SYSTEM DASHBOARD</h2>
-        <div class="stats-grid">
-          <div class="stat-card">
-            <div class="stat-label">RAM</div>
-            <div class="stat-value" id="statRam">-- MB</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">CPU LOAD</div>
-            <div class="stat-value" id="statCpu">--%</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">DISK USED</div>
-            <div class="stat-value" id="statDisk">-- / --</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">UPTIME</div>
-            <div class="stat-value" id="statUptime">--:--</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">BOT STATUS</div>
-            <div class="stat-value" id="statBot"><span class="dot offline"></span> OFFLINE</div>
-          </div>
-          <div class="stat-card">
-            <div class="stat-label">NETWORK</div>
-            <div class="stat-value" id="statNetwork">--</div>
-          </div>
+            <div class="terminal-wrapper">
+                <div class="terminal-header">
+                    <div class="term-title">root@nexus:~</div>
+                    <div class="term-controls">
+                        <button class="term-btn start" onclick="serverAction('/start')">▶ BOOT</button>
+                        <button class="term-btn stop" onclick="serverAction('/stop')">■ KILL</button>
+                    </div>
+                </div>
+                <div class="terminal-body" id="logs"></div>
+                <div class="terminal-input-area">
+                    <span class="prompt">➜</span>
+                    <input type="text" id="cmd-input" placeholder="Execute command..." autocomplete="off">
+                </div>
+            </div>
+        </main>
+
+        <main id="view-files" class="view">
+            <div class="file-toolbar">
+                <div class="search-bar">
+                    <input type="text" placeholder="Search files..." id="file-search">
+                </div>
+                <button class="btn-cyber small" onclick="document.getElementById('upload-input').click()">+ UPLOAD</button>
+                <input type="file" id="upload-input" hidden onchange="handleUpload()">
+            </div>
+
+            <div class="file-grid" id="file-list">
+                </div>
+        </main>
+
+        <footer class="cyber-footer">
+            <div class="footer-content">
+                <span>SYSTEM DEVELOPED BY WALZ</span>
+                <div class="socials">
+                    <a href="https://wa.me/6281234567890" target="_blank" class="social-link">WHATSAPP</a>
+                    <span class="divider">/</span>
+                    <a href="https://t.me/yourusername" target="_blank" class="social-link">TELEGRAM</a>
+                </div>
+            </div>
+        </footer>
+    </div>
+
+    <div id="editor-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <input type="text" id="edit-filename" readonly class="modal-title-input">
+                <div class="modal-actions">
+                    <button class="btn-text" onclick="closeEditor()">CANCEL</button>
+                    <button class="btn-cyber small" onclick="saveFile()">SAVE CHANGES</button>
+                </div>
+            </div>
+            <textarea id="file-content" spellcheck="false"></textarea>
         </div>
-      </section>
+    </div>
 
-      <section id="page-console" class="page">
-        <div class="console-header">
-          <h2>BOT CONTROL</h2>
-          <div class="console-actions">
-            <button class="btn-cyber" onclick="fetch('/api/bot/start',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">▶ START</button>
-            <button class="btn-cyber" onclick="fetch('/api/bot/restart',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">↻ RESTART</button>
-            <button class="btn-cyber" onclick="fetch('/api/bot/stop',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">■ STOP</button>
-          </div>
-        </div>
-        <div class="terminal">
-          <div class="terminal-output" id="botLogs"></div>
-          <div class="terminal-input-line">
-            <span class="prompt">➜</span>
-            <input type="text" id="botInput" class="terminal-input-field" placeholder="command...">
-          </div>
-        </div>
-      </section>
+    <script>
+        const socket = io();
+        const api = url => fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'} });
+        
+        if (localStorage.getItem('nexus_token')) {
+            document.getElementById('auth-layer').style.display = 'none';
+            document.getElementById('main-interface').style.opacity = '1';
+        }
 
-      <section id="page-terminal" class="page">
-        <h2>REMOTE SHELL</h2>
-        <div class="terminal">
-          <div class="terminal-output" id="shellLogs"></div>
-          <div class="terminal-input-line">
-            <span class="prompt">$</span>
-            <input type="text" id="shellInput" class="terminal-input-field" placeholder="shell command...">
-          </div>
-        </div>
-      </section>
+        function authenticate() {
+            const p = document.getElementById('auth-pass').value;
+            fetch('/auth', {
+                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: p })
+            }).then(r => r.json()).then(d => {
+                if (d.success) {
+                    localStorage.setItem('nexus_token', d.token);
+                    document.getElementById('auth-layer').style.opacity = '0';
+                    setTimeout(() => {
+                        document.getElementById('auth-layer').style.display = 'none';
+                        document.getElementById('main-interface').style.opacity = '1';
+                    }, 500);
+                    notify('ACCESS GRANTED', 'success');
+                    loadFiles();
+                } else {
+                    notify('ACCESS DENIED', 'error');
+                }
+            });
+        }
 
-      <section id="page-files" class="page">
-        <div class="file-toolbar">
-          <span class="current-path" id="currentPath">/storage</span>
-          <input type="file" id="fileUpload" multiple style="display:none">
-          <button class="btn-cyber" onclick="document.getElementById('fileUpload').click()">UPLOAD</button>
-          <button class="btn-cyber" onclick="newFolder()">📁 NEW FOLDER</button>
-        </div>
-        <div class="file-grid" id="fileList"></div>
-        <div id="fileEditor" class="file-editor hidden">
-          <textarea id="editorContent" class="editor-textarea"></textarea>
-          <div class="editor-actions">
-            <button class="btn-cyber" onclick="saveFile()">SAVE</button>
-            <button class="btn-cyber" onclick="closeEditor()">CLOSE</button>
-          </div>
-        </div>
-      </section>
+        document.getElementById('auth-pass').addEventListener('keypress', e => { if(e.key === 'Enter') authenticate(); });
 
-      <section id="page-settings" class="page">
-        <h2>ENVIRONMENT VARIABLES</h2>
-        <div class="settings-group">
-          <label>TOKEN</label>
-          <input type="text" id="envToken" placeholder="Telegram bot token">
-          <label>API_KEY</label>
-          <input type="text" id="envApiKey" placeholder="API key">
-          <label>SECRET</label>
-          <input type="text" id="envSecret" placeholder="Secret">
-          <button class="btn-cyber" onclick="saveEnv()">SAVE</button>
-        </div>
-      </section>
-    </main>
-  </div>
+        socket.on('log', d => {
+            const l = document.getElementById('logs');
+            const span = document.createElement('span');
+            span.innerHTML = d.replace(/\n/g, '<br>')
+                .replace(/\x1b\[31m/g, '<c style="color:#ff5555">')
+                .replace(/\x1b\[32m/g, '<c style="color:#50fa7b">')
+                .replace(/\x1b\[33m/g, '<c style="color:#f1fa8c">')
+                .replace(/\x1b\[36m/g, '<c style="color:#8be9fd">')
+                .replace(/\x1b\[0m/g, '</c>');
+            l.appendChild(span);
+            l.scrollTop = l.scrollHeight;
+        });
 
-  <footer class="cyber-footer">
-    <a href="https://wa.me/628123456789" target="_blank">📱 WhatsApp</a>
-    <a href="https://t.me/cybernexus" target="_blank">📞 Telegram</a>
-    <span>© 2025 NEXUS ELITE</span>
-  </footer>
+        socket.on('stats', s => {
+            document.getElementById('val-ram').innerText = s.ram;
+            document.getElementById('val-cpu').innerText = s.cpu;
+            document.getElementById('val-time').innerText = s.time;
+            const badge = document.getElementById('nav-status');
+            badge.innerText = s.status;
+            badge.className = `status-badge ${s.status === 'ONLINE' ? 'online' : ''}`;
+        });
 
-  <script>
-    const socket = io();
-    let currentPath = '';
-    let currentFile = null;
+        document.getElementById('cmd-input').addEventListener('keydown', e => {
+            if(e.key === 'Enter' && e.target.value.trim()) {
+                socket.emit('input', e.target.value);
+                e.target.value = '';
+            }
+        });
 
-    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
+        function setView(id) {
+            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
+            document.getElementById('view-'+id).classList.add('active');
+            event.target.classList.add('active');
+            if(id === 'files') loadFiles();
+        }
 
-    document.getElementById('password').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
+        function serverAction(url) {
+            fetch(url, {method: 'POST'}).then(r=>r.json()).then(d => notify(d.msg, d.success ? 'success' : 'error'));
+        }
 
-    async function login() {
-      const pass = document.getElementById('password').value;
-      const res = await fetch('/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ password: pass })
-      });
-      const data = await res.json();
-      if (data.success) {
-        document.getElementById('loginOverlay').style.display = 'none';
-        showToast('Access granted', 'success');
-        loadDashboardStats();
-        loadFiles();
-      } else {
-        showToast('Access denied', 'error');
-      }
-    }
+        function loadFiles() {
+            fetch('/files').then(r=>r.json()).then(files => {
+                const list = document.getElementById('file-list');
+                list.innerHTML = '';
+                files.forEach(f => {
+                    const isZip = f.name.endsWith('.zip');
+                    const icon = isZip ? '📦' : (f.isDir ? '📂' : '📄');
+                    const size = (f.size / 1024).toFixed(1) + ' KB';
+                    
+                    let actions = '';
+                    if(!f.isDir) {
+                        if(isZip) actions += `<button onclick="doFile('/unzip', '${f.name}')">EXTRACT</button>`;
+                        else actions += `<button onclick="editFile('${f.name}')">EDIT</button>`;
+                        actions += `<button class="danger" onclick="doFile('/delete', '${f.name}')">DEL</button>`;
+                    }
+                    
+                    list.innerHTML += `
+                    <div class="file-card">
+                        <div class="file-top">
+                            <div class="file-icon">${icon}</div>
+                            <div class="file-meta">
+                                <div class="file-name">${f.name}</div>
+                                <div class="file-size">${size}</div>
+                            </div>
+                        </div>
+                        <div class="file-actions">${actions}</div>
+                    </div>`;
+                });
+            });
+        }
 
-    async function logout() {
-      await fetch('/logout', { method: 'POST' });
-      localStorage.removeItem('nexus_auth');
-      location.reload();
-    }
+        function doFile(endpoint, name) {
+            if(!confirm('Confirm action?')) return;
+            fetch(endpoint, {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({filename: name})
+            }).then(r=>r.json()).then(d => {
+                notify(d.msg, d.success ? 'success' : 'error');
+                loadFiles();
+            });
+        }
 
-    function toggleTheme() {
-      document.body.classList.toggle('light-mode');
-      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
-    }
+        function editFile(name) {
+            fetch('/file/read', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({filename: name})
+            }).then(r=>r.json()).then(d => {
+                if(d.success) {
+                    document.getElementById('edit-filename').value = name;
+                    document.getElementById('file-content').value = d.content;
+                    document.getElementById('editor-modal').style.display = 'flex';
+                } else notify('Failed to read file', 'error');
+            });
+        }
 
-    function toggleSidebar() {
-      document.getElementById('sidebar').classList.toggle('collapsed');
-    }
+        function saveFile() {
+            const name = document.getElementById('edit-filename').value;
+            const content = document.getElementById('file-content').value;
+            fetch('/file/save', {
+                method:'POST', headers:{'Content-Type':'application/json'},
+                body:JSON.stringify({filename: name, content: content})
+            }).then(r=>r.json()).then(d => {
+                notify(d.msg, d.success?'success':'error');
+                if(d.success) closeEditor();
+            });
+        }
 
-    document.querySelectorAll('.nav-item').forEach(item => {
-      item.addEventListener('click', (e) => {
-        e.preventDefault();
-        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
-        item.classList.add('active');
-        const page = item.dataset.page;
-        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
-        document.getElementById(`page-${page}`).classList.add('active');
-        if (page === 'files') loadFiles();
-        if (page === 'dashboard') loadDashboardStats();
-      });
-    });
+        function closeEditor() {
+            document.getElementById('editor-modal').style.display = 'none';
+        }
 
-    socket.on('system-stats', stats => {
-      document.getElementById('statRam').innerText = stats.ram;
-      document.getElementById('statCpu').innerText = stats.cpu + '%';
-      const botStat = document.getElementById('statBot');
-      if (botStat) {
-        botStat.innerHTML = stats.bot === 'ONLINE' ? '<span class="dot online"></span> ONLINE' : '<span class="dot offline"></span> OFFLINE';
-      }
-    });
+        function handleUpload() {
+            const fd = new FormData();
+            fd.append('file', document.getElementById('upload-input').files[0]);
+            notify('Uploading...', 'normal');
+            fetch('/upload', {method:'POST', body:fd}).then(() => {
+                notify('Upload complete', 'success');
+                loadFiles();
+            });
+        }
 
-    socket.on('bot-log', data => {
-      const el = document.getElementById('botLogs');
-      if (!el) return;
-      el.innerHTML += ansiToHtml(data);
-      el.scrollTop = el.scrollHeight;
-    });
-
-    socket.on('terminal-output', data => {
-      const el = document.getElementById('shellLogs');
-      if (!el) return;
-      el.innerHTML += ansiToHtml(data);
-      el.scrollTop = el.scrollHeight;
-    });
-
-    function ansiToHtml(text) {
-      return text.replace(/\x1b\[31m/g, '<span style="color:#ff3e3e">')
-                 .replace(/\x1b\[32m/g, '<span style="color:#00ff9f">')
-                 .replace(/\x1b\[33m/g, '<span style="color:#f0e68c">')
-                 .replace(/\x1b\[36m/g, '<span style="color:#2afcff">')
-                 .replace(/\x1b\[0m/g, '</span>')
-                 .replace(/\n/g, '<br>');
-    }
-
-    document.getElementById('botInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && e.target.value) {
-        socket.emit('bot-input', e.target.value);
-        e.target.value = '';
-      }
-    });
-
-    document.getElementById('shellInput').addEventListener('keydown', e => {
-      if (e.key === 'Enter' && e.target.value) {
-        socket.emit('terminal-input', e.target.value);
-        e.target.value = '';
-      }
-    });
-
-    async function loadDashboardStats() {
-      const res = await fetch('/api/stats');
-      const stats = await res.json();
-      document.getElementById('statRam').innerText = stats.ram;
-      document.getElementById('statCpu').innerText = stats.cpu + '%';
-      const uptime = new Date(stats.uptime * 1000).toISOString().substr(11, 8);
-      document.getElementById('statUptime').innerText = uptime;
-      const usedGB = (stats.diskUsed / 1e9).toFixed(1);
-      const totalGB = (stats.diskTotal / 1e9).toFixed(1);
-      document.getElementById('statDisk').innerText = `${usedGB} GB / ${totalGB} GB`;
-      document.getElementById('statNetwork').innerText = stats.network.map(n => n.addresses[0]).join(', ');
-    }
-
-    async function loadFiles(dir = '') {
-      const res = await fetch(`/api/files?path=${encodeURIComponent(dir)}`);
-      const files = await res.json();
-      const container = document.getElementById('fileList');
-      container.innerHTML = '';
-      if (dir) {
-        const up = document.createElement('div');
-        up.className = 'file-item';
-        up.innerHTML = '<span class="file-icon">📁</span><span class="file-name">..</span>';
-        up.onclick = () => loadFiles(dir.split('/').slice(0, -1).join('/'));
-        container.appendChild(up);
-      }
-      files.forEach(f => {
-        const div = document.createElement('div');
-        div.className = 'file-item';
-        div.innerHTML = `<span class="file-icon">${f.isDirectory ? '📁' : '📄'}</span><span class="file-name">${f.name}</span>`;
-        div.onclick = () => {
-          if (f.isDirectory) {
-            loadFiles(dir ? dir + '/' + f.name : f.name);
-          } else {
-            openFile(dir ? dir + '/' + f.name : f.name);
-          }
-        };
-        container.appendChild(div);
-      });
-      document.getElementById('currentPath').innerText = '/storage' + (dir ? '/' + dir : '');
-      currentPath = dir;
-    }
-
-    async function openFile(filePath) {
-      const res = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
-      const data = await res.json();
-      document.getElementById('editorContent').value = data.content;
-      document.getElementById('fileEditor').classList.remove('hidden');
-      currentFile = filePath;
-    }
-
-    async function saveFile() {
-      const content = document.getElementById('editorContent').value;
-      await fetch('/api/file', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: currentFile, content })
-      });
-      showToast('File saved');
-      closeEditor();
-    }
-
-    function closeEditor() {
-      document.getElementById('fileEditor').classList.add('hidden');
-      currentFile = null;
-    }
-
-    document.getElementById('fileUpload').addEventListener('change', async (e) => {
-      const formData = new FormData();
-      for (let file of e.target.files) formData.append('files', file);
-      formData.append('dest', currentPath);
-      await fetch('/api/upload', { method: 'POST', body: formData });
-      showToast('Upload complete');
-      loadFiles(currentPath);
-    });
-
-    async function newFolder() {
-      const name = prompt('Folder name:');
-      if (!name) return;
-      const fullPath = currentPath ? currentPath + '/' + name : name;
-      await fetch('/api/mkdir', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ path: fullPath })
-      });
-      loadFiles(currentPath);
-    }
-
-    function showToast(msg, type = 'success') {
-      const toast = document.createElement('div');
-      toast.className = `toast ${type}`;
-      toast.innerText = msg;
-      document.getElementById('toastContainer').appendChild(toast);
-      setTimeout(() => toast.remove(), 4000);
-    }
-
-    function saveEnv() {
-      const token = document.getElementById('envToken').value;
-      const apiKey = document.getElementById('envApiKey').value;
-      const secret = document.getElementById('envSecret').value;
-      fetch('/api/env', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ token, apiKey, secret })
-      }).then(() => showToast('Environment updated'));
-    }
-  </script>
+        function notify(msg, type) {
+            const box = document.getElementById('toast-container');
+            const el = document.createElement('div');
+            el.className = `toast ${type}`;
+            el.innerText = `>> ${msg}`;
+            box.appendChild(el);
+            setTimeout(() => el.remove(), 3000);
+        }
+    </script>
 </body>
 </html>

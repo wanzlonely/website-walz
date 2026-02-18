@@ -34,15 +34,13 @@ const upload = multer({ storage: storage });
 
 function getSystemStats() {
     const used = process.memoryUsage().rss / 1024 / 1024;
-    const totalMem = os.totalmem() / 1024 / 1024;
-    const freeMem = os.freemem() / 1024 / 1024;
     const cpus = os.cpus();
-    const cpuLoad = cpus.length > 0 ? cpus[0].speed : 0;
+    const cpuLoad = cpus && cpus.length > 0 ? cpus[0].speed : 0;
     
     return {
-        ram: `${Math.round(used)} MB / ${Math.round(totalMem)} MB`,
+        ram: `${Math.round(used)} MB`,
         cpu: `${cpuLoad} MHz`,
-        uptime: os.uptime(),
+        uptime: Math.floor(os.uptime()),
         platform: os.platform()
     };
 }
@@ -56,7 +54,7 @@ setInterval(() => {
 }, 1000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] NEXUS TERMINAL READY.\x1b[0m\n');
+    socket.emit('log', '\x1b[36m[SYSTEM] SERVER READY.\x1b[0m\n');
     
     socket.on('input', (cmd) => {
         if (!cmd) return;
@@ -175,13 +173,6 @@ app.post('/file/save', (req, res) => {
     } catch { res.json({ success: false, msg: 'Save failed.' }); }
 });
 
-app.post('/file/rename', (req, res) => {
-    try {
-        fs.renameSync(path.join(UPLOAD_DIR, req.body.oldName), path.join(UPLOAD_DIR, req.body.newName));
-        res.json({ success: true, msg: 'Renamed.' });
-    } catch { res.json({ success: false, msg: 'Rename failed.' }); }
-});
-
 app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
 
 app.post('/unzip', (req, res) => {
@@ -198,4 +189,4 @@ app.post('/delete', (req, res) => {
     fs.rm(path.join(UPLOAD_DIR, req.body.filename), { recursive: true, force: true }, () => res.json({ success: true, msg: 'Deleted.' }));
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`CORE: Port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`CORE: Running on Node 23 | Port ${PORT}`));

@@ -7,18 +7,18 @@
 }
 
 :root {
-    --bg: #0a0e14;
-    --surface: #131b26;
-    --card: #1b2635;
-    --border: #2b384c;
+    --bg: #0a0c10;
+    --surface: rgba(18, 25, 35, 0.8);
+    --card: rgba(18, 25, 35, 0.6);
+    --border: rgba(59, 130, 246, 0.2);
     --accent: #3b82f6;
     --accent-glow: #60a5fa;
     --text: #e9f0ff;
     --text-muted: #8fa3c9;
     --success: #10b981;
     --error: #ef4444;
-    --radius: 22px;
-    --radius-sm: 16px;
+    --radius: 24px;
+    --radius-sm: 18px;
     --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
@@ -35,10 +35,11 @@ body {
     position: fixed;
     inset: 0;
     z-index: -2;
-    opacity: 0.3;
+    opacity: 0.15;
     pointer-events: none;
 }
 
+/* Toast */
 #toast-container {
     position: fixed;
     bottom: 24px;
@@ -52,12 +53,13 @@ body {
 
 .toast {
     background: var(--surface);
+    backdrop-filter: blur(12px);
     border-left: 4px solid transparent;
     border-radius: var(--radius-sm);
     padding: 12px 18px;
     font-size: 14px;
     font-weight: 500;
-    box-shadow: 0 12px 30px -10px black;
+    box-shadow: 0 12px 30px -10px rgba(0, 0, 0, 0.5);
     display: flex;
     align-items: center;
     gap: 12px;
@@ -77,10 +79,11 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
+/* Login Screen */
 #login-screen {
     position: fixed;
     inset: 0;
-    background: rgba(10,14,20,0.9);
+    background: rgba(10, 12, 16, 0.8);
     backdrop-filter: blur(30px);
     display: flex;
     align-items: center;
@@ -90,13 +93,14 @@ body {
 
 .login-card {
     background: var(--surface);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 44px 36px;
     width: 100%;
     max-width: 380px;
     text-align: center;
-    box-shadow: 0 30px 50px -20px black;
+    box-shadow: 0 30px 50px -20px black, 0 0 0 1px rgba(59, 130, 246, 0.2);
     animation: login-fade 0.5s ease;
 }
 
@@ -147,7 +151,7 @@ body {
 
 #token-input {
     width: 100%;
-    background: var(--card);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border);
     border-radius: 50px;
     padding: 14px 18px 14px 52px;
@@ -160,7 +164,7 @@ body {
 #token-input:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 3px rgba(59,130,246,0.2);
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
 }
 
 #token-input:focus + i {
@@ -186,15 +190,18 @@ body {
     box-shadow: 0 12px 28px -8px var(--accent);
 }
 
+/* App Layout */
 #app {
     display: flex;
     height: 100vh;
     background: var(--bg);
 }
 
+/* Sidebar */
 .sidebar {
     width: 240px;
     background: var(--surface);
+    backdrop-filter: blur(16px);
     border-right: 1px solid var(--border);
     display: flex;
     flex-direction: column;
@@ -254,16 +261,17 @@ body {
 
 .sidebar-nav a:hover {
     color: var(--accent);
-    background: rgba(59,130,246,0.08);
+    background: rgba(59, 130, 246, 0.1);
     transform: translateX(5px);
 }
 
 .sidebar-nav a.active {
     color: var(--accent);
-    background: rgba(59,130,246,0.15);
+    background: rgba(59, 130, 246, 0.2);
     box-shadow: inset 3px 0 0 var(--accent);
 }
 
+/* Main Area */
 .main {
     flex: 1;
     display: flex;
@@ -272,10 +280,12 @@ body {
     min-width: 0;
 }
 
+/* Topbar */
 .topbar {
     height: 64px;
     padding: 0 28px;
     background: var(--surface);
+    backdrop-filter: blur(16px);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -301,7 +311,7 @@ body {
     display: flex;
     align-items: center;
     gap: 8px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 6px 16px;
     border-radius: 40px;
     border: 1px solid var(--border);
@@ -344,7 +354,7 @@ body {
     justify-content: center;
     cursor: pointer;
     transition: var(--transition);
-    background: var(--card);
+    background: rgba(0, 0, 0, 0.4);
     border: 1px solid var(--border);
     color: var(--text-muted);
 }
@@ -357,6 +367,7 @@ body {
     box-shadow: 0 8px 18px -6px var(--accent);
 }
 
+/* Content */
 .content {
     flex: 1;
     padding: 24px;
@@ -380,6 +391,7 @@ body {
     border-radius: 12px;
 }
 
+/* Dashboard */
 .dashboard {
     display: grid;
     grid-template-columns: 1fr 3fr;
@@ -396,6 +408,7 @@ body {
 
 .stat-card {
     background: var(--card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 20px;
@@ -429,7 +442,7 @@ body {
 
 #startup-cmd {
     width: 100%;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border: 1px solid var(--border);
     border-radius: 40px;
     padding: 10px 16px;
@@ -442,11 +455,13 @@ body {
 #startup-cmd:focus {
     border-color: var(--accent);
     outline: none;
-    box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
+    box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
+/* Terminal */
 .terminal {
     background: var(--card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     display: flex;
@@ -457,7 +472,7 @@ body {
 
 .terminal-header {
     padding: 12px 20px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.4);
     border-bottom: 1px solid var(--border);
     display: flex;
     align-items: center;
@@ -496,7 +511,7 @@ body {
 .terminal-body {
     flex: 1;
     padding: 18px;
-    background: #0c101a;
+    background: #0a0c10;
     font-family: 'JetBrains Mono', monospace;
     font-size: 13px;
     line-height: 1.7;
@@ -505,21 +520,6 @@ body {
     scroll-behavior: smooth;
     position: relative;
     min-height: 200px;
-}
-
-.terminal-body::after {
-    content: '';
-    position: absolute;
-    inset: 0;
-    background: linear-gradient(to bottom, transparent 50%, rgba(59,130,246,0.02) 50%);
-    background-size: 100% 4px;
-    animation: scan 12s linear infinite;
-    pointer-events: none;
-}
-
-@keyframes scan {
-    0% { background-position: 0 0; }
-    100% { background-position: 0 40px; }
 }
 
 .term-red { color: #f87171; }
@@ -532,7 +532,7 @@ body {
     align-items: center;
     gap: 10px;
     padding: 12px 20px;
-    background: rgba(0,0,0,0.4);
+    background: rgba(0, 0, 0, 0.4);
     border-top: 1px solid var(--border);
     flex-shrink: 0;
 }
@@ -561,11 +561,13 @@ body {
     font-size: 13px;
 }
 
+/* Files Tab */
 .files {
     display: flex;
     flex-direction: column;
     height: 100%;
     background: var(--card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     overflow: hidden;
@@ -573,7 +575,7 @@ body {
 
 .files-toolbar {
     padding: 16px 20px;
-    background: rgba(0,0,0,0.2);
+    background: rgba(0, 0, 0, 0.2);
     border-bottom: 1px solid var(--border);
     display: flex;
     justify-content: space-between;
@@ -589,7 +591,7 @@ body {
     font-family: 'JetBrains Mono', monospace;
     font-size: 14px;
     color: var(--accent);
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     padding: 6px 18px;
     border-radius: 40px;
     border: 1px solid var(--border);
@@ -621,7 +623,7 @@ body {
     display: grid;
     grid-template-columns: 1fr 100px 110px;
     padding: 12px 20px;
-    background: rgba(0,0,0,0.15);
+    background: rgba(0, 0, 0, 0.15);
     color: var(--text-muted);
     font-size: 12px;
     font-weight: 600;
@@ -642,12 +644,12 @@ body {
     padding: 10px 20px;
     align-items: center;
     font-size: 14px;
-    border-bottom: 1px solid rgba(255,255,255,0.02);
+    border-bottom: 1px solid rgba(255, 255, 255, 0.02);
     transition: var(--transition);
 }
 
 .file-row:hover {
-    background: rgba(59,130,246,0.08);
+    background: rgba(59, 130, 246, 0.1);
 }
 
 .file-name {
@@ -685,7 +687,7 @@ body {
 
 .file-action:hover {
     color: var(--accent);
-    background: rgba(59,130,246,0.15);
+    background: rgba(59, 130, 246, 0.2);
     transform: scale(1.15);
 }
 
@@ -697,6 +699,7 @@ body {
     font-size: 14px;
 }
 
+/* Subscription Tab */
 .subscription {
     display: flex;
     flex-direction: column;
@@ -705,6 +708,7 @@ body {
 
 .sub-card {
     background: var(--card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
@@ -742,7 +746,7 @@ body {
 .sub-progress {
     width: 100%;
     height: 10px;
-    background: rgba(0,0,0,0.3);
+    background: rgba(0, 0, 0, 0.3);
     border-radius: 20px;
     margin-bottom: 16px;
     overflow: hidden;
@@ -763,6 +767,7 @@ body {
 
 .packages {
     background: var(--card);
+    backdrop-filter: blur(12px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     padding: 28px;
@@ -775,7 +780,8 @@ body {
 }
 
 .package-item {
-    background: var(--surface);
+    background: rgba(0, 0, 0, 0.3);
+    backdrop-filter: blur(8px);
     border: 1px solid var(--border);
     border-radius: var(--radius-sm);
     padding: 18px 12px;
@@ -825,10 +831,12 @@ body {
     color: white;
 }
 
+/* Bottom Navigation */
 .bottom-nav {
     display: none;
     height: 60px;
     background: var(--surface);
+    backdrop-filter: blur(16px);
     border-top: 1px solid var(--border);
     position: sticky;
     bottom: 0;
@@ -858,13 +866,14 @@ body {
 
 .bottom-nav a:hover {
     color: var(--accent);
-    background: rgba(59,130,246,0.05);
+    background: rgba(59, 130, 246, 0.1);
 }
 
+/* Modal */
 .modal {
     position: fixed;
     inset: 0;
-    background: rgba(10,14,20,0.9);
+    background: rgba(10, 12, 16, 0.8);
     backdrop-filter: blur(25px);
     display: flex;
     align-items: center;
@@ -874,6 +883,7 @@ body {
 
 .modal-panel {
     background: var(--surface);
+    backdrop-filter: blur(20px);
     border: 1px solid var(--border);
     border-radius: var(--radius);
     width: 90%;
@@ -926,7 +936,7 @@ body {
 
 .modal-close:hover {
     color: var(--error);
-    background: rgba(239,68,68,0.1);
+    background: rgba(239, 68, 68, 0.1);
     transform: rotate(90deg);
 }
 
@@ -938,7 +948,7 @@ body {
     width: 100%;
     min-height: 380px;
     padding: 18px;
-    background: #0c101a;
+    background: #0a0c10;
     border: none;
     color: #b3d9ff;
     font-family: 'JetBrains Mono', monospace;
@@ -994,7 +1004,7 @@ body {
 }
 
 .btn-secondary:hover {
-    background: var(--surface);
+    background: rgba(255, 255, 255, 0.05);
     color: var(--text);
 }
 
@@ -1002,6 +1012,7 @@ body {
     display: none !important;
 }
 
+/* Responsive */
 @media (max-width: 700px) {
     .sidebar {
         display: none;
@@ -1077,4 +1088,12 @@ body {
     .login-brand {
         font-size: 32px;
     }
+}
+
+/* Utility */
+.glass {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
 }

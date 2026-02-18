@@ -1,231 +1,299 @@
-const fs = require('node:fs');
-const path = require('node:path');
-const http = require('node:http');
-const os = require('node:os');
-const { spawn, exec } = require('node:child_process');
 const express = require('express');
+const session = require('express-session');
+const http = require('http');
 const socketIo = require('socket.io');
 const multer = require('multer');
 const AdmZip = require('adm-zip');
-const TelegramBot = require('node-telegram-bot-api');
-
-if (fs.existsSync('.env')) process.loadEnvFile('.env');
-
-const CONFIG = {
-    TG_TOKEN: process.env.TG_TOKEN || '',
-    OWNER_ID: process.env.OWNER_ID || '',
-    PORT: process.env.PORT || 3000,
-    DB_FILE: path.join(__dirname, 'database.json'),
-    UPLOAD_DIR: path.join(__dirname, 'uploads'),
-    MAX_LOG_BUFFER: 200
-};
-
-const state = {
-    activeTokens: {},
-    currentProc: null,
-    isRunning: false,
-    logBuffer: []
-};
-
-if (!fs.existsSync(CONFIG.UPLOAD_DIR)) fs.mkdirSync(CONFIG.UPLOAD_DIR, { recursive: true });
-
-const db = {
-    load: () => {
-        try {
-            if (fs.existsSync(CONFIG.DB_FILE)) state.activeTokens = JSON.parse(fs.readFileSync(CONFIG.DB_FILE, 'utf8'));
-        } catch { state.activeTokens = {}; }
-    },
-    save: () => {
-        try { fs.writeFileSync(CONFIG.DB_FILE, JSON.stringify(state.activeTokens, null, 2)); } catch {}
-    }
-};
-
-const utils = {
-    genToken: (len = 32) => {
-        const c = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-        return 'NX-' + Array.from({ length: len }, () => c[Math.floor(Math.random() * c.length)]).join('');
-    },
-    securePath: (p) => {
-        const r = path.resolve(CONFIG.UPLOAD_DIR, p);
-        if (!r.startsWith(CONFIG.UPLOAD_DIR)) throw new Error("Access Denied");
-        return r;
-    },
-    broadcastLog: (msg) => {
-        state.logBuffer.push(msg);
-        if (state.logBuffer.length > CONFIG.MAX_LOG_BUFFER) state.logBuffer.shift();
-        io.emit('log', msg);
-    },
-    getStats: () => {
-        const cpus = os.cpus();
-        const load = os.loadavg();
-        const mem = process.memoryUsage();
-        const sysMem = os.totalmem() - os.freemem();
-        return {
-            cpu: cpus.length ? ((load[0] / cpus.length) * 100).toFixed(1) : 0,
-            ram: (sysMem / 1024 / 1024).toFixed(0),
-            procRam: (mem.rss / 1024 / 1024).toFixed(0),
-            uptime: os.uptime()
-        };
-    }
-};
-
-db.load();
+const { spawn, exec } = require('child_process');
+const fs = require('fs');
+const path = require('path');
+const os = require('os');
+const diskusage = require('diskusage');
+const crypto = require('crypto');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server, { cors: { origin: "*" } });
-const bot = new TelegramBot(CONFIG.TG_TOKEN, { polling: true });
+const io = socketIo(server);
+const PORT = process.env.PORT || 3000;
+const ADMIN_PASS = process.env.ADMIN_PASS || 'cyberpanel2025';
+const SESSION_SECRET = process.env.SESSION_SECRET || crypto.randomBytes(32).toString('hex');
+const MONGO_URI = process.env.MONGO_URI;
 
-app.use(express.static('public'));
+if (MONGO_URI) {
+  const mongoose = require('mongoose');
+  mongoose.connect(MONGO_URI).catch(() => {});
+}
+
 app.use(express.json());
-app.use((req, res, next) => {
-    res.header("Access-Control-Allow-Origin", "*");
-    next();
-});
+app.use(express.urlencoded({ extended: true }));
+app.use(express.static(path.join(__dirname, 'public')));
+app.use(session({
+  secret: SESSION_SECRET,
+  resave: false,
+  saveUninitialized: false,
+  cookie: { maxAge: 86400000, httpOnly: true, secure: false }
+}));
 
-const requireAuth = (req, res, next) => {
-    const t = req.headers['authorization'];
-    if (!t || !state.activeTokens[t]) return res.status(401).json({ error: 'Unauthorized' });
-    if (Date.now() > state.activeTokens[t]) {
-        delete state.activeTokens[t];
-        db.save();
-        return res.status(401).json({ error: 'Expired' });
-    }
-    next();
+const storageRoot = path.join(__dirname, 'storage');
+if (!fs.existsSync(storageRoot)) fs.mkdirSync(storageRoot, { recursive: true });
+
+const authMiddleware = (req, res, next) => {
+  if (req.session && req.session.admin) return next();
+  res.status(401).json({ error: 'Unauthorized' });
 };
 
-bot.on('polling_error', () => {});
-bot.onText(/\/id/, (msg) => bot.sendMessage(msg.chat.id, `<code>${msg.chat.id}</code>`, { parse_mode: 'HTML' }));
-bot.onText(/\/akses (\d+)/, (msg, match) => {
-    if (String(msg.chat.id) !== String(CONFIG.OWNER_ID)) return;
-    const days = parseInt(match[1]);
-    const token = utils.genToken();
-    state.activeTokens[token] = Date.now() + (days * 24 * 3600 * 1000);
-    db.save();
-    bot.sendMessage(msg.chat.id, `🔑: <code>${token}</code>\n⏳: ${days} Days`, { parse_mode: 'HTML' });
-});
+const safePath = (userPath) => {
+  const normalized = path.normalize(userPath).replace(/^(\.\.(\/|\\|$))+/, '');
+  return path.join(storageRoot, normalized);
+};
 
 app.post('/login', (req, res) => {
-    const { token } = req.body;
-    if (state.activeTokens[token] && Date.now() < state.activeTokens[token]) res.json({ success: true });
-    else res.status(401).json({ success: false });
-});
-
-app.post('/files/list', requireAuth, (req, res) => {
-    try {
-        const i = fs.readdirSync(CONFIG.UPLOAD_DIR, { withFileTypes: true }).map(d => {
-            const s = fs.statSync(path.join(CONFIG.UPLOAD_DIR, d.name));
-            return { name: d.name, isDir: d.isDirectory(), size: s.size };
-        }).sort((a, b) => (a.isDir === b.isDir ? 0 : a.isDir ? -1 : 1));
-        res.json({ success: true, data: i });
-    } catch (e) { res.status(500).json({ msg: e.message }); }
-});
-
-app.post('/files/read', requireAuth, (req, res) => {
-    try {
-        const t = utils.securePath(req.body.filename);
-        if (fs.statSync(t).isDirectory()) throw new Error("Directory");
-        res.json({ success: true, content: fs.readFileSync(t, 'utf8') });
-    } catch (e) { res.status(500).json({ msg: e.message }); }
-});
-
-app.post('/files/save', requireAuth, (req, res) => {
-    try {
-        fs.writeFileSync(utils.securePath(req.body.filename), req.body.content);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ msg: e.message }); }
-});
-
-app.post('/files/delete', requireAuth, (req, res) => {
-    try {
-        fs.rmSync(utils.securePath(req.body.filename), { recursive: true, force: true });
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ msg: e.message }); }
-});
-
-app.post('/files/unzip', requireAuth, (req, res) => {
-    try {
-        const t = utils.securePath(req.body.filename);
-        new AdmZip(t).extractAllTo(CONFIG.UPLOAD_DIR, true);
-        fs.unlinkSync(t);
-        res.json({ success: true });
-    } catch (e) { res.status(500).json({ msg: 'Error' }); }
-});
-
-const upload = multer({ 
-    storage: multer.diskStorage({
-        destination: (req, f, cb) => cb(null, CONFIG.UPLOAD_DIR),
-        filename: (req, f, cb) => cb(null, f.originalname)
-    })
-});
-
-app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
-
-app.post('/proc/start', requireAuth, (req, res) => {
-    if (state.isRunning) return res.json({ success: false, msg: 'Running' });
-    
-    let cmd = 'node', args = ['index.js'];
-    const pkgPath = path.join(CONFIG.UPLOAD_DIR, 'package.json');
-    
-    if (fs.existsSync(pkgPath)) {
-        try {
-            const pkg = JSON.parse(fs.readFileSync(pkgPath));
-            if (pkg.scripts?.start) { cmd = 'npm'; args = ['start']; }
-            else if (pkg.main) args = [pkg.main];
-        } catch {}
-    } else if (!fs.existsSync(path.join(CONFIG.UPLOAD_DIR, 'index.js'))) {
-        return res.json({ success: false, msg: 'No Entry File' });
-    }
-
-    state.isRunning = true;
-    io.emit('status', true);
-    utils.broadcastLog(`\x1b[32m[SYSTEM] Starting: ${cmd} ${args.join(' ')}\x1b[0m\n`);
-
-    state.currentProc = spawn(cmd, args, { 
-        cwd: CONFIG.UPLOAD_DIR, 
-        stdio: ['pipe', 'pipe', 'pipe'],
-        env: { ...process.env, FORCE_COLOR: '1' } 
-    });
-
-    state.currentProc.stdout.on('data', d => utils.broadcastLog(d.toString()));
-    state.currentProc.stderr.on('data', d => utils.broadcastLog(`\x1b[31m${d.toString()}\x1b[0m`));
-    state.currentProc.on('close', c => {
-        state.isRunning = false;
-        state.currentProc = null;
-        io.emit('status', false);
-        utils.broadcastLog(`\n\x1b[33m[SYSTEM] Stopped (Code: ${c})\x1b[0m\n`);
-    });
-
+  if (req.body.password === ADMIN_PASS) {
+    req.session.admin = true;
     res.json({ success: true });
+  } else {
+    res.json({ success: false });
+  }
 });
 
-app.post('/proc/stop', requireAuth, (req, res) => {
-    if (state.currentProc) {
-        state.currentProc.kill('SIGKILL');
-        state.currentProc = null;
-        state.isRunning = false;
-        io.emit('status', false);
-        res.json({ success: true });
-    } else res.json({ success: false });
+app.post('/logout', (req, res) => {
+  req.session.destroy();
+  res.json({ success: true });
 });
 
-io.on('connection', (socket) => {
-    socket.emit('status', state.isRunning);
-    state.logBuffer.forEach(l => socket.emit('log', l));
-    socket.on('cmd', (c) => {
-        if (!c) return;
-        utils.broadcastLog(`\x1b[30m\x1b[47m $ ${c} \x1b[0m\n`);
-        if (state.isRunning && state.currentProc) {
-            try { state.currentProc.stdin.write(c + '\n'); } catch {}
-        } else {
-            exec(c, { cwd: CONFIG.UPLOAD_DIR }, (e, out, err) => {
-                if (out) utils.broadcastLog(out);
-                if (err) utils.broadcastLog(`\x1b[31m${err}\x1b[0m`);
-            });
-        }
+app.get('/api/stats', authMiddleware, async (req, res) => {
+  try {
+    const ram = process.memoryUsage().heapUsed / 1024 / 1024;
+    const cpu = os.loadavg()[0];
+    const uptime = os.uptime();
+    const disk = await diskusage.check(storageRoot);
+    const network = os.networkInterfaces();
+    res.json({
+      ram: `${Math.round(ram)} MB`,
+      cpu: cpu.toFixed(2),
+      uptime,
+      diskTotal: disk.total,
+      diskFree: disk.free,
+      diskUsed: disk.total - disk.free,
+      network: Object.keys(network).map(iface => ({
+        interface: iface,
+        addresses: network[iface].map(addr => addr.address)
+      }))
     });
+  } catch {
+    res.status(500).json({ error: 'Stats error' });
+  }
 });
 
-setInterval(() => io.emit('usage', utils.getStats()), 2000);
+app.get('/api/files', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.query.path || '');
+    if (!fs.existsSync(target)) return res.json([]);
+    const items = fs.readdirSync(target).map(name => {
+      const full = path.join(target, name);
+      const stat = fs.statSync(full);
+      return {
+        name,
+        isDirectory: stat.isDirectory(),
+        size: stat.size,
+        modified: stat.mtimeMs
+      };
+    });
+    res.json(items);
+  } catch {
+    res.status(500).json({ error: 'List failed' });
+  }
+});
 
-server.listen(CONFIG.PORT, () => console.log(`Server: ${CONFIG.PORT}`));
+app.get('/api/file', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.query.path);
+    if (!fs.existsSync(target) || fs.statSync(target).isDirectory()) {
+      return res.status(400).json({ error: 'Not a file' });
+    }
+    const content = fs.readFileSync(target, 'utf-8');
+    res.json({ content });
+  } catch {
+    res.status(500).json({ error: 'Read error' });
+  }
+});
+
+app.post('/api/file', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.body.path);
+    if (fs.existsSync(target) && fs.statSync(target).isDirectory()) {
+      return res.status(400).json({ error: 'Cannot write to directory' });
+    }
+    fs.writeFileSync(target, req.body.content, 'utf-8');
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Write error' });
+  }
+});
+
+app.post('/api/mkdir', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.body.path);
+    fs.mkdirSync(target, { recursive: true });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Mkdir error' });
+  }
+});
+
+app.post('/api/delete', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.body.path);
+    fs.rmSync(target, { recursive: true, force: true });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Delete error' });
+  }
+});
+
+app.post('/api/rename', authMiddleware, (req, res) => {
+  try {
+    const oldPath = safePath(req.body.oldPath);
+    const newPath = safePath(req.body.newPath);
+    fs.renameSync(oldPath, newPath);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Rename error' });
+  }
+});
+
+const upload = multer({ dest: path.join(storageRoot, '.tmp') });
+app.post('/api/upload', authMiddleware, upload.array('files'), (req, res) => {
+  try {
+    const destDir = safePath(req.body.dest || '');
+    req.files.forEach(file => {
+      const target = path.join(destDir, file.originalname);
+      fs.renameSync(file.path, target);
+    });
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Upload error' });
+  }
+});
+
+app.post('/api/unzip', authMiddleware, (req, res) => {
+  try {
+    const target = safePath(req.body.path);
+    const dest = safePath(req.body.dest || path.dirname(target));
+    const zip = new AdmZip(target);
+    zip.extractAllTo(dest, true);
+    fs.unlinkSync(target);
+    res.json({ success: true });
+  } catch {
+    res.status(500).json({ error: 'Unzip error' });
+  }
+});
+
+let botProcess = null;
+let botRunning = false;
+
+app.post('/api/bot/start', authMiddleware, async (req, res) => {
+  if (botRunning) return res.json({ success: false, msg: 'Bot already running' });
+  const workDir = storageRoot;
+  let entry = null;
+  const findEntry = (dir) => {
+    const files = fs.readdirSync(dir);
+    if (files.includes('package.json')) {
+      try {
+        const pkg = JSON.parse(fs.readFileSync(path.join(dir, 'package.json'), 'utf-8'));
+        if (pkg.main && fs.existsSync(path.join(dir, pkg.main))) return path.join(dir, pkg.main);
+      } catch {}
+    }
+    const candidates = ['index.js', 'main.js', 'bot.js', 'app.js'];
+    for (const f of candidates) if (files.includes(f)) return path.join(dir, f);
+    for (const f of files) {
+      const full = path.join(dir, f);
+      if (fs.statSync(full).isDirectory() && f !== 'node_modules') {
+        const found = findEntry(full);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+  entry = findEntry(workDir);
+  if (!entry) return res.json({ success: false, msg: 'No entry script found' });
+  const scriptDir = path.dirname(entry);
+  if (fs.existsSync(path.join(scriptDir, 'package.json')) && !fs.existsSync(path.join(scriptDir, 'node_modules'))) {
+    io.emit('bot-log', '\x1b[33m[INSTALL] npm install --omit=dev\x1b[0m\n');
+    await new Promise((resolve) => {
+      exec('npm install --omit=dev --no-audit --no-fund', { cwd: scriptDir }, () => resolve());
+    });
+  }
+  botProcess = spawn('node', [entry], { cwd: scriptDir, env: { ...process.env, MONGO_URI } });
+  botRunning = true;
+  botProcess.stdout.on('data', d => io.emit('bot-log', d.toString()));
+  botProcess.stderr.on('data', d => io.emit('bot-log', `\x1b[31m${d}\x1b[0m`));
+  botProcess.on('close', code => {
+    botRunning = false;
+    botProcess = null;
+    io.emit('bot-log', `\n\x1b[31m[STOPPED] code ${code}\x1b[0m\n`);
+  });
+  res.json({ success: true, msg: 'Bot started' });
+});
+
+app.post('/api/bot/stop', authMiddleware, (req, res) => {
+  if (botProcess) {
+    botProcess.kill();
+    botRunning = false;
+    botProcess = null;
+    io.emit('bot-log', '\x1b[31m[STOP] killed by user\x1b[0m\n');
+    res.json({ success: true, msg: 'Bot stopped' });
+  } else {
+    res.json({ success: false, msg: 'Bot not running' });
+  }
+});
+
+app.post('/api/bot/restart', authMiddleware, (req, res) => {
+  if (botProcess) {
+    botProcess.kill();
+    botProcess = null;
+    botRunning = false;
+  }
+  setTimeout(() => {
+    io.emit('bot-log', '\x1b[33m[RESTART] restarting...\x1b[0m\n');
+  }, 500);
+  res.json({ success: true, msg: 'Restart triggered' });
+});
+
+app.get('/api/bot/status', authMiddleware, (req, res) => {
+  res.json({ running: botRunning });
+});
+
+let shellProcess = null;
+io.on('connection', (socket) => {
+  if (!shellProcess) {
+    shellProcess = spawn(process.env.SHELL || 'bash', [], { cwd: storageRoot });
+    shellProcess.stdout.on('data', d => io.emit('terminal-output', d.toString()));
+    shellProcess.stderr.on('data', d => io.emit('terminal-output', `\x1b[31m${d}\x1b[0m`));
+    shellProcess.on('close', () => { shellProcess = null; });
+  }
+  socket.on('terminal-input', (cmd) => {
+    if (shellProcess) shellProcess.stdin.write(cmd + '\n');
+  });
+  socket.on('bot-input', (cmd) => {
+    if (botProcess && botProcess.stdin) {
+      botProcess.stdin.write(cmd + '\n');
+      io.emit('bot-log', `\x1b[33m> ${cmd}\x1b[0m\n`);
+    }
+  });
+  socket.on('disconnect', () => {});
+});
+
+setInterval(() => {
+  const used = process.memoryUsage().heapUsed / 1024 / 1024;
+  const cpu = os.loadavg()[0];
+  const time = new Date().toLocaleTimeString('en-US', { hour12: false, timeZone: 'Asia/Jakarta' });
+  io.emit('system-stats', {
+    ram: `${Math.round(used)} MB`,
+    cpu: cpu.toFixed(2),
+    time,
+    bot: botRunning ? 'ONLINE' : 'OFFLINE'
+  });
+}, 2000);
+
+server.listen(PORT, '0.0.0.0', () => {});

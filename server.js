@@ -50,7 +50,9 @@ try {
             if (bot) bot.stopPolling().catch(() => {});
         }
     });
-    bot.onText(/\/id/, (msg) => bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' }));
+    bot.onText(/\/id/, (msg) => {
+        bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
+    });
     bot.onText(/\/akses (\d+)/, (msg, match) => {
         const chatId = String(msg.chat.id);
         if (chatId !== String(OWNER_ID)) return;
@@ -139,17 +141,6 @@ app.post('/api/files', checkAuth, (req, res) => {
     }
 });
 
-app.post('/api/delete', checkAuth, (req, res) => {
-    try {
-        const target = path.join(uploadDir, req.body.filename);
-        if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
-        fs.rmSync(target, { recursive: true, force: true });
-        res.json({ success: true, msg: 'File deleted' });
-    } catch {
-        res.json({ success: false, msg: 'Delete failed' });
-    }
-});
-
 app.post('/api/read', checkAuth, (req, res) => {
     try {
         const target = path.join(uploadDir, req.body.filename);
@@ -169,6 +160,17 @@ app.post('/api/save', checkAuth, (req, res) => {
         res.json({ success: true, msg: 'Saved successfully' });
     } catch {
         res.json({ success: false, msg: 'Save failed' });
+    }
+});
+
+app.post('/api/delete', checkAuth, (req, res) => {
+    try {
+        const target = path.join(uploadDir, req.body.filename);
+        if (!path.resolve(target).startsWith(path.resolve(uploadDir))) throw new Error();
+        fs.rmSync(target, { recursive: true, force: true });
+        res.json({ success: true, msg: 'File deleted' });
+    } catch {
+        res.json({ success: false, msg: 'Delete failed' });
     }
 });
 

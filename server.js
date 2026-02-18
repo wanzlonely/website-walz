@@ -227,6 +227,24 @@ app.post('/api/stop', checkAuth, (req, res) => {
     } else res.json({ success: false, msg: 'Server tidak berjalan' });
 });
 
+app.get('/api/expiry', checkAuth, (req, res) => {
+    const token = String(req.headers.authorization || '').trim();
+    if (token === ADMIN_PASS || token === 'walzexploit') {
+        return res.json({ success: true, expired: false, remainingSeconds: 30 * 86400, totalSeconds: 30 * 86400 });
+    }
+    const expiredTime = activeTokens[token];
+    if (!expiredTime) return res.json({ success: false, msg: 'Token tidak ditemukan' });
+    const now = Date.now();
+    const remaining = Math.max(0, Math.floor((expiredTime - now) / 1000));
+    const total = 30 * 86400;
+    res.json({
+        success: true,
+        expired: remaining <= 0,
+        remainingSeconds: remaining,
+        totalSeconds: total
+    });
+});
+
 io.on('connection', (socket) => {
     socket.emit('stats', getStats());
     const interval = setInterval(() => socket.emit('stats', getStats()), 2000);

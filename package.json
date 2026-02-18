@@ -1,18 +1,19 @@
-{                                                       "name": "nexus-panel",
-  "version": "9.0.0",
-  "description": "NEXUS Control Panel V9",
+{
+  "name": "walzexploit",
+  "version": "1.0.0",
+  "description": "Secure Web Panel & Telegram Environment",
   "main": "server.js",
   "scripts": {
     "start": "node server.js"
-  },                                                    "dependencies": {
+  },
+  "author": "walzexploit",
+  "license": "ISC",
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
     "express": "^4.21.0",
-    "socket.io": "^4.7.5",
-    "multer": "^1.4.5-lts.1",
-    "adm-zip": "^0.5.10",                                 "node-telegram-bot-api": "^0.67.0"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "author": "Walz",
-  "license": "MIT"
+    "mongoose": "^8.2.0",
+    "node-telegram-bot-api": "^0.65.0",
+    "socket.io": "^4.7.4"
+  }
 }

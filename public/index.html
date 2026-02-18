@@ -2,283 +2,437 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>WALZ NEXUS CONTROL</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>NEXUS Panel</title>
     <link rel="stylesheet" href="style.css">
-    <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;700&family=Space+Grotesk:wght@300;400;600&display=swap" rel="stylesheet">
-    <script src="/socket.io/socket.io.js"></script>
+    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        #bg-canvas{pointer-events:none!important;z-index:-1!important}
+        #login-screen,.glass-bg{z-index:1000!important}
+        .login-box{border:2px solid #22d3ee;box-shadow:0 0 80px rgba(34,211,238,0.7);transition:all 0.4s ease}
+        .login-box:hover{transform:scale(1.03);box-shadow:0 0 120px rgba(192,38,211,0.7)}
+        .login-icon{font-size:48px;background:linear-gradient(45deg,#22d3ee,#c026d3);background-clip:text;-webkit-background-clip:text;color:transparent}
+        #token-input{background:rgba(15,23,42,0.9);border:2px solid #334155;color:#e0f2fe;font-size:16px;padding:16px 20px 16px 52px;border-radius:12px;transition:0.3s}
+        #token-input:focus{border-color:#22d3ee;box-shadow:0 0 0 4px rgba(34,211,238,0.3)}
+        #login-btn{background:linear-gradient(90deg,#22d3ee,#c026d3);color:#fff;font-size:17px;font-weight:700;padding:16px 32px;border-radius:12px;box-shadow:0 0 40px rgba(34,211,238,0.6);transition:all 0.3s}
+        #login-btn:hover{transform:translateY(-4px);box-shadow:0 0 70px rgba(192,38,211,0.8)}
+        #login-btn:active{transform:scale(0.96)}
+    </style>
 </head>
 <body>
-
+    <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
-
-    <div id="auth-layer">
-        <div class="auth-card">
-            <div class="glitch-wrapper">
-                <h1 class="auth-title" data-text="SYSTEM ACCESS">SYSTEM ACCESS</h1>
+    
+    <div id="login-screen" class="glass-bg">
+        <div class="login-box holo-card">
+            <div class="login-icon neon-glow">
+                <i class="ri-instance-line"></i>
             </div>
-            <p class="auth-sub">Identity Verification Required</p>
+            <h1 class="brand" data-text="NEXUS">NEXUS</h1>
+            <p class="subtitle">Secure Environment Authentication</p>
             <div class="input-group">
-                <input type="password" id="auth-pass" placeholder="ENTER ACCESS CODE" autocomplete="off">
-                <div class="input-line"></div>
+                <i class="ri-key-2-line"></i>
+                <input type="password" id="token-input" placeholder="Enter Access Key">
             </div>
-            <button onclick="authenticate()" class="btn-cyber">INITIALIZE <span class="btn-glare"></span></button>
+            <button id="login-btn" onclick="login()" class="btn-primary neon-btn">
+                Connect to Server <i class="ri-arrow-right-line"></i>
+            </button>
         </div>
     </div>
 
-    <div id="main-interface">
-        <nav class="glass-nav">
-            <div class="brand">
-                <div class="logo-icon">⚡</div>
-                <div class="logo-text">NEXUS <span style="color:var(--accent)">V6</span></div>
-            </div>
-            <div class="nav-links">
-                <button class="nav-item active" onclick="setView('console')">TERMINAL</button>
-                <button class="nav-item" onclick="setView('files')">DATABASE</button>
-            </div>
-            <div class="status-badge" id="nav-status">OFFLINE</div>
-        </nav>
-
-        <main id="view-console" class="view active">
-            <div class="stats-grid">
-                <div class="stat-box">
-                    <div class="stat-icon">🧠</div>
-                    <div class="stat-info">
-                        <span class="stat-label">RAM USAGE</span>
-                        <span class="stat-val" id="val-ram">-- MB</span>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-icon">⚡</div>
-                    <div class="stat-info">
-                        <span class="stat-label">CPU LOAD</span>
-                        <span class="stat-val" id="val-cpu">-- %</span>
-                    </div>
-                </div>
-                <div class="stat-box">
-                    <div class="stat-icon">⏱️</div>
-                    <div class="stat-info">
-                        <span class="stat-label">SERVER TIME</span>
-                        <span class="stat-val" id="val-time">--:--:--</span>
-                    </div>
-                </div>
-            </div>
-
-            <div class="terminal-wrapper">
-                <div class="terminal-header">
-                    <div class="term-title">root@nexus:~</div>
-                    <div class="term-controls">
-                        <button class="term-btn start" onclick="serverAction('/start')">▶ BOOT</button>
-                        <button class="term-btn stop" onclick="serverAction('/stop')">■ KILL</button>
-                    </div>
-                </div>
-                <div class="terminal-body" id="logs"></div>
-                <div class="terminal-input-area">
-                    <span class="prompt">➜</span>
-                    <input type="text" id="cmd-input" placeholder="Execute command..." autocomplete="off">
-                </div>
-            </div>
-        </main>
-
-        <main id="view-files" class="view">
-            <div class="file-toolbar">
-                <div class="search-bar">
-                    <input type="text" placeholder="Search files..." id="file-search">
-                </div>
-                <button class="btn-cyber small" onclick="document.getElementById('upload-input').click()">+ UPLOAD</button>
-                <input type="file" id="upload-input" hidden onchange="handleUpload()">
-            </div>
-
-            <div class="file-grid" id="file-list">
-                </div>
-        </main>
-
-        <footer class="cyber-footer">
-            <div class="footer-content">
-                <span>SYSTEM DEVELOPED BY WALZ</span>
-                <div class="socials">
-                    <a href="https://wa.me/6281234567890" target="_blank" class="social-link">WHATSAPP</a>
-                    <span class="divider">/</span>
-                    <a href="https://t.me/yourusername" target="_blank" class="social-link">TELEGRAM</a>
-                </div>
-            </div>
-        </footer>
-    </div>
-
-    <div id="editor-modal" class="modal">
-        <div class="modal-content">
+    <div id="editor-modal" class="modal hidden">
+        <div class="modal-content holo-card">
             <div class="modal-header">
-                <input type="text" id="edit-filename" readonly class="modal-title-input">
+                <div class="modal-title">
+                    <i class="ri-code-box-line"></i> 
+                    <span id="edit-filename">file.js</span>
+                </div>
                 <div class="modal-actions">
-                    <button class="btn-text" onclick="closeEditor()">CANCEL</button>
-                    <button class="btn-cyber small" onclick="saveFile()">SAVE CHANGES</button>
+                    <button onclick="saveFile()" class="btn-sm btn-success neon-btn">
+                        <i class="ri-save-3-line"></i> Save
+                    </button>
+                    <button onclick="closeEditor()" class="btn-sm btn-close">✕</button>
                 </div>
             </div>
-            <textarea id="file-content" spellcheck="false"></textarea>
+            <textarea id="code-editor" spellcheck="false"></textarea>
         </div>
     </div>
 
-    <script>
-        const socket = io();
-        const api = url => fetch(url, { method: 'POST', headers: {'Content-Type': 'application/json'} });
-        
-        if (localStorage.getItem('nexus_token')) {
-            document.getElementById('auth-layer').style.display = 'none';
-            document.getElementById('main-interface').style.opacity = '1';
-        }
+    <div id="app" class="hidden animate-fade-in">
+        <aside class="sidebar">
+            <div class="sidebar-brand">
+                <i class="ri-instance-line brand-icon neon-glow"></i>
+                <h2 class="neon-text">NEXUS</h2>
+            </div>
+            <nav class="nav-menu">
+                <p class="nav-label">Core Modules</p>
+                <a href="#" class="nav-item active neon-hover" onclick="switchTab('dashboard', this)">
+                    <i class="ri-dashboard-line"></i> <span>Server Console</span>
+                </a>
+                <a href="#" class="nav-item neon-hover" onclick="switchTab('files', this)">
+                    <i class="ri-folder-open-line"></i> <span>File Manager</span>
+                </a>
+                <div class="nav-spacer"></div>
+                <a href="#" class="nav-item danger-item neon-hover" onclick="logout()">
+                    <i class="ri-logout-box-line"></i> <span>Disconnect Session</span>
+                </a>
+            </nav>
+        </aside>
 
-        function authenticate() {
-            const p = document.getElementById('auth-pass').value;
-            fetch('/auth', {
-                method: 'POST', headers: {'Content-Type': 'application/json'}, body: JSON.stringify({ password: p })
-            }).then(r => r.json()).then(d => {
-                if (d.success) {
-                    localStorage.setItem('nexus_token', d.token);
-                    document.getElementById('auth-layer').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('auth-layer').style.display = 'none';
-                        document.getElementById('main-interface').style.opacity = '1';
-                    }, 500);
-                    notify('ACCESS GRANTED', 'success');
-                    loadFiles();
-                } else {
-                    notify('ACCESS DENIED', 'error');
-                }
-            });
-        }
+        <main class="main-content">
+            <header class="topbar glass-holo">
+                <div class="server-info">
+                    <h3 id="role-display">Production Node</h3>
+                    <div class="status-indicator pulse-ring" id="status-badge">
+                        <span class="status-dot offline"></span> 
+                        <span class="status-text">OFFLINE</span>
+                    </div>
+                </div>
+                <div class="power-controls">
+                    <button class="btn btn-start neon-btn" onclick="reqStart()" title="Start"><i class="ri-play-fill"></i></button>
+                    <button class="btn btn-restart neon-btn" onclick="req('/api/stop'); setTimeout(()=>reqStart(), 1000)" title="Restart"><i class="ri-restart-line"></i></button>
+                    <button class="btn btn-stop neon-btn" onclick="req('/api/stop')" title="Stop"><i class="ri-stop-fill"></i></button>
+                </div>
+            </header>
 
-        document.getElementById('auth-pass').addEventListener('keypress', e => { if(e.key === 'Enter') authenticate(); });
-
-        socket.on('log', d => {
-            const l = document.getElementById('logs');
-            const span = document.createElement('span');
-            span.innerHTML = d.replace(/\n/g, '<br>')
-                .replace(/\x1b\[31m/g, '<c style="color:#ff5555">')
-                .replace(/\x1b\[32m/g, '<c style="color:#50fa7b">')
-                .replace(/\x1b\[33m/g, '<c style="color:#f1fa8c">')
-                .replace(/\x1b\[36m/g, '<c style="color:#8be9fd">')
-                .replace(/\x1b\[0m/g, '</c>');
-            l.appendChild(span);
-            l.scrollTop = l.scrollHeight;
-        });
-
-        socket.on('stats', s => {
-            document.getElementById('val-ram').innerText = s.ram;
-            document.getElementById('val-cpu').innerText = s.cpu;
-            document.getElementById('val-time').innerText = s.time;
-            const badge = document.getElementById('nav-status');
-            badge.innerText = s.status;
-            badge.className = `status-badge ${s.status === 'ONLINE' ? 'online' : ''}`;
-        });
-
-        document.getElementById('cmd-input').addEventListener('keydown', e => {
-            if(e.key === 'Enter' && e.target.value.trim()) {
-                socket.emit('input', e.target.value);
-                e.target.value = '';
-            }
-        });
-
-        function setView(id) {
-            document.querySelectorAll('.view').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('view-'+id).classList.add('active');
-            event.target.classList.add('active');
-            if(id === 'files') loadFiles();
-        }
-
-        function serverAction(url) {
-            fetch(url, {method: 'POST'}).then(r=>r.json()).then(d => notify(d.msg, d.success ? 'success' : 'error'));
-        }
-
-        function loadFiles() {
-            fetch('/files').then(r=>r.json()).then(files => {
-                const list = document.getElementById('file-list');
-                list.innerHTML = '';
-                files.forEach(f => {
-                    const isZip = f.name.endsWith('.zip');
-                    const icon = isZip ? '📦' : (f.isDir ? '📂' : '📄');
-                    const size = (f.size / 1024).toFixed(1) + ' KB';
-                    
-                    let actions = '';
-                    if(!f.isDir) {
-                        if(isZip) actions += `<button onclick="doFile('/unzip', '${f.name}')">EXTRACT</button>`;
-                        else actions += `<button onclick="editFile('${f.name}')">EDIT</button>`;
-                        actions += `<button class="danger" onclick="doFile('/delete', '${f.name}')">DEL</button>`;
-                    }
-                    
-                    list.innerHTML += `
-                    <div class="file-card">
-                        <div class="file-top">
-                            <div class="file-icon">${icon}</div>
-                            <div class="file-meta">
-                                <div class="file-name">${f.name}</div>
-                                <div class="file-size">${size}</div>
+            <div class="content-wrapper">
+                <div id="tab-dashboard" class="tab-content active">
+                    <div class="dashboard-grid">
+                        <div class="stats-column">
+                            <div class="card stat-card holo-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">Startup Command</span>
+                                    <i class="ri-terminal-window-line text-accent"></i>
+                                </div>
+                                <div class="cmd-input-wrapper">
+                                    <input type="text" id="startup-cmd" value="npm install && npm start">
+                                </div>
+                            </div>
+                            <div class="card stat-card holo-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">CPU Load</span>
+                                    <i class="ri-cpu-line text-accent"></i>
+                                </div>
+                                <h3 class="stat-value neon-text" id="cpu-val">0.00%</h3>
+                            </div>
+                            <div class="card stat-card holo-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">Memory Usage</span>
+                                    <i class="ri-ram-2-line text-accent"></i>
+                                </div>
+                                <h3 class="stat-value neon-text" id="ram-val">0 MB</h3>
+                            </div>
+                            <div class="card stat-card holo-card">
+                                <div class="stat-header">
+                                    <span class="stat-title">System Uptime</span>
+                                    <i class="ri-time-line text-accent"></i>
+                                </div>
+                                <h3 class="stat-value neon-text" id="uptime-val">00:00:00</h3>
                             </div>
                         </div>
-                        <div class="file-actions">${actions}</div>
-                    </div>`;
-                });
-            });
-        }
 
-        function doFile(endpoint, name) {
-            if(!confirm('Confirm action?')) return;
-            fetch(endpoint, {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({filename: name})
-            }).then(r=>r.json()).then(d => {
-                notify(d.msg, d.success ? 'success' : 'error');
-                loadFiles();
-            });
-        }
+                        <div class="terminal-wrapper card holo-card crt-terminal">
+                            <div class="terminal-header">
+                                <div class="mac-dots">
+                                    <div class="dot r"></div>
+                                    <div class="dot y"></div>
+                                    <div class="dot g"></div>
+                                </div>
+                                <div class="term-title">nexus-daemon@root:\~</div>
+                            </div>
+                            <div class="terminal-logs" id="terminal-logs"></div>
+                            <div class="scanline"></div>
+                            <div class="terminal-input-area">
+                                <span class="prompt">\~#</span>
+                                <input type="text" id="cmd-input" placeholder="Enter shell command..." autocomplete="off">
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
-        function editFile(name) {
-            fetch('/file/read', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({filename: name})
-            }).then(r=>r.json()).then(d => {
-                if(d.success) {
-                    document.getElementById('edit-filename').value = name;
-                    document.getElementById('file-content').value = d.content;
-                    document.getElementById('editor-modal').style.display = 'flex';
-                } else notify('Failed to read file', 'error');
-            });
-        }
+                <div id="tab-files" class="tab-content hidden">
+                    <div class="card file-manager holo-card">
+                        <div class="file-toolbar">
+                            <div class="path-bread" id="current-path">
+                                <i class="ri-folder-shield-2-line"></i> /root/home
+                            </div>
+                            <div class="file-actions-main">
+                                <button onclick="loadFiles('')" class="btn-sm btn-secondary neon-btn">
+                                    <i class="ri-home-4-line"></i> Home
+                                </button>
+                                <label for="file-upload" class="btn-sm btn-primary neon-btn cursor-pointer">
+                                    <i class="ri-upload-cloud-2-line"></i> Upload
+                                </label>
+                                <input type="file" id="file-upload" hidden onchange="uploadFile()">
+                            </div>
+                        </div>
+                        <div class="file-list-header">
+                            <div class="col-name">Name</div>
+                            <div class="col-size">Size</div>
+                            <div class="col-actions">Actions</div>
+                        </div>
+                        <div id="file-list" class="file-list-container"></div>
+                    </div>
+                </div>
+            </div>
 
-        function saveFile() {
-            const name = document.getElementById('edit-filename').value;
-            const content = document.getElementById('file-content').value;
-            fetch('/file/save', {
-                method:'POST', headers:{'Content-Type':'application/json'},
-                body:JSON.stringify({filename: name, content: content})
-            }).then(r=>r.json()).then(d => {
-                notify(d.msg, d.success?'success':'error');
-                if(d.success) closeEditor();
-            });
-        }
+            <footer class="main-footer glass-holo">
+                <div class="footer-content">
+                    <span>NEXUS Control Panel V9 © 2026</span>
+                    <span class="system-ping pulse-slow">
+                        <span class="ping-dot"></span> Secure Connection Active
+                    </span>
+                </div>
+            </footer>
+        </main>
 
-        function closeEditor() {
-            document.getElementById('editor-modal').style.display = 'none';
-        }
+        <nav class="mobile-nav">
+            <a href="#" class="nav-item active neon-hover" onclick="switchTab('dashboard', this)"><i class="ri-dashboard-line"></i></a>
+            <a href="#" class="nav-item neon-hover" onclick="switchTab('files', this)"><i class="ri-folder-open-line"></i></a>
+            <a href="#" class="nav-item text-danger neon-hover" onclick="logout()"><i class="ri-logout-box-line"></i></a>
+        </nav>
+    </div>
 
-        function handleUpload() {
-            const fd = new FormData();
-            fd.append('file', document.getElementById('upload-input').files[0]);
-            notify('Uploading...', 'normal');
-            fetch('/upload', {method:'POST', body:fd}).then(() => {
-                notify('Upload complete', 'success');
-                loadFiles();
-            });
+    <script src="/socket.io/socket.io.js"></script>
+    <script>
+        const socket=io();
+        let token=localStorage.getItem('nexus_token');
+        let currentEditFile='';
+        if(token){
+            document.getElementById('login-screen').classList.add('hidden');
+            document.getElementById('app').classList.remove('hidden');
+            loadFiles();
         }
-
-        function notify(msg, type) {
-            const box = document.getElementById('toast-container');
-            const el = document.createElement('div');
-            el.className = `toast ${type}`;
-            el.innerText = `>> ${msg}`;
-            box.appendChild(el);
-            setTimeout(() => el.remove(), 3000);
+        function toast(msg,type='normal'){
+            const container=document.getElementById('toast-container');
+            const el=document.createElement('div');
+            el.className=`toast toast-${type}`;
+            el.innerHTML=`<i class="ri-${type==='success'?'checkbox-circle-fill':type==='error'?'error-warning-fill':'information-fill'}"></i> ${msg}`;
+            container.appendChild(el);
+            setTimeout(()=>el.remove(),3200);
         }
+        async function login(){
+            const t=document.getElementById('token-input').value.trim();
+            if(!t){toast('Token required','error');return;}
+            try{
+                const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+                const data=await res.json();
+                if(data.success){
+                    localStorage.setItem('nexus_token',t);
+                    token=t;
+                    document.getElementById('login-screen').classList.add('hidden');
+                    document.getElementById('app').classList.remove('hidden');
+                    toast('Authentication Successful','success');
+                    loadFiles();
+                }else{
+                    toast(data.msg||'Token Invalid or Expired','error');
+                }
+            }catch(e){
+                toast('Network Error - Server tidak merespons','error');
+            }
+        }
+        function logout(){
+            localStorage.removeItem('nexus_token');
+            location.reload();
+        }
+        async function req(ep,body={}){
+            try{
+                const res=await fetch(ep,{method:'POST',headers:{'Authorization':token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+                const data=await res.json();
+                if(data.success&&data.msg)toast(data.msg,'success');
+                else if(!data.success&&data.msg)toast(data.msg,'error');
+                return data;
+            }catch(e){
+                toast('Network Error','error');
+            }
+        }
+        function reqStart(){
+            req('/api/start',{command:document.getElementById('startup-cmd').value});
+        }
+        socket.on('stats',(d)=>{
+            countUp(document.getElementById('cpu-val'),parseFloat(d.cpu),'%');
+            countUp(document.getElementById('ram-val'),parseFloat(d.ram),' MB');
+            document.getElementById('uptime-val').textContent=d.uptime;
+            const badge=document.getElementById('status-badge');
+            if(d.status==='ONLINE'){
+                badge.innerHTML=`<span class="status-dot online"></span><span class="status-text text-success">ONLINE</span>`;
+                badge.classList.add('pulse-ring');
+            }else{
+                badge.innerHTML=`<span class="status-dot offline"></span><span class="status-text text-danger">OFFLINE</span>`;
+                badge.classList.remove('pulse-ring');
+            }
+        });
+        const term=document.getElementById('terminal-logs');
+        socket.on('log',(log)=>{
+            const span=document.createElement('span');
+            span.innerHTML=log.replace(/\n/g,'<br>')
+                .replace(/\x1b\[31m/g,'<span class="term-red">')
+                .replace(/\x1b\[32m/g,'<span class="term-green">')
+                .replace(/\x1b\[33m/g,'<span class="term-yellow">')
+                .replace(/\x1b\[36m/g,'<span class="term-blue">')
+                .replace(/\x1b\[0m/g,'</span>');
+            term.appendChild(span);
+            term.scrollTop=term.scrollHeight;
+        });
+        document.getElementById('cmd-input').addEventListener('keypress',(e)=>{
+            if(e.key==='Enter'&&e.target.value.trim()){
+                socket.emit('input',e.target.value);
+                e.target.value='';
+            }
+        });
+        function switchTab(id,el){
+            document.querySelectorAll('.tab-content').forEach(e=>e.classList.add('hidden'));
+            document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
+            document.getElementById('tab-'+id).classList.remove('hidden');
+            document.querySelectorAll(`.nav-item[onclick*="${id}"]`).forEach(e=>e.classList.add('active'));
+            if(id==='files')loadFiles();
+        }
+        function formatSize(bytes){
+            if(bytes===0)return'0 B';
+            const k=1024;
+            const sizes=['B','KB','MB','GB'];
+            const i=Math.floor(Math.log(bytes)/Math.log(k));
+            return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
+        }
+        async function loadFiles(p=''){
+            const d=await req('/api/files',{path:p});
+            if(d&&d.success){
+                const list=document.getElementById('file-list');
+                if(d.data.length===0){
+                    list.innerHTML='<div class="empty-state">Folder is empty</div>';
+                    return;
+                }
+                list.innerHTML=d.data.map(f=>`
+                    <div class="list-item">
+                        <div class="col-name" onclick="\( {f.isDir?`loadFiles(' \){f.path}')`:''}" style="${f.isDir?'cursor:pointer;font-weight:600;':''}">
+                            <i class="ri-${f.isDir?'folder-fill text-accent':'file-text-line text-muted'}"></i> ${f.name}
+                        </div>
+                        <div class="col-size">${f.isDir?'--':formatSize(f.size)}</div>
+                        <div class="col-actions">
+                            \( {!f.isDir?`<button onclick="editFile(' \){f.path}')" class="act-btn"><i class="ri-edit-2-line"></i></button>`:''}
+                            \( {!f.isDir&&f.name.endsWith('.zip')?`<button onclick="req('/api/unzip',{filename:' \){f.path}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>`:''}
+                            <button onclick="if(confirm('Delete \( {f.name}?')) req('/api/delete',{filename:' \){f.path}'}).then(()=>loadFiles())" class="act-btn text-danger"><i class="ri-delete-bin-line"></i></button>
+                        </div>
+                    </div>
+                `).join('');
+            }
+        }
+        async function editFile(path){
+            const res=await req('/api/read',{filename:path});
+            if(res&&res.success){
+                currentEditFile=path;
+                document.getElementById('edit-filename').innerText=path.split('/').pop();
+                document.getElementById('code-editor').value=res.content;
+                document.getElementById('editor-modal').classList.remove('hidden');
+            }
+        }
+        async function saveFile(){
+            const content=document.getElementById('code-editor').value;
+            const res=await req('/api/save',{filename:currentEditFile,content});
+            if(res&&res.success)closeEditor();
+        }
+        function closeEditor(){
+            document.getElementById('editor-modal').classList.add('hidden');
+            currentEditFile='';
+        }
+        async function uploadFile(){
+            const f=document.getElementById('file-upload').files[0];
+            if(!f)return;
+            const fd=new FormData();
+            fd.append('file',f);
+            toast('Uploading file...','normal');
+            try{
+                const r=await fetch('/api/upload',{method:'POST',headers:{'Authorization':token},body:fd});
+                const resData=await r.json();
+                if(resData.success){
+                    toast('Upload Success','success');
+                    loadFiles();
+                }
+            }catch(e){
+                toast('Upload Failed','error');
+            }
+            document.getElementById('file-upload').value='';
+        }
+        const canvas=document.getElementById('bg-canvas');
+        const ctx=canvas.getContext('2d');
+        let particles=[];
+        class Particle{
+            constructor(){
+                this.x=Math.random()*canvas.width;
+                this.y=Math.random()*canvas.height;
+                this.size=Math.random()*2.5+0.8;
+                this.speedX=Math.random()*0.7-0.35;
+                this.speedY=Math.random()*0.7-0.35;
+            }
+            update(){this.x+=this.speedX;this.y+=this.speedY;}
+            draw(){
+                ctx.fillStyle='#22d3ee';
+                ctx.shadowBlur=15;
+                ctx.shadowColor='#22d3ee';
+                ctx.fillRect(this.x,this.y,this.size,this.size);
+            }
+        }
+        function initParticles(){
+            particles=[];
+            const num=Math.floor(canvas.width*canvas.height/9200);
+            for(let i=0;i<num;i++)particles.push(new Particle());
+        }
+        function connectParticles(){
+            for(let i=0;i<particles.length;i++){
+                for(let j=i+1;j<particles.length;j++){
+                    const dx=particles[i].x-particles[j].x;
+                    const dy=particles[i].y-particles[j].y;
+                    const dist=Math.sqrt(dx*dx+dy*dy);
+                    if(dist<140){
+                        ctx.strokeStyle=`rgba(34,211,238,${1-dist/140})`;
+                        ctx.lineWidth=1.1;
+                        ctx.beginPath();
+                        ctx.moveTo(particles[i].x,particles[i].y);
+                        ctx.lineTo(particles[j].x,particles[j].y);
+                        ctx.stroke();
+                    }
+                }
+            }
+        }
+        function animateParticles(){
+            ctx.clearRect(0,0,canvas.width,canvas.height);
+            particles.forEach(p=>{p.update();p.draw();});
+            connectParticles();
+            requestAnimationFrame(animateParticles);
+        }
+        function resizeCanvas(){
+            canvas.width=window.innerWidth;
+            canvas.height=window.innerHeight;
+            initParticles();
+        }
+        function countUp(el,target,suffix,duration=1400){
+            let start=parseFloat(el.textContent)||0;
+            const startTime=Date.now();
+            const step=()=>{
+                const progress=Math.min((Date.now()-startTime)/duration,1);
+                const value=start+(target-start)*(1-Math.pow(1-progress,3));
+                el.textContent=suffix.includes('%')?value.toFixed(2)+'%':Math.floor(value)+suffix;
+                if(progress<1)requestAnimationFrame(step);
+            };
+            step();
+        }
+        function createRipple(e){
+            const btn=e.currentTarget;
+            const circle=document.createElement('span');
+            const d=Math.max(btn.clientWidth,btn.clientHeight);
+            circle.style.width=circle.style.height=d+'px';
+            circle.style.left=(e.offsetX-d/2)+'px';
+            circle.style.top=(e.offsetY-d/2)+'px';
+            circle.classList.add('ripple');
+            btn.appendChild(circle);
+            setTimeout(()=>circle.remove(),700);
+        }
+        window.onload=()=>{
+            resizeCanvas();
+            window.addEventListener('resize',resizeCanvas);
+            animateParticles();
+            document.querySelectorAll('button,.cursor-pointer').forEach(b=>b.addEventListener('click',createRipple));
+        };
     </script>
 </body>
 </html>

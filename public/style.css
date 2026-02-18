@@ -39,7 +39,6 @@ body {
     line-height: 1.6;
 }
 
-/* Canvas Background */
 #bg-canvas {
     position: fixed;
     top: 0;
@@ -51,7 +50,6 @@ body {
     filter: blur(1px);
 }
 
-/* Toast Container */
 #toast-container {
     position: fixed;
     bottom: 24px;
@@ -81,26 +79,16 @@ body {
     transform-origin: right;
 }
 
-.toast i {
-    font-size: 24px;
-}
-
+.toast i { font-size: 24px; }
 .toast-success i { color: var(--success); }
 .toast-error i { color: var(--error); }
 .toast-normal i { color: var(--neon-cyan); }
 
 @keyframes toastSlide {
-    from {
-        opacity: 0;
-        transform: translateX(100%) scale(0.8);
-    }
-    to {
-        opacity: 1;
-        transform: translateX(0) scale(1);
-    }
+    from { opacity: 0; transform: translateX(100%) scale(0.8); }
+    to { opacity: 1; transform: translateX(0) scale(1); }
 }
 
-/* Login Screen */
 #login-screen {
     position: fixed;
     inset: 0;
@@ -128,7 +116,6 @@ body {
     max-width: 440px;
     text-align: center;
     box-shadow: 0 0 60px rgba(103, 232, 249, 0.3), 0 20px 40px -20px black;
-    transform: translateY(0);
     animation: slideUp 0.7s ease;
 }
 
@@ -252,14 +239,12 @@ body {
     100% { left: 200%; }
 }
 
-/* Main App Layout */
 #app {
     display: flex;
     height: 100vh;
     background: var(--bg-primary);
 }
 
-/* Sidebar */
 .sidebar {
     width: 280px;
     background: var(--surface-dark);
@@ -321,10 +306,7 @@ body {
     overflow: hidden;
 }
 
-.nav-menu a i {
-    font-size: 24px;
-    transition: var(--transition-smooth);
-}
+.nav-menu a i { font-size: 24px; transition: var(--transition-smooth); }
 
 .nav-menu a:hover {
     color: var(--neon-cyan);
@@ -350,7 +332,6 @@ body {
     box-shadow: 0 0 15px var(--neon-cyan);
 }
 
-/* Main Content */
 .main-content {
     flex: 1;
     display: flex;
@@ -358,7 +339,6 @@ body {
     overflow: hidden;
 }
 
-/* Topbar */
 .topbar {
     padding: 16px 32px;
     background: var(--surface);
@@ -402,15 +382,8 @@ body {
     animation: pulseDot 2s infinite;
 }
 
-.status-dot.online {
-    background: var(--success);
-    box-shadow: 0 0 15px var(--success);
-}
-
-.status-dot.offline {
-    background: var(--error);
-    box-shadow: 0 0 15px var(--error);
-}
+.status-dot.online { background: var(--success); box-shadow: 0 0 15px var(--success); }
+.status-dot.offline { background: var(--error); box-shadow: 0 0 15px var(--error); }
 
 @keyframes pulseDot {
     0%, 100% { opacity: 1; transform: scale(1); }
@@ -454,19 +427,12 @@ body {
     transition: opacity 0.3s;
 }
 
-.power-btn:hover::before {
-    opacity: 1;
-}
-
-.power-btn:hover {
-    transform: translateY(-3px) scale(1.1);
-}
-
+.power-btn:hover::before { opacity: 1; }
+.power-btn:hover { transform: translateY(-3px) scale(1.1); }
 .power-btn.start { background: linear-gradient(145deg, #22c55e, #16a34a); }
 .power-btn.restart { background: linear-gradient(145deg, #eab308, #ca8a04); }
 .power-btn.stop { background: linear-gradient(145deg, #ef4444, #dc2626); }
 
-/* Content Wrapper */
 .content-wrapper {
     flex: 1;
     padding: 28px;
@@ -490,7 +456,6 @@ body {
     box-shadow: 0 0 10px var(--neon-cyan);
 }
 
-/* Dashboard Grid */
 .dashboard-grid {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -498,7 +463,6 @@ body {
     height: 100%;
 }
 
-/* Stats Cards */
 .stats-grid {
     display: grid;
     grid-template-columns: repeat(2, 1fr);
@@ -529,10 +493,7 @@ body {
     transition: opacity 0.5s;
 }
 
-.stat-card:hover::after {
-    opacity: 1;
-}
-
+.stat-card:hover::after { opacity: 1; }
 .stat-card:hover {
     transform: translateY(-5px);
     border-color: var(--neon-cyan);
@@ -577,7 +538,6 @@ body {
     outline: none;
 }
 
-/* Terminal */
 .terminal-wrapper {
     background: var(--surface-dark);
     border: 1px solid var(--border-light);
@@ -615,10 +575,7 @@ body {
 .dot.y { background: #ffbd2e; }
 .dot.g { background: #27c93f; }
 
-.dot:hover {
-    filter: brightness(1.2);
-    transform: scale(1.1);
-}
+.dot:hover { filter: brightness(1.2); transform: scale(1.1); }
 
 .term-title {
     color: var(--text-secondary);
@@ -654,6 +611,11 @@ body {
     100% { background-position: 0 40px; }
 }
 
+.term-red { color: #f87171; }
+.term-green { color: #4ade80; }
+.term-yellow { color: #facc15; }
+.term-blue { color: #67e8f9; }
+
 .terminal-input-area {
     display: flex;
     align-items: center;
@@ -686,7 +648,6 @@ body {
     font-style: italic;
 }
 
-/* File Manager */
 .file-manager {
     display: flex;
     flex-direction: column;
@@ -825,7 +786,6 @@ body {
     font-style: italic;
 }
 
-/* Modal Editor */
 .modal {
     position: fixed;
     inset: 0;
@@ -873,9 +833,7 @@ body {
     color: var(--neon-cyan);
 }
 
-.modal-title i {
-    font-size: 26px;
-}
+.modal-title i { font-size: 26px; }
 
 .btn-close {
     background: transparent;
@@ -937,61 +895,27 @@ body {
     box-shadow: 0 0 40px rgba(103, 232, 249, 0.6);
 }
 
-/* Utilities */
-.hidden {
-    display: none !important;
-}
+.hidden { display: none !important; }
 
-/* Responsive */
 @media (max-width: 1024px) {
-    .dashboard-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
+    .dashboard-grid { grid-template-columns: 1fr; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
 }
 
 @media (max-width: 768px) {
-    .sidebar {
-        display: none;
-    }
-    
-    .file-list-header, .list-item {
-        grid-template-columns: 1fr 80px 80px;
-    }
-    
-    .topbar {
-        padding: 12px 20px;
-    }
-    
-    .power-controls {
-        gap: 8px;
-    }
-    
-    .login-box {
-        padding: 40px 24px;
-        margin: 20px;
-    }
-    
-    .brand {
-        font-size: 48px;
-        letter-spacing: 6px;
-    }
+    .sidebar { display: none; }
+    .file-list-header, .list-item { grid-template-columns: 1fr 80px 80px; }
+    .topbar { padding: 12px 20px; }
+    .power-controls { gap: 8px; }
+    .login-box { padding: 40px 24px; margin: 20px; }
+    .brand { font-size: 48px; letter-spacing: 6px; }
 }
 
 @media (max-width: 480px) {
-    .stats-grid {
-        grid-template-columns: 1fr;
-    }
-    
+    .stats-grid { grid-template-columns: 1fr; }
     .file-list-header, .list-item {
         grid-template-columns: 1fr 60px 60px;
         padding: 12px 16px;
     }
-    
-    .col-actions {
-        gap: 4px;
-    }
+    .col-actions { gap: 4px; }
 }

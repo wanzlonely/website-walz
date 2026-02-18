@@ -11,7 +11,7 @@ const TelegramBot = require('node-telegram-bot-api');
 
 const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
-const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
+const ADMIN_PASS = process.env.ADMIN_PASS || 'walz123';
 const PORT = process.env.PORT || 3000;
 const DB_FILE = path.join(__dirname, 'tokens.json');
 

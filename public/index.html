@@ -11,25 +11,6 @@
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
 
-    <!-- LOGIN -->
-    <div id="login-screen">
-        <div class="login-card">
-            <div class="login-icon">
-                <i class="ri-flashlight-line"></i>
-            </div><!DOCTYPE html>
-<html lang="id">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS · panel</title>
-    <link rel="stylesheet" href="style.css">
-    <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-</head>
-<body>
-    <canvas id="bg-canvas"></canvas>
-    <div id="toast-container"></div>
-
-    <!-- KONFIRMASI HAPUS -->
     <div id="confirm-modal" class="modal hidden">
         <div class="modal-panel" style="max-width: 400px;">
             <div class="modal-head">
@@ -49,7 +30,6 @@
         </div>
     </div>
 
-    <!-- LOGIN -->
     <div id="login-screen">
         <div class="login-card">
             <div class="login-icon">
@@ -65,7 +45,6 @@
         </div>
     </div>
 
-    <!-- EDITOR MODAL -->
     <div id="editor-modal" class="modal hidden">
         <div class="modal-panel">
             <div class="modal-head">
@@ -82,7 +61,6 @@
         </div>
     </div>
 
-    <!-- MAIN APP -->
     <div id="app" class="hidden">
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -119,7 +97,6 @@
             </header>
 
             <div class="content" id="content-scroll">
-                <!-- DASHBOARD TAB -->
                 <div id="tab-dashboard" class="dashboard">
                     <div class="stats-grid">
                         <div class="stat-card">
@@ -155,7 +132,6 @@
                     </div>
                 </div>
 
-                <!-- FILES TAB -->
                 <div id="tab-files" class="files hidden">
                     <div class="files-toolbar">
                         <div id="current-path" class="path"><i class="ri-folder-3-line"></i> /root</div>
@@ -172,7 +148,6 @@
                     <div id="file-list" class="files-list"></div>
                 </div>
 
-                <!-- SUBSCRIPTION TAB -->
                 <div id="tab-subscription" class="subscription hidden">
                     <div class="sub-card">
                         <div class="sub-header">
@@ -223,7 +198,6 @@
                 </div>
             </div>
 
-            <!-- BOTTOM NAVIGATION UNTUK HP -->
             <nav class="bottom-nav">
                 <a href="#" class="active" onclick="switchTab('dashboard', this)">
                     <i class="ri-dashboard-line"></i><span>Console</span>
@@ -240,11 +214,10 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        // ==================== KONFIGURASI ====================
         const socket = io();
         let token = localStorage.getItem('nexus_token');
         let currentEditFile = '';
-        let pendingDeletePath = ''; // untuk konfirmasi hapus
+        let pendingDeletePath = '';
 
         if (token) {
             document.getElementById('login-screen').classList.add('hidden');
@@ -252,7 +225,6 @@
             loadFiles();
         }
 
-        // ==================== TOAST ====================
         function toast(msg, type = 'normal') {
             const container = document.getElementById('toast-container');
             const el = document.createElement('div');
@@ -262,7 +234,6 @@
             setTimeout(() => el.remove(), 3200);
         }
 
-        // ==================== LOGIN ====================
         async function login() {
             const t = document.getElementById('token-input').value.trim();
             if (!t) {
@@ -291,7 +262,6 @@
             }
         }
 
-        // ==================== REQUEST ====================
         async function req(ep, body = {}) {
             try {
                 const res = await fetch(ep, {
@@ -314,7 +284,6 @@
             req('/api/start', { command: document.getElementById('startup-cmd').value });
         }
 
-        // ==================== SOCKET ====================
         socket.on('stats', (d) => {
             countUp('cpu-val', parseFloat(d.cpu), '%');
             countUp('ram-val', parseFloat(d.ram), ' MB');
@@ -347,7 +316,6 @@
             }
         });
 
-        // ==================== TAB SWITCH ====================
         function switchTab(id, el) {
             document.querySelectorAll('.dashboard, .files, .subscription').forEach(e => e.classList.add('hidden'));
             document.querySelectorAll('.sidebar-nav a, .bottom-nav a').forEach(e => e.classList.remove('active'));
@@ -362,7 +330,6 @@
             if (id === 'files') loadFiles();
         }
 
-        // ==================== FILE MANAGER ====================
         function formatSize(bytes) {
             if (bytes === 0) return '0 B';
             const k = 1024;
@@ -408,7 +375,6 @@
             }
         }
 
-        // ==================== KONFIRMASI HAPUS ====================
         function confirmDelete(path, name) {
             pendingDeletePath = path;
             document.getElementById('confirm-message').innerText = `Hapus ${name}?`;
@@ -427,418 +393,6 @@
                 loadFiles();
             }
             closeConfirmModal();
-        }
-
-        // ==================== EDITOR ====================
-        async function editFile(path) {
-            const res = await req('/api/read', { filename: path });
-            if (res && res.success) {
-                currentEditFile = path;
-                document.getElementById('edit-filename').innerText = path.split('/').pop();
-                document.getElementById('code-editor').value = res.content;
-                document.getElementById('editor-modal').classList.remove('hidden');
-            }
-        }
-
-        async function saveFile() {
-            const content = document.getElementById('code-editor').value;
-            const res = await req('/api/save', { filename: currentEditFile, content });
-            if (res && res.success) closeEditor();
-        }
-
-        function closeEditor() {
-            document.getElementById('editor-modal').classList.add('hidden');
-            currentEditFile = '';
-        }
-
-        // ==================== UPLOAD ====================
-        async function uploadFile() {
-            const f = document.getElementById('file-upload').files[0];
-            if (!f) return;
-            const fd = new FormData();
-            fd.append('file', f);
-            toast('Uploading...', 'normal');
-            try {
-                const r = await fetch('/api/upload', {
-                    method: 'POST',
-                    headers: { 'Authorization': token },
-                    body: fd
-                });
-                const resData = await r.json();
-                if (resData.success) {
-                    toast('Upload Success', 'success');
-                    loadFiles();
-                }
-            } catch (e) {
-                toast('Upload Failed', 'error');
-            }
-            document.getElementById('file-upload').value = '';
-        }
-
-        // ==================== BACKGROUND CANVAS ====================
-        const canvas = document.getElementById('bg-canvas');
-        const ctx = canvas.getContext('2d');
-        let particles = [];
-
-        class Particle {
-            constructor() {
-                this.x = Math.random() * canvas.width;
-                this.y = Math.random() * canvas.height;
-                this.size = Math.random() * 1.5 + 0.5;
-                this.speedX = Math.random() * 0.4 - 0.2;
-                this.speedY = Math.random() * 0.4 - 0.2;
-            }
-            update() { this.x += this.speedX; this.y += this.speedY; }
-            draw() {
-                ctx.fillStyle = '#3b82f6';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#3b82f6';
-                ctx.fillRect(this.x, this.y, this.size, this.size);
-            }
-        }
-
-        function initParticles() {
-            particles = [];
-            const num = Math.floor(canvas.width * canvas.height / 12000);
-            for (let i = 0; i < num; i++) particles.push(new Particle());
-        }
-
-        function connectParticles() {
-            for (let i = 0; i < particles.length; i++) {
-                for (let j = i + 1; j < particles.length; j++) {
-                    const dx = particles[i].x - particles[j].x;
-                    const dy = particles[i].y - particles[j].y;
-                    const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 120) {
-                        ctx.strokeStyle = `rgba(59,130,246,${1 - dist/120})`;
-                        ctx.lineWidth = 0.8;
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x, particles[i].y);
-                        ctx.lineTo(particles[j].x, particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-
-        function animateParticles() {
-            ctx.clearRect(0, 0, canvas.width, canvas.height);
-            particles.forEach(p => { p.update(); p.draw(); });
-            connectParticles();
-            requestAnimationFrame(animateParticles);
-        }
-
-        function resizeCanvas() {
-            canvas.width = window.innerWidth;
-            canvas.height = window.innerHeight;
-            initParticles();
-        }
-
-        // ==================== COUNTUP ====================
-        function countUp(id, target, suffix) {
-            const el = document.getElementById(id);
-            let start = parseFloat(el.textContent) || 0;
-            const duration = 1200;
-            const startTime = Date.now();
-            const step = () => {
-                const progress = Math.min((Date.now() - startTime) / duration, 1);
-                const value = start + (target - start) * (1 - Math.pow(1 - progress, 3));
-                el.textContent = suffix.includes('%') ? value.toFixed(2) + '%' : Math.floor(value) + suffix;
-                if (progress < 1) requestAnimationFrame(step);
-            };
-            step();
-        }
-
-        // ==================== INIT ====================
-        window.onload = () => {
-            resizeCanvas();
-            window.addEventListener('resize', resizeCanvas);
-            animateParticles();
-        };
-    </script>
-</body>
-</html>
-            <h1 class="login-brand">NEXUS</h1>
-            <p class="login-sub">secure environment</p>
-            <div class="input-field">
-                <i class="ri-key-2-line"></i>
-                <input type="password" id="token-input" placeholder="access key">
-            </div>
-            <button id="login-btn" onclick="login()">connect →</button>
-        </div>
-    </div>
-
-    <!-- EDITOR MODAL -->
-    <div id="editor-modal" class="modal hidden">
-        <div class="modal-panel">
-            <div class="modal-head">
-                <div class="modal-title">
-                    <i class="ri-code-line"></i>
-                    <span id="edit-filename">file.js</span>
-                </div>
-                <button onclick="closeEditor()" class="modal-close">✕</button>
-            </div>
-            <textarea id="code-editor" spellcheck="false"></textarea>
-            <div class="modal-foot">
-                <button onclick="saveFile()">save changes</button>
-            </div>
-        </div>
-    </div>
-
-    <!-- MAIN APP -->
-    <div id="app" class="hidden">
-        <aside class="sidebar">
-            <div class="sidebar-header">
-                <i class="ri-flashlight-line sidebar-icon"></i>
-                <span>NEXUS</span>
-            </div>
-            <nav class="sidebar-nav">
-                <a href="#" class="active" onclick="switchTab('dashboard', this)">
-                    <i class="ri-dashboard-line"></i><span>console</span>
-                </a>
-                <a href="#" onclick="switchTab('files', this)">
-                    <i class="ri-folder-line"></i><span>files</span>
-                </a>
-                <a href="#" onclick="logout()">
-                    <i class="ri-logout-box-r-line"></i><span>exit</span>
-                </a>
-            </nav>
-        </aside>
-
-        <main class="main">
-            <header class="topbar">
-                <div class="topbar-left">
-                    <span class="node-name">production · node</span>
-                    <div id="status-badge" class="status">
-                        <span class="status-dot online"></span>
-                        <span class="status-text">ONLINE</span>
-                    </div>
-                </div>
-                <div class="power">
-                    <button class="power-btn start" onclick="reqStart()"><i class="ri-play-line"></i></button>
-                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)"><i class="ri-restart-line"></i></button>
-                    <button class="power-btn stop" onclick="req('/api/stop')"><i class="ri-stop-line"></i></button>
-                </div>
-            </header>
-
-            <div class="content" id="content-scroll">
-                <!-- DASHBOARD TAB -->
-                <div id="tab-dashboard" class="dashboard">
-                    <div class="stats-grid">
-                        <div class="stat-card">
-                            <span class="stat-label">startup cmd</span>
-                            <input type="text" id="startup-cmd" value="npm install && npm start">
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">cpu load</span>
-                            <span id="cpu-val" class="stat-value">0.00%</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">memory</span>
-                            <span id="ram-val" class="stat-value">0 MB</span>
-                        </div>
-                        <div class="stat-card">
-                            <span class="stat-label">uptime</span>
-                            <span id="uptime-val" class="stat-value">00:00:00</span>
-                        </div>
-                    </div>
-
-                    <div class="terminal">
-                        <div class="terminal-header">
-                            <div class="terminal-dots">
-                                <span></span><span></span><span></span>
-                            </div>
-                            <span class="terminal-title">bash</span>
-                        </div>
-                        <div class="terminal-body" id="terminal-logs"></div>
-                        <div class="terminal-footer">
-                            <span class="prompt">$</span>
-                            <input type="text" id="cmd-input" placeholder="type command...">
-                        </div>
-                    </div>
-                </div>
-
-                <!-- FILES TAB -->
-                <div id="tab-files" class="files hidden">
-                    <div class="files-toolbar">
-                        <div id="current-path" class="path"><i class="ri-folder-3-line"></i> /root</div>
-                        <label class="upload-btn">
-                            <i class="ri-upload-2-line"></i> upload
-                            <input type="file" id="file-upload" hidden onchange="uploadFile()">
-                        </label>
-                    </div>
-                    <div class="files-header">
-                        <div>name</div>
-                        <div>size</div>
-                        <div>actions</div>
-                    </div>
-                    <div id="file-list" class="files-list"></div>
-                </div>
-            </div>
-        </main>
-    </div>
-
-    <script src="/socket.io/socket.io.js"></script>
-    <script>
-        const socket = io();
-        let token = localStorage.getItem('nexus_token');
-        let currentEditFile = '';
-
-        if (token) {
-            document.getElementById('login-screen').classList.add('hidden');
-            document.getElementById('app').classList.remove('hidden');
-            loadFiles();
-        }
-
-        function toast(msg, type = 'normal') {
-            const container = document.getElementById('toast-container');
-            const el = document.createElement('div');
-            el.className = `toast toast-${type}`;
-            el.innerHTML = `<i class="ri-${type === 'success' ? 'checkbox-circle-fill' : type === 'error' ? 'error-warning-fill' : 'information-fill'}"></i> ${msg}`;
-            container.appendChild(el);
-            setTimeout(() => el.remove(), 3200);
-        }
-
-        async function login() {
-            const t = document.getElementById('token-input').value.trim();
-            if (!t) {
-                toast('Token required', 'error');
-                return;
-            }
-            try {
-                const res = await fetch('/api/login', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ token: t })
-                });
-                const data = await res.json();
-                if (data.success) {
-                    localStorage.setItem('nexus_token', t);
-                    token = t;
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('app').classList.remove('hidden');
-                    toast('Authentication Successful', 'success');
-                    loadFiles();
-                } else {
-                    toast(data.msg || 'Token Invalid', 'error');
-                }
-            } catch (e) {
-                toast('Network Error', 'error');
-            }
-        }
-
-        function logout() {
-            localStorage.removeItem('nexus_token');
-            location.reload();
-        }
-
-        async function req(ep, body = {}) {
-            try {
-                const res = await fetch(ep, {
-                    method: 'POST',
-                    headers: {
-                        'Authorization': token,
-                        'Content-Type': 'application/json'
-                    },
-                    body: JSON.stringify(body)
-                });
-                const data = await res.json();
-                if (data.msg) toast(data.msg, data.success ? 'success' : 'error');
-                return data;
-            } catch (e) {
-                toast('Network Error', 'error');
-            }
-        }
-
-        function reqStart() {
-            req('/api/start', { command: document.getElementById('startup-cmd').value });
-        }
-
-        socket.on('stats', (d) => {
-            countUp('cpu-val', parseFloat(d.cpu), '%');
-            countUp('ram-val', parseFloat(d.ram), ' MB');
-            document.getElementById('uptime-val').textContent = d.uptime;
-            const badge = document.getElementById('status-badge');
-            if (d.status === 'ONLINE') {
-                badge.innerHTML = `<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
-            } else {
-                badge.innerHTML = `<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
-            }
-        });
-
-        const term = document.getElementById('terminal-logs');
-        socket.on('log', (log) => {
-            const span = document.createElement('span');
-            span.innerHTML = log.replace(/\n/g, '<br>')
-                .replace(/\x1b\[31m/g, '<span class="term-red">')
-                .replace(/\x1b\[32m/g, '<span class="term-green">')
-                .replace(/\x1b\[33m/g, '<span class="term-yellow">')
-                .replace(/\x1b\[36m/g, '<span class="term-blue">')
-                .replace(/\x1b\[0m/g, '</span>');
-            term.appendChild(span);
-            term.scrollTop = term.scrollHeight;
-        });
-
-        document.getElementById('cmd-input').addEventListener('keypress', (e) => {
-            if (e.key === 'Enter' && e.target.value.trim()) {
-                socket.emit('input', e.target.value);
-                e.target.value = '';
-            }
-        });
-
-        function switchTab(id, el) {
-            document.querySelectorAll('.dashboard, .files').forEach(e => e.classList.add('hidden'));
-            document.querySelectorAll('.sidebar-nav a').forEach(e => e.classList.remove('active'));
-            if (id === 'dashboard') {
-                document.querySelector('.dashboard').classList.remove('hidden');
-            } else {
-                document.querySelector('.files').classList.remove('hidden');
-            }
-            el.classList.add('active');
-            if (id === 'files') loadFiles();
-        }
-
-        function formatSize(bytes) {
-            if (bytes === 0) return '0 B';
-            const k = 1024;
-            const sizes = ['B', 'KB', 'MB', 'GB'];
-            const i = Math.floor(Math.log(bytes) / Math.log(k));
-            return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
-        }
-
-        async function loadFiles(p = '') {
-            const d = await req('/api/files', { path: p });
-            if (d && d.success) {
-                const list = document.getElementById('file-list');
-                if (!d.data || d.data.length === 0) {
-                    list.innerHTML = '<div class="empty">folder is empty</div>';
-                    return;
-                }
-                list.innerHTML = d.data.map(f => {
-                    const safePath = f.path.replace(/'/g, "\\'");
-                    const safeName = f.name.replace(/'/g, "\\'");
-                    const isDir = f.isDir;
-                    const isZip = !isDir && f.name.toLowerCase().endsWith('.zip');
-                    const actions = [];
-                    if (!isDir) {
-                        if (isZip) {
-                            actions.push(`<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="file-action" title="unzip"><i class="ri-file-zip-line"></i></button>`);
-                        } else {
-                            actions.push(`<button onclick="editFile('${safePath}')" class="file-action" title="edit"><i class="ri-pencil-line"></i></button>`);
-                        }
-                    }
-                    actions.push(`<button onclick="if(confirm('Delete ${safeName}?')) req('/api/delete',{filename:'${safePath}'}).then(()=>loadFiles())" class="file-action" title="delete"><i class="ri-delete-bin-line"></i></button>`);
-                    return `
-                        <div class="file-row">
-                            <div class="file-name" onclick="${isDir ? `loadFiles('${safePath}')` : ''}" style="${isDir ? 'cursor:pointer;' : ''}">
-                                <i class="ri-${isDir ? 'folder-3-line' : 'file-line'}"></i> ${f.name}
-                            </div>
-                            <div class="file-size">${isDir ? '—' : formatSize(f.size)}</div>
-                            <div class="file-actions">${actions.join('')}</div>
-                        </div>
-                    `;
-                }).join('');
-            }
         }
 
         async function editFile(path) {

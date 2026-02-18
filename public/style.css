@@ -39,7 +39,6 @@ body {
     pointer-events: none;
 }
 
-/* Toast */
 #toast-container {
     position: fixed;
     bottom: 24px;
@@ -79,7 +78,6 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* Login Screen */
 #login-screen {
     position: fixed;
     inset: 0;
@@ -190,14 +188,12 @@ body {
     box-shadow: 0 12px 28px -8px var(--accent);
 }
 
-/* App Layout */
 #app {
     display: flex;
     height: 100vh;
     background: var(--bg);
 }
 
-/* Sidebar */
 .sidebar {
     width: 240px;
     background: var(--surface);
@@ -271,7 +267,6 @@ body {
     box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* Main Area */
 .main {
     flex: 1;
     display: flex;
@@ -280,7 +275,6 @@ body {
     min-width: 0;
 }
 
-/* Topbar */
 .topbar {
     height: 64px;
     padding: 0 28px;
@@ -367,7 +361,6 @@ body {
     box-shadow: 0 8px 18px -6px var(--accent);
 }
 
-/* Content */
 .content {
     flex: 1;
     padding: 24px;
@@ -391,7 +384,6 @@ body {
     border-radius: 12px;
 }
 
-/* Dashboard */
 .dashboard {
     display: grid;
     grid-template-columns: 1fr 3fr;
@@ -458,7 +450,6 @@ body {
     box-shadow: 0 0 0 2px rgba(59, 130, 246, 0.2);
 }
 
-/* Terminal */
 .terminal {
     background: var(--card);
     backdrop-filter: blur(12px);
@@ -561,7 +552,6 @@ body {
     font-size: 13px;
 }
 
-/* Files Tab */
 .files {
     display: flex;
     flex-direction: column;
@@ -699,7 +689,6 @@ body {
     font-size: 14px;
 }
 
-/* Subscription Tab */
 .subscription {
     display: flex;
     flex-direction: column;
@@ -831,7 +820,6 @@ body {
     color: white;
 }
 
-/* Bottom Navigation */
 .bottom-nav {
     display: none;
     height: 60px;
@@ -869,7 +857,6 @@ body {
     background: rgba(59, 130, 246, 0.1);
 }
 
-/* Modal */
 .modal {
     position: fixed;
     inset: 0;
@@ -1012,7 +999,13 @@ body {
     display: none !important;
 }
 
-/* Responsive */
+.glass {
+    background: var(--surface);
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: 1px solid var(--border);
+}
+
 @media (max-width: 700px) {
     .sidebar {
         display: none;
@@ -1088,12 +1081,4 @@ body {
     .login-brand {
         font-size: 32px;
     }
-}
-
-/* Utility */
-.glass {
-    background: var(--surface);
-    backdrop-filter: blur(16px);
-    -webkit-backdrop-filter: blur(16px);
-    border: 1px solid var(--border);
 }

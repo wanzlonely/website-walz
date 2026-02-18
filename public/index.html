@@ -273,16 +273,25 @@
                 list.innerHTML = d.data.map(f => {
                     const safePath = f.path.replace(/'/g, "\\'");
                     const safeName = f.name.replace(/'/g, "\\'");
+                    const isDir = f.isDir;
+                    const isZip = !isDir && f.name.toLowerCase().endsWith('.zip');
+                    const actionButtons = [];
+                    if (!isDir) {
+                        if (isZip) {
+                            actionButtons.push(`<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn" title="Unzip"><i class="ri-file-zip-line"></i></button>`);
+                        } else {
+                            actionButtons.push(`<button onclick="editFile('${safePath}')" class="act-btn" title="Edit"><i class="ri-edit-2-line"></i></button>`);
+                        }
+                    }
+                    actionButtons.push(`<button onclick="if(confirm('Hapus ${safeName}?')) req('/api/delete',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn" title="Delete"><i class="ri-delete-bin-line"></i></button>`);
                     return `
                         <div class="list-item">
-                            <div class="col-name" onclick="${f.isDir ? `loadFiles('${safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
-                                <i class="ri-${f.isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
+                            <div class="col-name" onclick="${isDir ? `loadFiles('${safePath}')` : ''}" style="${isDir ? 'cursor:pointer;font-weight:600;' : ''}">
+                                <i class="ri-${isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
                             </div>
-                            <div class="col-size">${f.isDir ? '--' : formatSize(f.size)}</div>
+                            <div class="col-size">${isDir ? '--' : formatSize(f.size)}</div>
                             <div class="col-actions">
-                                ${!f.isDir ? `<button onclick="editFile('${safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
-                                ${!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
-                                <button onclick="if(confirm('Hapus ${safeName}?')) req('/api/delete',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
+                                ${actionButtons.join('')}
                             </div>
                         </div>
                     `;

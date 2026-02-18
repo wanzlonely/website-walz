@@ -3,37 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS CONTROL</title>
+    <title>NEXUS CONTROL PANEL</title>
     <link rel="stylesheet" href="style.css">
     <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-
-    <div id="login-layer" class="login-wrap">
-        <div class="login-box">
-            <div style="font-size: 42px; margin-bottom: 10px;">⚡</div>
-            <h2 style="color:#fff; font-weight:700;">ACCESS PANEL</h2>
-            <p style="color:#71717a; font-size:13px; margin-top:5px;">Masukkan Token Akses Anda</p>
-            <input type="password" id="auth-token" class="login-inp" placeholder="WL-XXXXXXXX" autocomplete="off">
-            <button onclick="attemptLogin()" class="btn btn-primary" style="width:100%; justify-content:center; padding:14px;">VERIFIKASI</button>
-        </div>
+    <div class="bg-glow">
+        <div class="blob blob-1"></div>
+        <div class="blob blob-2"></div>
     </div>
 
-    <div id="toast-area" class="toast-container"></div>
-
-    <div id="editor-modal" class="modal">
-        <div class="modal-content">
-            <div style="padding:16px 24px; border-bottom:1px solid #27272a; display:flex; justify-content:space-between; align-items:center;">
-                <div style="display:flex; align-items:center; gap:10px;">
-                    <span style="font-size:18px;">📝</span>
-                    <span id="editor-title" style="font-weight:600; font-family:'JetBrains Mono'; color:#fff;">script.js</span>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn" onclick="closeEditor()">Batal</button>
-                    <button class="btn btn-primary" onclick="saveContent()">Simpan Perubahan</button>
-                </div>
-            </div>
-            <textarea id="editor-body" class="editor" spellcheck="false"></textarea>
+    <div id="login-layer" class="login-overlay">
+        <div class="login-card">
+            <div style="font-size: 48px; margin-bottom: 10px;">⚡</div>
+            <h2 style="color:white; font-weight:800; margin-bottom: 5px;">NEXUS ACCESS</h2>
+            <p style="color:#71717a; font-size:13px;">Secure Terminal Gateway</p>
+            <input type="password" id="auth-token" class="login-inp" placeholder="TOKEN AKSES" autocomplete="off">
+            <button onclick="attemptLogin()" class="btn btn-primary" style="width:100%; justify-content:center; padding:14px;">
+                VERIFIKASI
+            </button>
         </div>
     </div>
 
@@ -41,249 +29,266 @@
         <div class="brand">
             <span>⚡</span> NEXUS
         </div>
-        <div class="nav-center">
-            <div class="nav-item active" onclick="switchTab('console', this)">Terminal</div>
-            <div class="nav-item" onclick="switchTab('files', this)">File Manager</div>
+        
+        <div class="nav-pill">
+            <div class="nav-item active" onclick="switchTab('console', this)">
+                <span>💻</span> Terminal
+            </div>
+            <div class="nav-item" onclick="switchTab('files', this)">
+                <span>📂</span> Files
+            </div>
         </div>
-        <button class="btn" style="padding:8px 12px;" onclick="themeToggle()">
+
+        <button class="theme-btn" onclick="document.body.classList.toggle('light')">
             🌗
         </button>
     </nav>
 
     <div class="container">
-        
         <div id="tab-console" class="view-section active">
-            <div class="card-stats">
-                <div class="stat-box">
-                    <div class="stat-val" id="val-ram" style="color:#60a5fa">-- MB</div>
-                    <div class="stat-lbl">RAM Usage</div>
+            <div class="stats-grid">
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">💾</span>
+                        <span class="stat-title">RAM Usage</span>
+                    </div>
+                    <div class="stat-value" id="val-ram">247 MB</div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:45%; background:#6366f1;"></div></div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-val" id="val-cpu" style="color:#c084fc">-- %</div>
-                    <div class="stat-lbl">CPU Load</div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">⚙️</span>
+                        <span class="stat-title">CPU Load</span>
+                    </div>
+                    <div class="stat-value" id="val-cpu">12 %</div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:12%; background:#22d3ee;"></div></div>
                 </div>
-                <div class="stat-box">
-                    <div class="stat-val" id="val-status" style="color:#f43f5e">OFFLINE</div>
-                    <div class="stat-lbl">System Status</div>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">📀</span>
+                        <span class="stat-title">Storage</span>
+                    </div>
+                    <div class="stat-value">3.2 GB</div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:68%; background:#a855f7;"></div></div>
                 </div>
-                <div class="stat-box" style="flex-direction:row; align-items:center; justify-content:space-between; padding:0 20px;">
-                    <button class="btn btn-primary" onclick="api('/proc/start')">▶ Start</button>
-                    <button class="btn btn-danger" onclick="api('/proc/stop')">■ Stop</button>
+                <div class="stat-card">
+                    <div class="stat-header">
+                        <span class="stat-icon">⏱️</span>
+                        <span class="stat-title">Uptime</span>
+                    </div>
+                    <div class="stat-value">14d 7h</div>
+                    <div class="progress-bg"><div class="progress-fill" style="width:100%; background:#10b981;"></div></div>
                 </div>
             </div>
 
-            <div class="terminal-window">
-                <div class="term-head">
+            <div class="terminal-box">
+                <div class="term-header">
                     <div class="dot" style="background:#ef4444"></div>
                     <div class="dot" style="background:#f59e0b"></div>
                     <div class="dot" style="background:#10b981"></div>
-                    <span style="margin-left:auto; font-size:11px; color:#52525b;">bash --login</span>
+                    <span class="term-title">root@nexus:\~</span>
+                    <div style="margin-left:10px; display:flex; gap:6px;">
+                        <button onclick="api('/proc/start')" style="background:none;border:none;color:#10b981;cursor:pointer;font-size:16px;">▶</button>
+                        <button onclick="api('/proc/stop')" style="background:none;border:none;color:#f43f5e;cursor:pointer;font-size:16px;">■</button>
+                    </div>
                 </div>
                 <div id="term-out" class="term-body"></div>
-                <div class="term-input-wrap">
+                <div class="term-input-area">
                     <span style="color:#10b981; font-weight:bold; font-family:'JetBrains Mono'">➜</span>
-                    <span style="color:#3b82f6; font-weight:bold; font-family:'JetBrains Mono'; margin-left:6px;">~</span>
-                    <input type="text" id="term-in" class="term-input" placeholder="Execute command..." autocomplete="off">
+                    <input type="text" id="term-in" class="term-input" placeholder="Type a command..." autocomplete="off">
                 </div>
             </div>
         </div>
 
         <div id="tab-files" class="view-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:4px;">
+            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
                 <div>
-                    <h3 style="font-weight:700;">File Explorer</h3>
-                    <p style="font-size:12px; color:var(--text-muted)">Manage your server files</p>
+                    <h2 style="font-weight:700; font-size:24px;">File Explorer</h2>
+                    <p style="color:var(--text-muted); font-size:13px;">Manage server files realtime</p>
                 </div>
                 <div style="display:flex; gap:10px;">
                     <button class="btn btn-primary" onclick="document.getElementById('file-up').click()">☁ Upload</button>
-                    <button class="btn" onclick="fetchFiles()">↻ Refresh</button>
+                    <button class="btn btn-ghost" onclick="fetchFiles()">↻</button>
                     <input type="file" id="file-up" hidden onchange="processUpload()">
                 </div>
             </div>
             <div id="file-wrapper" class="file-grid"></div>
         </div>
-
     </div>
 
-    <footer class="glass">
-        <a href="https://wa.me/62812345678" target="_blank" class="social">
-            <span style="font-size:16px;">💬</span> WhatsApp Support
-        </a>
-        <a href="https://t.me/walzexploit" target="_blank" class="social">
-            <span style="font-size:16px;">✈</span> Telegram Channel
-        </a>
-    </footer>
+    <div id="toast-area" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px;"></div>
 
     <script>
         const socket = io();
-        let activeFile = null;
-        
-        const cachedToken = localStorage.getItem('nx_token');
-        if(cachedToken) verifySession(cachedToken);
 
-        function attemptLogin() {
-            const t = document.getElementById('auth-token').value.trim();
-            if(!t) return notify('Masukkan token', 'err');
-            verifySession(t);
+        const introLines = [
+            "[nexus] Booting system kernel...",
+            "[nexus] Loading modules: \x1b[34mauth\x1b[0m, \x1b[34mfilesystem\x1b[0m, \x1b[34msocket\x1b[0m",
+            "[nexus] \x1b[32m✔ Database connected successfully\x1b[0m",
+            "[nexus] \x1b[32m✔ WebSocket ready on port 3000\x1b[0m",
+            "[nexus] System is ready. Welcome back, Admin."
+        ];
+
+        function runIntro() {
+            let i = 0;
+            const term = document.getElementById('term-out');
+            term.innerHTML = '';
+
+            function typeLine() {
+                if (i < introLines.length) {
+                    let line = introLines[i]
+                        .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+                        .replace(/\x1b\[34m/g, '<span class="ansi-blue">')
+                        .replace(/\x1b\[0m/g, '</span>');
+
+                    term.innerHTML += `<div style="margin-bottom:4px">${line}</div>`;
+                    i++;
+                    setTimeout(typeLine, 300);
+                }
+            }
+            typeLine();
         }
 
-        function verifySession(t) {
+        const savedToken = localStorage.getItem('nx_token');
+        if (savedToken) verifySession(savedToken);
+
+        function attemptLogin() {
+            const token = document.getElementById('auth-token').value.trim();
+            if (!token) return alert('Masukkan Token');
+            verifySession(token);
+        }
+
+        function verifySession(token) {
             fetch('/login', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ token: t })
-            }).then(r => r.json()).then(d => {
-                if(d.success) {
-                    localStorage.setItem('nx_token', t);
-                    document.getElementById('login-layer').style.display = 'none';
-                    notify('Akses Diterima', 'ok');
+                body: JSON.stringify({ token })
+            })
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    localStorage.setItem('nx_token', token);
+                    const loginLayer = document.getElementById('login-layer');
+                    loginLayer.style.opacity = '0';
+                    setTimeout(() => {
+                        loginLayer.style.display = 'none';
+                        runIntro();
+                    }, 500);
                     fetchFiles();
                 } else {
-                    notify('Token Tidak Valid', 'err');
-                    document.getElementById('login-layer').style.display = 'flex';
+                    alert('Token Salah');
                 }
-            }).catch(() => notify('Koneksi Gagal', 'err'));
+            })
+            .catch(() => alert('Server Error'));
         }
 
-        const headers = () => ({
-            'Authorization': localStorage.getItem('nx_token'),
-            'Content-Type': 'application/json'
-        });
-
-        socket.on('log', d => {
-            const t = document.getElementById('term-out');
-            const f = d.replace(/\x1b\[31m/g, '<span class="ansi-red">')
-                       .replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                       .replace(/\x1b\[33m/g, '<span class="ansi-yellow">')
-                       .replace(/\x1b\[36m/g, '<span class="ansi-cyan">')
-                       .replace(/\x1b\[35m/g, '<span class="ansi-magenta">')
-                       .replace(/\x1b\[34m/g, '<span class="ansi-blue">')
-                       .replace(/\x1b\[0m/g, '</span>');
-            t.innerHTML += f;
-            t.scrollTop = t.scrollHeight;
-        });
-
-        socket.on('status', s => {
-            const el = document.getElementById('val-status');
-            el.innerText = s ? 'ONLINE' : 'OFFLINE';
-            el.style.color = s ? 'var(--success)' : 'var(--danger)';
-        });
-
-        socket.on('usage', d => {
-            document.getElementById('val-ram').innerText = d.ram + ' MB';
-        });
+        function getHeaders() {
+            return {
+                'Authorization': localStorage.getItem('nx_token'),
+                'Content-Type': 'application/json'
+            };
+        }
 
         document.getElementById('term-in').addEventListener('keydown', e => {
-            if(e.key === 'Enter') {
-                const v = e.target.value;
-                if(v.trim()) socket.emit('cmd', v);
+            if (e.key === 'Enter') {
+                const cmd = e.target.value.trim();
+                if (cmd) {
+                    document.getElementById('term-out').innerHTML +=
+                        `<div><span style="color:#10b981">➜</span> ${cmd}</div>`;
+                    socket.emit('cmd', cmd);
+                }
                 e.target.value = '';
             }
         });
 
+        socket.on('log', data => {
+            const termOut = document.getElementById('term-out');
+            let formatted = data
+                .replace(/\n/g, '<br>')
+                .replace(/\x1b\[32m/g, '<span class="ansi-green">')
+                .replace(/\x1b\[31m/g, '<span class="ansi-red">')
+                .replace(/\x1b\[0m/g, '</span>');
+
+            termOut.innerHTML += `<div>${formatted}</div>`;
+            termOut.scrollTop = termOut.scrollHeight;
+        });
+
+        socket.on('usage', data => {
+            document.getElementById('val-ram').innerText = `${data.ram} MB`;
+            document.getElementById('val-cpu').innerText = `${data.cpu} %`;
+        });
+
         function fetchFiles() {
-            fetch('/files/list', { method: 'POST', headers: headers() })
-            .then(r => r.json()).then(d => {
-                const w = document.getElementById('file-wrapper');
-                w.innerHTML = '';
-                if(d.data) {
-                    d.data.forEach(f => {
-                        const isZip = f.name.endsWith('.zip');
-                        w.innerHTML += `
-                        <div class="file-card">
-                            <div class="file-icon">${f.isDir ? '📂' : '📄'}</div>
-                            <div class="file-info">
-                                <div class="file-name">${f.name}</div>
-                                <div class="file-size">${f.isDir ? 'DIR' : (f.size/1024).toFixed(1) + ' KB'}</div>
-                            </div>
-                            <div class="file-actions">
-                                ${!f.isDir ? `<button class="btn" style="flex:1; padding:6px;" onclick="openFile('${f.name}')">✏</button>` : ''}
-                                ${isZip ? `<button class="btn" style="flex:1; padding:6px;" onclick="doAction('/files/unzip','${f.name}')">📦</button>` : ''}
-                                <button class="btn btn-danger" style="flex:1; padding:6px;" onclick="doAction('/files/delete','${f.name}')">🗑</button>
-                            </div>
-                        </div>`;
-                    });
-                }
-            });
-        }
+            fetch('/files/list', { method: 'POST', headers: getHeaders() })
+                .then(r => r.json())
+                .then(res => {
+                    const wrapper = document.getElementById('file-wrapper');
+                    wrapper.innerHTML = '';
 
-        function openFile(n) {
-            activeFile = n;
-            fetch('/files/read', {
-                method: 'POST', headers: headers(),
-                body: JSON.stringify({ filename: n })
-            }).then(r => r.json()).then(d => {
-                if(d.success) {
-                    document.getElementById('editor-title').innerText = n;
-                    document.getElementById('editor-body').value = d.content;
-                    document.getElementById('editor-modal').classList.add('open');
-                } else notify('Gagal membuka file', 'err');
-            });
-        }
-
-        function saveContent() {
-            const c = document.getElementById('editor-body').value;
-            fetch('/files/save', {
-                method: 'POST', headers: headers(),
-                body: JSON.stringify({ filename: activeFile, content: c })
-            }).then(r => r.json()).then(d => {
-                notify(d.msg, d.success ? 'ok' : 'err');
-                if(d.success) closeEditor();
-            });
-        }
-
-        function processUpload() {
-            const f = document.getElementById('file-up').files[0];
-            if(!f) return;
-            const fd = new FormData();
-            fd.append('file', f);
-            notify('Uploading...', 'ok');
-            fetch('/upload', { method: 'POST', body: fd }).then(() => {
-                notify('Upload Sukses', 'ok');
-                fetchFiles();
-            });
-        }
-
-        function doAction(u, n) {
-            if(confirm('Konfirmasi tindakan ini?')) {
-                fetch(u, {
-                    method: 'POST', headers: headers(),
-                    body: JSON.stringify({ filename: n })
-                }).then(r => r.json()).then(d => {
-                    notify(d.msg, d.success ? 'ok' : 'err');
-                    fetchFiles();
-                });
-            }
-        }
-
-        function api(u) {
-            fetch(u, { method: 'POST', headers: headers() })
-            .then(r => r.json()).then(d => notify(d.msg || (d.success ? 'Sukses' : 'Gagal'), d.success ? 'ok' : 'err'));
+                    if (res.data && Array.isArray(res.data)) {
+                        res.data.forEach(f => {
+                            const meta = f.isDir ? 'Folder' : `${(f.size / 1024).toFixed(1)} KB`;
+                            wrapper.innerHTML += `
+                                <div class="file-item">
+                                    <div class="f-actions">
+                                        <button class="btn btn-ghost" style="padding:6px"
+                                            onclick="deleteFile('${f.name.replace(/'/g, "\\'")}')">🗑</button>
+                                    </div>
+                                    <div class="f-icon">${f.isDir ? '📁' : '📄'}</div>
+                                    <div>
+                                        <div class="f-name">${f.name}</div>
+                                        <div class="f-meta">${meta}</div>
+                                    </div>
+                                </div>`;
+                        });
+                    }
+                })
+                .catch(err => console.error('Fetch files error:', err));
         }
 
         function switchTab(id, el) {
-            document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
+            document.querySelectorAll('.view-section').forEach(s => s.classList.remove('active'));
+            document.querySelectorAll('.nav-item').forEach(i => i.classList.remove('active'));
+            document.getElementById(`tab-${id}`).classList.add('active');
             el.classList.add('active');
-            if(id === 'files') fetchFiles();
         }
 
-        function closeEditor() {
-            document.getElementById('editor-modal').classList.remove('open');
+        function api(url) {
+            fetch(url, { method: 'POST', headers: getHeaders() })
+                .catch(err => console.error('API error:', err));
         }
 
-        function themeToggle() {
-            document.body.classList.toggle('light');
+        function deleteFile(name) {
+            if (!confirm(`Yakin ingin menghapus "${name}"?`)) return;
+
+            fetch('/files/delete', {
+                method: 'POST',
+                headers: getHeaders(),
+                body: JSON.stringify({ name })
+            })
+            .then(() => fetchFiles())
+            .catch(() => alert('Gagal menghapus file'));
         }
 
-        function notify(m, t) {
-            const b = document.getElementById('toast-area');
-            const el = document.createElement('div');
-            el.className = `toast ${t}`;
-            el.innerHTML = t === 'ok' ? '<span>✅</span> ' + m : '<span>⚠️</span> ' + m;
-            b.appendChild(el);
-            setTimeout(() => el.remove(), 3500);
+        function processUpload() {
+            const fileInput = document.getElementById('file-up');
+            const file = fileInput.files[0];
+            if (!file) return alert('Pilih file terlebih dahulu!');
+
+            const formData = new FormData();
+            formData.append('file', file);
+
+            fetch('/files/upload', {
+                method: 'POST',
+                headers: { 'Authorization': localStorage.getItem('nx_token') },
+                body: formData
+            })
+            .then(() => {
+                alert('✅ Upload berhasil!');
+                fetchFiles();
+                fileInput.value = '';
+            })
+            .catch(() => alert('❌ Upload gagal'));
         }
     </script>
 </body>

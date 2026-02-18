@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
@@ -10,7 +10,7 @@
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
-    
+
     <div id="login-screen" class="glass-bg">
         <div class="login-box">
             <div class="login-icon">
@@ -49,13 +49,13 @@
                 <h2>NEXUS</h2>
             </div>
             <nav class="nav-menu">
-                <a href="#" class="nav-item active" onclick="switchTab('dashboard', this)">
+                <a href="#" class="active" onclick="switchTab('dashboard', this)">
                     <i class="ri-dashboard-line"></i><span>Server Console</span>
                 </a>
-                <a href="#" class="nav-item" onclick="switchTab('files', this)">
+                <a href="#" onclick="switchTab('files', this)">
                     <i class="ri-folder-open-line"></i><span>File Manager</span>
                 </a>
-                <a href="#" class="nav-item danger" onclick="logout()">
+                <a href="#" onclick="logout()">
                     <i class="ri-logout-box-line"></i><span>Disconnect</span>
                 </a>
             </nav>
@@ -65,9 +65,9 @@
             <header class="topbar">
                 <div class="server-info">
                     <h3>PRODUCTION NODE</h3>
-                    <div class="status-indicator" id="status-badge">
-                        <span class="status-dot offline"></span>
-                        <span class="status-text">OFFLINE</span>
+                    <div id="status-badge">
+                        <span class="status-dot online"></span>
+                        <span class="status-text">ONLINE</span>
                     </div>
                 </div>
                 <div class="power-controls">
@@ -78,60 +78,57 @@
             </header>
 
             <div class="content-wrapper">
-                <div id="tab-dashboard" class="tab-content active">
-                    <div class="dashboard-grid">
-                        <div class="stats-grid">
-                            <div class="stat-card">
-                                <span class="stat-label">STARTUP CMD</span>
-                                <input type="text" id="startup-cmd" value="npm install && npm start">
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-label">CPU LOAD</span>
-                                <h2 id="cpu-val" class="stat-value">0.00%</h2>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-label">MEMORY</span>
-                                <h2 id="ram-val" class="stat-value">0 MB</h2>
-                            </div>
-                            <div class="stat-card">
-                                <span class="stat-label">UPTIME</span>
-                                <h2 id="uptime-val" class="stat-value">00:00:00</h2>
-                            </div>
+                <div id="tab-dashboard" class="dashboard-grid">
+                    <div class="stats-grid">
+                        <div class="stat-card">
+                            <span class="stat-label">STARTUP CMD</span>
+                            <input type="text" id="startup-cmd" value="npm install && npm start">
                         </div>
-                        <div class="terminal-wrapper">
-                            <div class="terminal-header">
-                                <div class="mac-dots">
-                                    <div class="dot r"></div>
-                                    <div class="dot y"></div>
-                                    <div class="dot g"></div>
-                                </div>
-                                <span class="term-title">root@nexus:\~</span>
+                        <div class="stat-card">
+                            <span class="stat-label">CPU LOAD</span>
+                            <h2 id="cpu-val" class="stat-value">0.00%</h2>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">MEMORY</span>
+                            <h2 id="ram-val" class="stat-value">0 MB</h2>
+                        </div>
+                        <div class="stat-card">
+                            <span class="stat-label">UPTIME</span>
+                            <h2 id="uptime-val" class="stat-value">00:00:00</h2>
+                        </div>
+                    </div>
+
+                    <div class="terminal-wrapper">
+                        <div class="terminal-header">
+                            <div class="mac-dots">
+                                <div class="dot r"></div>
+                                <div class="dot y"></div>
+                                <div class="dot g"></div>
                             </div>
-                            <div class="terminal-logs" id="terminal-logs"></div>
-                            <div class="terminal-input-area">
-                                <span class="prompt">\~#</span>
-                                <input type="text" id="cmd-input" placeholder="Enter command...">
-                            </div>
+                            <span class="term-title">root@nexus:\~</span>
+                        </div>
+                        <div class="terminal-logs" id="terminal-logs"></div>
+                        <div class="terminal-input-area">
+                            <span class="prompt">\~#</span>
+                            <input type="text" id="cmd-input" placeholder="Enter command...">
                         </div>
                     </div>
                 </div>
 
-                <div id="tab-files" class="tab-content hidden">
-                    <div class="file-manager">
-                        <div class="file-toolbar">
-                            <div id="current-path" class="path-bread"><i class="ri-folder-shield-2-line"></i> /root/home</div>
-                            <label class="upload-btn">
-                                <i class="ri-upload-cloud-2-line"></i> UPLOAD
-                                <input type="file" id="file-upload" hidden onchange="uploadFile()">
-                            </label>
-                        </div>
-                        <div class="file-list-header">
-                            <div>Name</div>
-                            <div>Size</div>
-                            <div>Actions</div>
-                        </div>
-                        <div id="file-list" class="file-list"></div>
+                <div id="tab-files" class="hidden file-manager">
+                    <div class="file-toolbar">
+                        <div id="current-path"><i class="ri-folder-shield-2-line"></i> /root/home</div>
+                        <label class="upload-btn">
+                            <i class="ri-upload-cloud-2-line"></i> UPLOAD
+                            <input type="file" id="file-upload" hidden onchange="uploadFile()">
+                        </label>
                     </div>
+                    <div class="file-list-header">
+                        <div>Name</div>
+                        <div>Size</div>
+                        <div>Actions</div>
+                    </div>
+                    <div id="file-list" class="file-list"></div>
                 </div>
             </div>
         </main>
@@ -139,235 +136,236 @@
 
     <script src="/socket.io/socket.io.js"></script>
     <script>
-        const socket=io();
-        let token=localStorage.getItem('nexus_token');
-        let currentEditFile='';
-        if(token){
+const socket=io();
+let token=localStorage.getItem('nexus_token');
+let currentEditFile='';
+if(token){
+    document.getElementById('login-screen').classList.add('hidden');
+    document.getElementById('app').classList.remove('hidden');
+    loadFiles();
+}
+function toast(msg,type='normal'){
+    const container=document.getElementById('toast-container');
+    const el=document.createElement('div');
+    el.className=`toast toast-${type}`;
+    el.innerHTML=`<i class="ri-${type==='success'?'checkbox-circle-fill':type==='error'?'error-warning-fill':'information-fill'}"></i> ${msg}`;
+    container.appendChild(el);
+    setTimeout(()=>el.remove(),3200);
+}
+async function login(){
+    const t=document.getElementById('token-input').value.trim();
+    if(!t){toast('Token required','error');return;}
+    try{
+        const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
+        const data=await res.json();
+        if(data.success){
+            localStorage.setItem('nexus_token',t);
+            token=t;
             document.getElementById('login-screen').classList.add('hidden');
             document.getElementById('app').classList.remove('hidden');
+            toast('Authentication Successful','success');
+            loadFiles();
+        }else{
+            toast(data.msg||'Token Invalid','error');
+        }
+    }catch(e){
+        toast('Network Error','error');
+    }
+}
+function logout(){
+    localStorage.removeItem('nexus_token');
+    location.reload();
+}
+async function req(ep,body={}){
+    try{
+        const res=await fetch(ep,{method:'POST',headers:{'Authorization':token,'Content-Type':'application/json'},body:JSON.stringify(body)});
+        const data=await res.json();
+        if(data.msg) toast(data.msg, data.success ? 'success' : 'error');
+        return data;
+    }catch(e){
+        toast('Network Error','error');
+    }
+}
+function reqStart(){
+    req('/api/start',{command:document.getElementById('startup-cmd').value});
+}
+socket.on('stats',(d)=>{
+    countUp('cpu-val',parseFloat(d.cpu),'%');
+    countUp('ram-val',parseFloat(d.ram),' MB');
+    document.getElementById('uptime-val').textContent=d.uptime;
+    const badge=document.getElementById('status-badge');
+    if(d.status==='ONLINE'){
+        badge.innerHTML=`<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
+    }else{
+        badge.innerHTML=`<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
+    }
+});
+const term=document.getElementById('terminal-logs');
+socket.on('log',(log)=>{
+    const span=document.createElement('span');
+    span.innerHTML=log.replace(/\n/g,'<br>')
+        .replace(/\x1b\[31m/g,'<span class="term-red">')
+        .replace(/\x1b\[32m/g,'<span class="term-green">')
+        .replace(/\x1b\[33m/g,'<span class="term-yellow">')
+        .replace(/\x1b\[36m/g,'<span class="term-blue">')
+        .replace(/\x1b\[0m/g,'</span>');
+    term.appendChild(span);
+    term.scrollTop=term.scrollHeight;
+});
+document.getElementById('cmd-input').addEventListener('keypress',(e)=>{
+    if(e.key==='Enter'&&e.target.value.trim()){
+        socket.emit('input',e.target.value);
+        e.target.value='';
+    }
+});
+function switchTab(id,el){
+    document.querySelectorAll('.dashboard-grid,#tab-files').forEach(e=>e.classList.add('hidden'));
+    document.querySelectorAll('.nav-menu a').forEach(e=>e.classList.remove('active'));
+    if(id==='dashboard')document.getElementById('tab-dashboard').classList.remove('hidden');
+    else document.getElementById('tab-files').classList.remove('hidden');
+    el.classList.add('active');
+    if(id==='files')loadFiles();
+}
+function formatSize(bytes){
+    if(bytes===0)return'0 B';
+    const k=1024;
+    const sizes=['B','KB','MB','GB'];
+    const i=Math.floor(Math.log(bytes)/Math.log(k));
+    return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
+}
+async function loadFiles(p = '') {
+    const d = await req('/api/files', { path: p });
+    if (d && d.success) {
+        const list = document.getElementById('file-list');
+        if (!d.data || d.data.length === 0) {
+            list.innerHTML = '<div class="empty-state">Folder is empty</div>';
+            return;
+        }
+        list.innerHTML = d.data.map(f => {
+            const safePath = f.path.replace(/'/g, "\\'");
+            const safeName = f.name.replace(/'/g, "\\'");
+            return `
+                <div class="list-item">
+                    <div class="col-name" onclick="\( {f.isDir ? `loadFiles(' \){safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
+                        <i class="ri-${f.isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
+                    </div>
+                    <div class="col-size">${f.isDir ? '--' : formatSize(f.size)}</div>
+                    <div class="col-actions">
+                        \( {!f.isDir ? `<button onclick="editFile(' \){safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
+                        \( {!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
+                        <button onclick="if(confirm('Hapus \( {safeName}?')) req('/api/delete',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
+                    </div>
+                </div>
+            `;
+        }).join('');
+    }
+}
+async function editFile(path){
+    const res=await req('/api/read',{filename:path});
+    if(res&&res.success){
+        currentEditFile=path;
+        document.getElementById('edit-filename').innerText=path.split('/').pop();
+        document.getElementById('code-editor').value=res.content;
+        document.getElementById('editor-modal').classList.remove('hidden');
+    }
+}
+async function saveFile(){
+    const content=document.getElementById('code-editor').value;
+    const res=await req('/api/save',{filename:currentEditFile,content});
+    if(res&&res.success)closeEditor();
+}
+function closeEditor(){
+    document.getElementById('editor-modal').classList.add('hidden');
+    currentEditFile='';
+}
+async function uploadFile(){
+    const f=document.getElementById('file-upload').files[0];
+    if(!f)return;
+    const fd=new FormData();
+    fd.append('file',f);
+    toast('Uploading...','normal');
+    try{
+        const r=await fetch('/api/upload',{method:'POST',headers:{'Authorization':token},body:fd});
+        const resData=await r.json();
+        if(resData.success){
+            toast('Upload Success','success');
             loadFiles();
         }
-        function toast(msg,type='normal'){
-            const container=document.getElementById('toast-container');
-            const el=document.createElement('div');
-            el.className=`toast toast-${type}`;
-            el.innerHTML=`<i class="ri-${type==='success'?'checkbox-circle-fill':type==='error'?'error-warning-fill':'information-fill'}"></i> ${msg}`;
-            container.appendChild(el);
-            setTimeout(()=>el.remove(),3200);
-        }
-        async function login(){
-            const t=document.getElementById('token-input').value.trim();
-            if(!t){toast('Token required','error');return;}
-            try{
-                const res=await fetch('/api/login',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({token:t})});
-                const data=await res.json();
-                if(data.success){
-                    localStorage.setItem('nexus_token',t);
-                    token=t;
-                    document.getElementById('login-screen').classList.add('hidden');
-                    document.getElementById('app').classList.remove('hidden');
-                    toast('Authentication Successful','success');
-                    loadFiles();
-                }else{
-                    toast(data.msg||'Token Invalid','error');
-                }
-            }catch(e){
-                toast('Network Error','error');
+    }catch(e){
+        toast('Upload Failed','error');
+    }
+    document.getElementById('file-upload').value='';
+}
+const canvas=document.getElementById('bg-canvas');
+const ctx=canvas.getContext('2d');
+let particles=[];
+class Particle{
+    constructor(){
+        this.x=Math.random()*canvas.width;
+        this.y=Math.random()*canvas.height;
+        this.size=Math.random()*2.5+0.8;
+        this.speedX=Math.random()*0.7-0.35;
+        this.speedY=Math.random()*0.7-0.35;
+    }
+    update(){this.x+=this.speedX;this.y+=this.speedY;}
+    draw(){
+        ctx.fillStyle='#67e8f9';
+        ctx.shadowBlur=15;
+        ctx.shadowColor='#67e8f9';
+        ctx.fillRect(this.x,this.y,this.size,this.size);
+    }
+}
+function initParticles(){
+    particles=[];
+    const num=Math.floor(canvas.width*canvas.height/9200);
+    for(let i=0;i<num;i++)particles.push(new Particle());
+}
+function connectParticles(){
+    for(let i=0;i<particles.length;i++){
+        for(let j=i+1;j<particles.length;j++){
+            const dx=particles[i].x-particles[j].x;
+            const dy=particles[i].y-particles[j].y;
+            const dist=Math.sqrt(dx*dx+dy*dy);
+            if(dist<140){
+                ctx.strokeStyle=`rgba(103,232,249,${1-dist/140})`;
+                ctx.lineWidth=1.1;
+                ctx.beginPath();
+                ctx.moveTo(particles[i].x,particles[i].y);
+                ctx.lineTo(particles[j].x,particles[j].y);
+                ctx.stroke();
             }
         }
-        function logout(){
-            localStorage.removeItem('nexus_token');
-            location.reload();
-        }
-        async function req(ep,body={}){
-            try{
-                const res=await fetch(ep,{method:'POST',headers:{'Authorization':token,'Content-Type':'application/json'},body:JSON.stringify(body)});
-                const data=await res.json();
-                if(data.success&&data.msg)toast(data.msg,'success');
-                else if(!data.success&&data.msg)toast(data.msg,'error');
-                return data;
-            }catch(e){
-                toast('Network Error','error');
-            }
-        }
-        function reqStart(){
-            req('/api/start',{command:document.getElementById('startup-cmd').value});
-        }
-        socket.on('stats',(d)=>{
-            countUp(document.getElementById('cpu-val'),parseFloat(d.cpu),'%');
-            countUp(document.getElementById('ram-val'),parseFloat(d.ram),' MB');
-            document.getElementById('uptime-val').textContent=d.uptime;
-            const badge=document.getElementById('status-badge');
-            if(d.status==='ONLINE'){
-                badge.innerHTML=`<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
-            }else{
-                badge.innerHTML=`<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
-            }
-        });
-        const term=document.getElementById('terminal-logs');
-        socket.on('log',(log)=>{
-            const span=document.createElement('span');
-            span.innerHTML=log.replace(/\n/g,'<br>')
-                .replace(/\x1b\[31m/g,'<span class="term-red">')
-                .replace(/\x1b\[32m/g,'<span class="term-green">')
-                .replace(/\x1b\[33m/g,'<span class="term-yellow">')
-                .replace(/\x1b\[36m/g,'<span class="term-blue">')
-                .replace(/\x1b\[0m/g,'</span>');
-            term.appendChild(span);
-            term.scrollTop=term.scrollHeight;
-        });
-        document.getElementById('cmd-input').addEventListener('keypress',(e)=>{
-            if(e.key==='Enter'&&e.target.value.trim()){
-                socket.emit('input',e.target.value);
-                e.target.value='';
-            }
-        });
-        function switchTab(id,el){
-            document.querySelectorAll('.tab-content').forEach(e=>e.classList.add('hidden'));
-            document.querySelectorAll('.nav-item').forEach(e=>e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.remove('hidden');
-            document.querySelectorAll(`.nav-item[onclick*="${id}"]`).forEach(e=>e.classList.add('active'));
-            if(id==='files')loadFiles();
-        }
-        function formatSize(bytes){
-            if(bytes===0)return'0 B';
-            const k=1024;
-            const sizes=['B','KB','MB','GB'];
-            const i=Math.floor(Math.log(bytes)/Math.log(k));
-            return parseFloat((bytes/Math.pow(k,i)).toFixed(2))+' '+sizes[i];
-        }
-        async function loadFiles(p = '') {
-            const d = await req('/api/files', { path: p });
-            if (d && d.success) {
-                const list = document.getElementById('file-list');
-                if (!d.data || d.data.length === 0) {
-                    list.innerHTML = '<div class="empty-state">Folder is empty</div>';
-                    return;
-                }
-                list.innerHTML = d.data.map(f => {
-                    const safePath = f.path.replace(/'/g, "\\'");
-                    const safeName = f.name.replace(/'/g, "\\'");
-                    return `
-                        <div class="list-item">
-                            <div class="col-name" onclick="\( {f.isDir ? `loadFiles(' \){safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
-                                <i class="ri-${f.isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
-                            </div>
-                            <div class="col-size">${f.isDir ? '--' : formatSize(f.size)}</div>
-                            <div class="col-actions">
-                                \( {!f.isDir ? `<button onclick="editFile(' \){safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
-                                \( {!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
-                                <button onclick="if(confirm('Hapus \( {safeName}?')) req('/api/delete',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
-                            </div>
-                        </div>
-                    `;
-                }).join('');
-            }
-        }
-        async function editFile(path){
-            const res=await req('/api/read',{filename:path});
-            if(res&&res.success){
-                currentEditFile=path;
-                document.getElementById('edit-filename').innerText=path.split('/').pop();
-                document.getElementById('code-editor').value=res.content;
-                document.getElementById('editor-modal').classList.remove('hidden');
-            }
-        }
-        async function saveFile(){
-            const content=document.getElementById('code-editor').value;
-            const res=await req('/api/save',{filename:currentEditFile,content});
-            if(res&&res.success)closeEditor();
-        }
-        function closeEditor(){
-            document.getElementById('editor-modal').classList.add('hidden');
-            currentEditFile='';
-        }
-        async function uploadFile(){
-            const f=document.getElementById('file-upload').files[0];
-            if(!f)return;
-            const fd=new FormData();
-            fd.append('file',f);
-            toast('Uploading...','normal');
-            try{
-                const r=await fetch('/api/upload',{method:'POST',headers:{'Authorization':token},body:fd});
-                const resData=await r.json();
-                if(resData.success){
-                    toast('Upload Success','success');
-                    loadFiles();
-                }
-            }catch(e){
-                toast('Upload Failed','error');
-            }
-            document.getElementById('file-upload').value='';
-        }
-        const canvas=document.getElementById('bg-canvas');
-        const ctx=canvas.getContext('2d');
-        let particles=[];
-        class Particle{
-            constructor(){
-                this.x=Math.random()*canvas.width;
-                this.y=Math.random()*canvas.height;
-                this.size=Math.random()*2.5+0.8;
-                this.speedX=Math.random()*0.7-0.35;
-                this.speedY=Math.random()*0.7-0.35;
-            }
-            update(){this.x+=this.speedX;this.y+=this.speedY;}
-            draw(){
-                ctx.fillStyle='#67e8f9';
-                ctx.shadowBlur=15;
-                ctx.shadowColor='#67e8f9';
-                ctx.fillRect(this.x,this.y,this.size,this.size);
-            }
-        }
-        function initParticles(){
-            particles=[];
-            const num=Math.floor(canvas.width*canvas.height/9200);
-            for(let i=0;i<num;i++)particles.push(new Particle());
-        }
-        function connectParticles(){
-            for(let i=0;i<particles.length;i++){
-                for(let j=i+1;j<particles.length;j++){
-                    const dx=particles[i].x-particles[j].x;
-                    const dy=particles[i].y-particles[j].y;
-                    const dist=Math.sqrt(dx*dx+dy*dy);
-                    if(dist<140){
-                        ctx.strokeStyle=`rgba(103,232,249,${1-dist/140})`;
-                        ctx.lineWidth=1.1;
-                        ctx.beginPath();
-                        ctx.moveTo(particles[i].x,particles[i].y);
-                        ctx.lineTo(particles[j].x,particles[j].y);
-                        ctx.stroke();
-                    }
-                }
-            }
-        }
-        function animateParticles(){
-            ctx.clearRect(0,0,canvas.width,canvas.height);
-            particles.forEach(p=>{p.update();p.draw();});
-            connectParticles();
-            requestAnimationFrame(animateParticles);
-        }
-        function resizeCanvas(){
-            canvas.width=window.innerWidth;
-            canvas.height=window.innerHeight;
-            initParticles();
-        }
-        function countUp(el,target,suffix){
-            let start=parseFloat(el.textContent)||0;
-            const duration=1400;
-            const startTime=Date.now();
-            const step=()=>{
-                const progress=Math.min((Date.now()-startTime)/duration,1);
-                const value=start+(target-start)*(1-Math.pow(1-progress,3));
-                el.textContent=suffix.includes('%')?value.toFixed(2)+'%':Math.floor(value)+suffix;
-                if(progress<1)requestAnimationFrame(step);
-            };
-            step();
-        }
-        window.onload=()=>{
-            resizeCanvas();
-            window.addEventListener('resize',resizeCanvas);
-            animateParticles();
-        };
+    }
+}
+function animateParticles(){
+    ctx.clearRect(0,0,canvas.width,canvas.height);
+    particles.forEach(p=>{p.update();p.draw();});
+    connectParticles();
+    requestAnimationFrame(animateParticles);
+}
+function resizeCanvas(){
+    canvas.width=window.innerWidth;
+    canvas.height=window.innerHeight;
+    initParticles();
+}
+function countUp(id,target,suffix){
+    const el=document.getElementById(id);
+    let start=parseFloat(el.textContent)||0;
+    const duration=1400;
+    const startTime=Date.now();
+    const step=()=>{
+        const progress=Math.min((Date.now()-startTime)/duration,1);
+        const value=start+(target-start)*(1-Math.pow(1-progress,3));
+        el.textContent=suffix.includes('%')?value.toFixed(2)+'%':Math.floor(value)+suffix;
+        if(progress<1)requestAnimationFrame(step);
+    };
+    step();
+}
+window.onload=()=>{
+    resizeCanvas();
+    window.addEventListener('resize',resizeCanvas);
+    animateParticles();
+};
     </script>
 </body>
 </html>

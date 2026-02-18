@@ -33,16 +33,21 @@ const storage = multer.diskStorage({
 const upload = multer({ storage: storage });
 
 function getSystemStats() {
-    const used = process.memoryUsage().rss / 1024 / 1024;
-    const cpus = os.cpus();
-    const cpuLoad = cpus && cpus.length > 0 ? cpus[0].speed : 0;
-    
-    return {
-        ram: `${Math.round(used)} MB`,
-        cpu: `${cpuLoad} MHz`,
-        uptime: Math.floor(os.uptime()),
-        platform: os.platform()
-    };
+    // try-catch untuk mencegah crash jika method OS berbeda antar versi Node
+    try {
+        const used = process.memoryUsage().rss / 1024 / 1024;
+        const cpus = os.cpus();
+        const cpuLoad = cpus && cpus.length > 0 ? cpus[0].speed : 0;
+        
+        return {
+            ram: `${Math.round(used)} MB`,
+            cpu: `${cpuLoad} MHz`,
+            uptime: Math.floor(os.uptime()),
+            platform: os.platform()
+        };
+    } catch (e) {
+        return { ram: "0 MB", cpu: "0 MHz", uptime: 0, platform: "Unknown" };
+    }
 }
 
 setInterval(() => {
@@ -54,7 +59,7 @@ setInterval(() => {
 }, 1000);
 
 io.on('connection', (socket) => {
-    socket.emit('log', '\x1b[36m[SYSTEM] SERVER READY.\x1b[0m\n');
+    socket.emit('log', '\x1b[36m[SYSTEM] SERVER CONNECTED.\x1b[0m\n');
     
     socket.on('input', (cmd) => {
         if (!cmd) return;
@@ -75,12 +80,12 @@ io.on('connection', (socket) => {
 });
 
 app.post('/auth', (req, res) => {
-    if (req.body.password === ADMIN_PASS) res.json({ success: true, token: 'NEXUS-V6-AUTH' });
+    if (req.body.password === ADMIN_PASS) res.json({ success: true, token: 'NEXUS-ACCESS' });
     else res.json({ success: false });
 });
 
 app.post('/start', async (req, res) => {
-    if (isRunning) return res.json({ success: false, msg: 'Process is already running.' });
+    if (isRunning) return res.json({ success: false, msg: 'Already running.' });
 
     const findEntry = (d) => {
         try {
@@ -107,10 +112,10 @@ app.post('/start', async (req, res) => {
     };
 
     const entryFile = findEntry(UPLOAD_DIR);
-    if (!entryFile) return res.json({ success: false, msg: 'No entry file (index.js/main.js) found.' });
+    if (!entryFile) return res.json({ success: false, msg: 'No bot file found.' });
 
     const workDir = path.dirname(entryFile);
-    io.emit('log', `\x1b[32m[BOOT] Starting ${path.basename(entryFile)}...\x1b[0m\n`);
+    io.emit('log', `\x1b[32m[BOOT] System starting...\x1b[0m\n`);
     
     isRunning = true;
     currentProcess = spawn('node', [entryFile], {
@@ -124,11 +129,11 @@ app.post('/start', async (req, res) => {
     currentProcess.on('close', (code) => {
         isRunning = false;
         currentProcess = null;
-        io.emit('log', `\n\x1b[31m[EXIT] Process stopped (Code: ${code})\x1b[0m\n`);
+        io.emit('log', `\n\x1b[31m[EXIT] Process ended (Code: ${code})\x1b[0m\n`);
         io.emit('stats', { status: 'OFFLINE' });
     });
 
-    res.json({ success: true, msg: 'System started.' });
+    res.json({ success: true, msg: 'Started.' });
 });
 
 app.post('/stop', (req, res) => {
@@ -136,10 +141,10 @@ app.post('/stop', (req, res) => {
         currentProcess.kill();
         currentProcess = null;
         isRunning = false;
-        io.emit('log', `\x1b[31m[STOP] Terminated by user.\x1b[0m\n`);
-        res.json({ success: true, msg: 'Process terminated.' });
+        io.emit('log', `\x1b[31m[STOP] Force stopped.\x1b[0m\n`);
+        res.json({ success: true, msg: 'Stopped.' });
     } else {
-        res.json({ success: false, msg: 'No process running.' });
+        res.json({ success: false, msg: 'Not running.' });
     }
 });
 
@@ -151,8 +156,7 @@ app.get('/files', (req, res) => {
             return {
                 name: f,
                 isDir: stat.isDirectory(),
-                size: stat.size,
-                mtime: stat.mtime
+                size: stat.size
             };
         });
         res.json(data);
@@ -163,14 +167,14 @@ app.post('/file/read', (req, res) => {
     try {
         const content = fs.readFileSync(path.join(UPLOAD_DIR, req.body.filename), 'utf8');
         res.json({ success: true, content });
-    } catch { res.json({ success: false, msg: 'Read failed.' }); }
+    } catch { res.json({ success: false, msg: 'Read error.' }); }
 });
 
 app.post('/file/save', (req, res) => {
     try {
         fs.writeFileSync(path.join(UPLOAD_DIR, req.body.filename), req.body.content);
-        res.json({ success: true, msg: 'File saved.' });
-    } catch { res.json({ success: false, msg: 'Save failed.' }); }
+        res.json({ success: true, msg: 'Saved.' });
+    } catch { res.json({ success: false, msg: 'Save error.' }); }
 });
 
 app.post('/upload', upload.single('file'), (req, res) => res.json({ success: true }));
@@ -182,11 +186,11 @@ app.post('/unzip', (req, res) => {
         zip.extractAllTo(UPLOAD_DIR, true);
         fs.unlinkSync(filePath);
         res.json({ success: true, msg: 'Extracted.' });
-    } catch { res.json({ success: false, msg: 'Extraction failed.' }); }
+    } catch { res.json({ success: false, msg: 'Fail.' }); }
 });
 
 app.post('/delete', (req, res) => {
     fs.rm(path.join(UPLOAD_DIR, req.body.filename), { recursive: true, force: true }, () => res.json({ success: true, msg: 'Deleted.' }));
 });
 
-server.listen(PORT, '0.0.0.0', () => console.log(`CORE: Running on Node 23 | Port ${PORT}`));
+server.listen(PORT, '0.0.0.0', () => console.log(`Server running on port ${PORT}`));

@@ -1,20 +1,23 @@
 {
-  "name": "nexus-cyber-panel",
+  "name": "nexus-control-v6",
   "version": "6.0.0",
-  "description": "Cyber Hacker Panel for Bot Control & File Management",
+  "description": "Advanced Bot Controller & File Manager",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node server.js",
+    "dev": "nodemon server.js"
   },
   "dependencies": {
-    "express": "^4.21.2",
-    "socket.io": "^4.8.1",
-    "multer": "^1.4.5-lts.2",
-    "adm-zip": "^0.5.16",
-    "express-session": "^1.18.1",
-    "mongoose": "^8.9.5"
+    "express": "^4.21.0",
+    "socket.io": "^4.7.5",
+    "multer": "^1.4.5-lts.1",
+    "adm-zip": "^0.5.10",
+    "mongoose": "^8.2.0",
+    "cors": "^2.8.5"
   },
   "engines": {
-    "node": ">=22.0.0"
-  }
+    "node": "25.x"
+  },
+  "author": "Walz",
+  "license": "MIT"
 }

@@ -116,7 +116,7 @@
         </div>
     </div>
 
-    <div id="toast-area" style="position:fixed; top:24px; right:24px; z-index:9999; display:flex; flex-direction:column; gap:10px;"></div>
+    <div id="toast-area" class="toast-container"></div>
 
     <script>
         const socket = io();
@@ -128,6 +128,23 @@
             "[nexus] \x1b[32m✔ WebSocket ready on port 3000\x1b[0m",
             "[nexus] System is ready. Welcome back, Admin."
         ];
+
+        function showToast(message, type = 'success', duration = 4000) {
+            const toastArea = document.getElementById('toast-area');
+            const toast = document.createElement('div');
+            toast.className = `toast toast-${type}`;
+            toast.innerHTML = `
+                <div class="toast-icon">${type === 'success' ? '✅' : type === 'error' ? '❌' : '⚠️'}</div>
+                <div class="toast-message">${message}</div>
+                <button class="toast-close" onclick="this.parentElement.remove()">✕</button>
+            `;
+            toastArea.appendChild(toast);
+            setTimeout(() => toast.classList.add('show'), 10);
+            setTimeout(() => {
+                toast.classList.remove('show');
+                setTimeout(() => toast.remove(), 300);
+            }, duration);
+        }
 
         function runIntro() {
             let i = 0;
@@ -154,7 +171,7 @@
 
         function attemptLogin() {
             const token = document.getElementById('auth-token').value.trim();
-            if (!token) return alert('Masukkan Token');
+            if (!token) return showToast('Masukkan token akses', 'error');
             verifySession(token);
         }
 
@@ -173,13 +190,14 @@
                     setTimeout(() => {
                         loginLayer.style.display = 'none';
                         runIntro();
+                        showToast('Login berhasil', 'success');
                     }, 500);
                     fetchFiles();
                 } else {
-                    alert('Token Salah');
+                    showToast('Token salah atau kedaluwarsa', 'error');
                 }
             })
-            .catch(() => alert('Server Error'));
+            .catch(() => showToast('Gagal terhubung ke server', 'error'));
         }
 
         function getHeaders() {
@@ -222,6 +240,10 @@
             fetch('/files/list', { method: 'POST', headers: getHeaders() })
                 .then(r => r.json())
                 .then(res => {
+                    if (!res.success) {
+                        showToast('Gagal mengambil daftar file', 'error');
+                        return;
+                    }
                     const wrapper = document.getElementById('file-wrapper');
                     wrapper.innerHTML = '';
 
@@ -243,7 +265,7 @@
                         });
                     }
                 })
-                .catch(err => console.error('Fetch files error:', err));
+                .catch(() => showToast('Gagal mengambil daftar file', 'error'));
         }
 
         function switchTab(id, el) {
@@ -255,7 +277,15 @@
 
         function api(url) {
             fetch(url, { method: 'POST', headers: getHeaders() })
-                .catch(err => console.error('API error:', err));
+                .then(r => r.json())
+                .then(data => {
+                    if (data.success) {
+                        showToast(data.msg || 'Berhasil', 'success');
+                    } else {
+                        showToast(data.msg || 'Gagal', 'error');
+                    }
+                })
+                .catch(() => showToast('Permintaan gagal', 'error'));
         }
 
         function deleteFile(name) {
@@ -264,31 +294,47 @@
             fetch('/files/delete', {
                 method: 'POST',
                 headers: getHeaders(),
-                body: JSON.stringify({ name })
+                body: JSON.stringify({ filename: name })
             })
-            .then(() => fetchFiles())
-            .catch(() => alert('Gagal menghapus file'));
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('File dihapus', 'success');
+                    fetchFiles();
+                } else {
+                    showToast(data.msg || 'Gagal hapus', 'error');
+                }
+            })
+            .catch(() => showToast('Gagal menghapus', 'error'));
         }
 
         function processUpload() {
             const fileInput = document.getElementById('file-up');
             const file = fileInput.files[0];
-            if (!file) return alert('Pilih file terlebih dahulu!');
+            if (!file) return showToast('Pilih file terlebih dahulu', 'error');
 
             const formData = new FormData();
             formData.append('file', file);
 
-            fetch('/files/upload', {
+            fetch('/upload', {
                 method: 'POST',
                 headers: { 'Authorization': localStorage.getItem('nx_token') },
                 body: formData
             })
-            .then(() => {
-                alert('✅ Upload berhasil!');
-                fetchFiles();
+            .then(r => r.json())
+            .then(data => {
+                if (data.success) {
+                    showToast('Upload berhasil', 'success');
+                    fetchFiles();
+                } else {
+                    showToast('Upload gagal', 'error');
+                }
                 fileInput.value = '';
             })
-            .catch(() => alert('❌ Upload gagal'));
+            .catch(() => {
+                showToast('Upload gagal', 'error');
+                fileInput.value = '';
+            });
         }
     </script>
 </body>

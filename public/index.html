@@ -1,223 +1,349 @@
 <!DOCTYPE html>
-<html lang="id">
+<html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS CONTROL PANEL</title>
-    <link rel="stylesheet" href="style.css">
-    <script src="/socket.io/socket.io.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>CYBER PANEL ELITE</title>
+  <link rel="stylesheet" href="/style.css">
+  <script src="/socket.io/socket.io.js"></script>
 </head>
 <body>
-
-    <div class="bg-glow">
-        <div class="blob blob-1"></div>
-        <div class="blob blob-2"></div>
+  <div id="loginOverlay" class="login-overlay">
+    <div class="login-card">
+      <div class="login-header">
+        <span class="glitch">NEXUS SECURE</span>
+        <span class="sub">ADMIN ACCESS</span>
+      </div>
+      <input type="password" id="password" class="login-input" placeholder="••••••••">
+      <button class="btn-glow" onclick="login()">AUTHENTICATE</button>
     </div>
+  </div>
 
-    <div id="login-layer" class="login-overlay">
-        <div class="login-card">
-            <div style="font-size: 48px; margin-bottom: 10px;">⚡</div>
-            <h2 style="color:white; font-weight:800; margin-bottom: 5px;">NEXUS ACCESS</h2>
-            <p style="color:#71717a; font-size:13px;">Secure Terminal Gateway</p>
-            <input type="password" id="auth-token" class="login-inp" placeholder="TOKEN AKSES" autocomplete="off">
-            <button onclick="attemptLogin()" class="btn btn-primary" style="width:100%; justify-content: center; padding: 14px;">VERIFIKASI</button>
+  <div class="app">
+    <aside class="sidebar" id="sidebar">
+      <div class="sidebar-header">
+        <span class="logo">⚡NEXUS</span>
+        <button class="collapse-btn" onclick="toggleSidebar()">◀</button>
+      </div>
+      <nav class="sidebar-nav">
+        <a href="#" class="nav-item active" data-page="dashboard">📊 DASHBOARD</a>
+        <a href="#" class="nav-item" data-page="console">💻 CONSOLE</a>
+        <a href="#" class="nav-item" data-page="terminal">🖥️ TERMINAL</a>
+        <a href="#" class="nav-item" data-page="files">📁 FILES</a>
+        <a href="#" class="nav-item" data-page="settings">⚙️ SETTINGS</a>
+      </nav>
+      <div class="sidebar-footer">
+        <button class="theme-toggle" onclick="toggleTheme()">🌗</button>
+        <button class="logout" onclick="logout()">⤿ LOGOUT</button>
+      </div>
+    </aside>
+
+    <main class="content">
+      <div id="toastContainer" class="toast-container"></div>
+
+      <section id="page-dashboard" class="page active">
+        <h2 class="page-title">SYSTEM DASHBOARD</h2>
+        <div class="stats-grid">
+          <div class="stat-card">
+            <div class="stat-label">RAM</div>
+            <div class="stat-value" id="statRam">-- MB</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">CPU LOAD</div>
+            <div class="stat-value" id="statCpu">--%</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">DISK USED</div>
+            <div class="stat-value" id="statDisk">-- / --</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">UPTIME</div>
+            <div class="stat-value" id="statUptime">--:--</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">BOT STATUS</div>
+            <div class="stat-value" id="statBot"><span class="dot offline"></span> OFFLINE</div>
+          </div>
+          <div class="stat-card">
+            <div class="stat-label">NETWORK</div>
+            <div class="stat-value" id="statNetwork">--</div>
+          </div>
         </div>
-    </div>
+      </section>
 
-    <nav class="glass">
-        <div class="brand"><span>⚡</span> NEXUS</div>
-        <div class="nav-pill">
-            <div class="nav-item active" onclick="switchTab('console', this)"><span>💻</span> Terminal</div>
-            <div class="nav-item" onclick="switchTab('files', this)"><span>📂</span> Files</div>
+      <section id="page-console" class="page">
+        <div class="console-header">
+          <h2>BOT CONTROL</h2>
+          <div class="console-actions">
+            <button class="btn-cyber" onclick="fetch('/api/bot/start',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">▶ START</button>
+            <button class="btn-cyber" onclick="fetch('/api/bot/restart',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">↻ RESTART</button>
+            <button class="btn-cyber" onclick="fetch('/api/bot/stop',{method:'POST'}).then(r=>r.json()).then(d=>showToast(d.msg))">■ STOP</button>
+          </div>
         </div>
-        <button class="theme-btn" onclick="document.body.classList.toggle('light')">🌗</button>
-    </nav>
-
-    <div class="container">
-        <div id="tab-console" class="view-section active">
-            <div class="stats-grid">
-                <div class="stat-card">
-                    <div class="stat-header"><span class="stat-icon">💾</span><span class="stat-title">RAM Usage</span></div>
-                    <div class="stat-value" id="val-ram">-- MB</div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 45%; background: #6366f1;"></div></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header"><span class="stat-icon">⚙️</span><span class="stat-title">CPU Load</span></div>
-                    <div class="stat-value" id="val-cpu">-- %</div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 12%; background: #22d3ee;"></div></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header"><span class="stat-icon">📀</span><span class="stat-title">Storage</span></div>
-                    <div class="stat-value">3.2 GB</div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 68%; background: #a855f7;"></div></div>
-                </div>
-                <div class="stat-card">
-                    <div class="stat-header"><span class="stat-icon">⏱️</span><span class="stat-title">Uptime</span></div>
-                    <div class="stat-value" id="val-up">--</div>
-                    <div class="progress-bg"><div class="progress-fill" style="width: 100%; background: #10b981;"></div></div>
-                </div>
-            </div>
-
-            <div class="terminal-box">
-                <div class="term-header">
-                    <div class="dot" style="background:#ef4444"></div>
-                    <div class="dot" style="background:#f59e0b"></div>
-                    <div class="dot" style="background:#10b981"></div>
-                    <span class="term-title">root@nexus:~</span>
-                    <div style="margin-left: 10px; display:flex; gap:6px;">
-                        <button onclick="api('/proc/start')" style="background:none; border:none; color:#10b981; cursor:pointer;">▶</button>
-                        <button onclick="api('/proc/stop')" style="background:none; border:none; color:#f43f5e; cursor:pointer;">■</button>
-                    </div>
-                </div>
-                <div id="term-out" class="term-body"></div>
-                <div class="term-input-area">
-                    <span style="color:#10b981; font-weight:bold; font-family:'JetBrains Mono'">➜</span>
-                    <input type="text" id="term-in" class="term-input" placeholder="Type a command..." autocomplete="off">
-                </div>
-            </div>
+        <div class="terminal">
+          <div class="terminal-output" id="botLogs"></div>
+          <div class="terminal-input-line">
+            <span class="prompt">➜</span>
+            <input type="text" id="botInput" class="terminal-input-field" placeholder="command...">
+          </div>
         </div>
+      </section>
 
-        <div id="tab-files" class="view-section">
-            <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom:20px;">
-                <div>
-                    <h2 style="font-weight:700; font-size: 24px;">File Explorer</h2>
-                    <p style="color:var(--text-muted); font-size:13px;">Manage server files realtime</p>
-                </div>
-                <div style="display:flex; gap:10px;">
-                    <button class="btn btn-primary" onclick="document.getElementById('file-up').click()">☁ Upload</button>
-                    <button class="btn btn-ghost" onclick="fetchFiles()">↻</button>
-                    <input type="file" id="file-up" hidden onchange="processUpload()">
-                </div>
-            </div>
-            <div id="file-wrapper" class="file-grid"></div>
+      <section id="page-terminal" class="page">
+        <h2>REMOTE SHELL</h2>
+        <div class="terminal">
+          <div class="terminal-output" id="shellLogs"></div>
+          <div class="terminal-input-line">
+            <span class="prompt">$</span>
+            <input type="text" id="shellInput" class="terminal-input-field" placeholder="shell command...">
+          </div>
         </div>
-    </div>
+      </section>
 
-    <script>
-        const socket = io();
-        const introLines = [
-            "[nexus] Booting system kernel...",
-            "[nexus] Loading modules: \x1b[34mauth\x1b[0m, \x1b[34mfilesystem\x1b[0m, \x1b[34msocket\x1b[0m",
-            "[nexus] \x1b[32m✔ Database connected successfully\x1b[0m",
-            "[nexus] \x1b[32m✔ WebSocket ready on port 3000\x1b[0m",
-            "[nexus] System is ready. Welcome back, Admin."
-        ];
-        
-        function runIntro() {
-            let i = 0;
-            const t = document.getElementById('term-out');
-            t.innerHTML = '';
-            function type() {
-                if(i < introLines.length) {
-                    const l = introLines[i].replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                                           .replace(/\x1b\[34m/g, '<span class="ansi-blue">')
-                                           .replace(/\x1b\[0m/g, '</span>');
-                    t.innerHTML += `<div style="margin-bottom:4px">${l}</div>`;
-                    i++; setTimeout(type, 300);
-                }
-            }
-            type();
-        }
+      <section id="page-files" class="page">
+        <div class="file-toolbar">
+          <span class="current-path" id="currentPath">/storage</span>
+          <input type="file" id="fileUpload" multiple style="display:none">
+          <button class="btn-cyber" onclick="document.getElementById('fileUpload').click()">UPLOAD</button>
+          <button class="btn-cyber" onclick="newFolder()">📁 NEW FOLDER</button>
+        </div>
+        <div class="file-grid" id="fileList"></div>
+        <div id="fileEditor" class="file-editor hidden">
+          <textarea id="editorContent" class="editor-textarea"></textarea>
+          <div class="editor-actions">
+            <button class="btn-cyber" onclick="saveFile()">SAVE</button>
+            <button class="btn-cyber" onclick="closeEditor()">CLOSE</button>
+          </div>
+        </div>
+      </section>
 
-        const savedToken = localStorage.getItem('nx_token');
-        if(savedToken) verifySession(savedToken);
+      <section id="page-settings" class="page">
+        <h2>ENVIRONMENT VARIABLES</h2>
+        <div class="settings-group">
+          <label>TOKEN</label>
+          <input type="text" id="envToken" placeholder="Telegram bot token">
+          <label>API_KEY</label>
+          <input type="text" id="envApiKey" placeholder="API key">
+          <label>SECRET</label>
+          <input type="text" id="envSecret" placeholder="Secret">
+          <button class="btn-cyber" onclick="saveEnv()">SAVE</button>
+        </div>
+      </section>
+    </main>
+  </div>
 
-        function attemptLogin() {
-            const t = document.getElementById('auth-token').value;
-            if(t) verifySession(t);
-        }
+  <footer class="cyber-footer">
+    <a href="https://wa.me/628123456789" target="_blank">📱 WhatsApp</a>
+    <a href="https://t.me/cybernexus" target="_blank">📞 Telegram</a>
+    <span>© 2025 NEXUS ELITE</span>
+  </footer>
 
-        function verifySession(t) {
-            fetch('/login', {
-                method: 'POST',
-                headers: {'Content-Type': 'application/json'},
-                body: JSON.stringify({token: t})
-            }).then(r=>r.json()).then(d=>{
-                if(d.success) {
-                    localStorage.setItem('nx_token', t);
-                    document.getElementById('login-layer').style.opacity = '0';
-                    setTimeout(() => {
-                        document.getElementById('login-layer').style.display = 'none';
-                        runIntro();
-                    }, 500);
-                    fetchFiles();
-                } else alert('Token Salah');
-            });
-        }
+  <script>
+    const socket = io();
+    let currentPath = '';
+    let currentFile = null;
 
-        const getHeaders = () => ({ 'Authorization': localStorage.getItem('nx_token'), 'Content-Type': 'application/json' });
+    if (localStorage.getItem('theme') === 'light') document.body.classList.add('light-mode');
 
-        document.getElementById('term-in').addEventListener('keydown', e => {
-            if(e.key === 'Enter') {
-                const cmd = e.target.value;
-                if(cmd.trim()) {
-                    document.getElementById('term-out').innerHTML += `<div><span style="color:#10b981">➜</span> ${cmd}</div>`;
-                    socket.emit('cmd', cmd);
-                }
-                e.target.value = '';
-            }
-        });
+    document.getElementById('password').addEventListener('keydown', e => { if(e.key === 'Enter') login(); });
 
-        socket.on('log', d => {
-            const t = document.getElementById('term-out');
-            let f = d.replace(/\n/g, '<br>')
-                     .replace(/\x1b\[32m/g, '<span class="ansi-green">')
-                     .replace(/\x1b\[31m/g, '<span class="ansi-red">')
-                     .replace(/\x1b\[0m/g, '</span>');
-            t.innerHTML += `<div>${f}</div>`;
-            t.scrollTop = t.scrollHeight;
-        });
+    async function login() {
+      const pass = document.getElementById('password').value;
+      const res = await fetch('/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ password: pass })
+      });
+      const data = await res.json();
+      if (data.success) {
+        document.getElementById('loginOverlay').style.display = 'none';
+        showToast('Access granted', 'success');
+        loadDashboardStats();
+        loadFiles();
+      } else {
+        showToast('Access denied', 'error');
+      }
+    }
 
-        socket.on('usage', d => {
-            document.getElementById('val-ram').innerText = d.procRam + ' MB';
-            document.getElementById('val-cpu').innerText = d.cpu + ' %';
-            document.getElementById('val-up').innerText = (d.uptime / 3600).toFixed(1) + ' H';
-        });
+    async function logout() {
+      await fetch('/logout', { method: 'POST' });
+      localStorage.removeItem('nexus_auth');
+      location.reload();
+    }
 
-        function fetchFiles() {
-            fetch('/files/list', {method: 'POST', headers: getHeaders()})
-            .then(r=>r.json()).then(d => {
-                const w = document.getElementById('file-wrapper');
-                w.innerHTML = '';
-                if(d.data) {
-                    d.data.forEach(f => {
-                        w.innerHTML += `
-                        <div class="file-item">
-                            <div class="f-actions">
-                                <button class="btn btn-ghost" style="padding:6px" onclick="action('/files/delete','${f.name}')">🗑</button>
-                                ${f.name.endsWith('.zip') ? `<button class="btn btn-ghost" style="padding:6px" onclick="action('/files/unzip','${f.name}')">📦</button>` : ''}
-                            </div>
-                            <div class="f-icon">${f.isDir ? '📁' : '📄'}</div>
-                            <div>
-                                <div class="f-name">${f.name}</div>
-                                <div class="f-meta">${f.isDir ? 'Folder' : (f.size/1024).toFixed(1) + ' KB'}</div>
-                            </div>
-                        </div>`;
-                    });
-                }
-            });
-        }
+    function toggleTheme() {
+      document.body.classList.toggle('light-mode');
+      localStorage.setItem('theme', document.body.classList.contains('light-mode') ? 'light' : 'dark');
+    }
 
-        function processUpload() {
-            const f = document.getElementById('file-up').files[0];
-            if(!f) return;
-            const fd = new FormData();
-            fd.append('file', f);
-            fetch('/upload', { method: 'POST', body: fd }).then(() => fetchFiles());
-        }
+    function toggleSidebar() {
+      document.getElementById('sidebar').classList.toggle('collapsed');
+    }
 
-        function action(u, n) {
-            if(confirm('Action?')) fetch(u, { method: 'POST', headers: getHeaders(), body: JSON.stringify({filename: n}) }).then(() => fetchFiles());
-        }
+    document.querySelectorAll('.nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        item.classList.add('active');
+        const page = item.dataset.page;
+        document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+        document.getElementById(`page-${page}`).classList.add('active');
+        if (page === 'files') loadFiles();
+        if (page === 'dashboard') loadDashboardStats();
+      });
+    });
 
-        function switchTab(id, el) {
-            document.querySelectorAll('.view-section').forEach(e => e.classList.remove('active'));
-            document.querySelectorAll('.nav-item').forEach(e => e.classList.remove('active'));
-            document.getElementById('tab-'+id).classList.add('active');
-            el.classList.add('active');
-        }
+    socket.on('system-stats', stats => {
+      document.getElementById('statRam').innerText = stats.ram;
+      document.getElementById('statCpu').innerText = stats.cpu + '%';
+      const botStat = document.getElementById('statBot');
+      if (botStat) {
+        botStat.innerHTML = stats.bot === 'ONLINE' ? '<span class="dot online"></span> ONLINE' : '<span class="dot offline"></span> OFFLINE';
+      }
+    });
 
-        function api(u) { fetch(u, {method:'POST', headers: getHeaders()}); }
-    </script>
+    socket.on('bot-log', data => {
+      const el = document.getElementById('botLogs');
+      if (!el) return;
+      el.innerHTML += ansiToHtml(data);
+      el.scrollTop = el.scrollHeight;
+    });
+
+    socket.on('terminal-output', data => {
+      const el = document.getElementById('shellLogs');
+      if (!el) return;
+      el.innerHTML += ansiToHtml(data);
+      el.scrollTop = el.scrollHeight;
+    });
+
+    function ansiToHtml(text) {
+      return text.replace(/\x1b\[31m/g, '<span style="color:#ff3e3e">')
+                 .replace(/\x1b\[32m/g, '<span style="color:#00ff9f">')
+                 .replace(/\x1b\[33m/g, '<span style="color:#f0e68c">')
+                 .replace(/\x1b\[36m/g, '<span style="color:#2afcff">')
+                 .replace(/\x1b\[0m/g, '</span>')
+                 .replace(/\n/g, '<br>');
+    }
+
+    document.getElementById('botInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.value) {
+        socket.emit('bot-input', e.target.value);
+        e.target.value = '';
+      }
+    });
+
+    document.getElementById('shellInput').addEventListener('keydown', e => {
+      if (e.key === 'Enter' && e.target.value) {
+        socket.emit('terminal-input', e.target.value);
+        e.target.value = '';
+      }
+    });
+
+    async function loadDashboardStats() {
+      const res = await fetch('/api/stats');
+      const stats = await res.json();
+      document.getElementById('statRam').innerText = stats.ram;
+      document.getElementById('statCpu').innerText = stats.cpu + '%';
+      const uptime = new Date(stats.uptime * 1000).toISOString().substr(11, 8);
+      document.getElementById('statUptime').innerText = uptime;
+      const usedGB = (stats.diskUsed / 1e9).toFixed(1);
+      const totalGB = (stats.diskTotal / 1e9).toFixed(1);
+      document.getElementById('statDisk').innerText = `${usedGB} GB / ${totalGB} GB`;
+      document.getElementById('statNetwork').innerText = stats.network.map(n => n.addresses[0]).join(', ');
+    }
+
+    async function loadFiles(dir = '') {
+      const res = await fetch(`/api/files?path=${encodeURIComponent(dir)}`);
+      const files = await res.json();
+      const container = document.getElementById('fileList');
+      container.innerHTML = '';
+      if (dir) {
+        const up = document.createElement('div');
+        up.className = 'file-item';
+        up.innerHTML = '<span class="file-icon">📁</span><span class="file-name">..</span>';
+        up.onclick = () => loadFiles(dir.split('/').slice(0, -1).join('/'));
+        container.appendChild(up);
+      }
+      files.forEach(f => {
+        const div = document.createElement('div');
+        div.className = 'file-item';
+        div.innerHTML = `<span class="file-icon">${f.isDirectory ? '📁' : '📄'}</span><span class="file-name">${f.name}</span>`;
+        div.onclick = () => {
+          if (f.isDirectory) {
+            loadFiles(dir ? dir + '/' + f.name : f.name);
+          } else {
+            openFile(dir ? dir + '/' + f.name : f.name);
+          }
+        };
+        container.appendChild(div);
+      });
+      document.getElementById('currentPath').innerText = '/storage' + (dir ? '/' + dir : '');
+      currentPath = dir;
+    }
+
+    async function openFile(filePath) {
+      const res = await fetch(`/api/file?path=${encodeURIComponent(filePath)}`);
+      const data = await res.json();
+      document.getElementById('editorContent').value = data.content;
+      document.getElementById('fileEditor').classList.remove('hidden');
+      currentFile = filePath;
+    }
+
+    async function saveFile() {
+      const content = document.getElementById('editorContent').value;
+      await fetch('/api/file', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: currentFile, content })
+      });
+      showToast('File saved');
+      closeEditor();
+    }
+
+    function closeEditor() {
+      document.getElementById('fileEditor').classList.add('hidden');
+      currentFile = null;
+    }
+
+    document.getElementById('fileUpload').addEventListener('change', async (e) => {
+      const formData = new FormData();
+      for (let file of e.target.files) formData.append('files', file);
+      formData.append('dest', currentPath);
+      await fetch('/api/upload', { method: 'POST', body: formData });
+      showToast('Upload complete');
+      loadFiles(currentPath);
+    });
+
+    async function newFolder() {
+      const name = prompt('Folder name:');
+      if (!name) return;
+      const fullPath = currentPath ? currentPath + '/' + name : name;
+      await fetch('/api/mkdir', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ path: fullPath })
+      });
+      loadFiles(currentPath);
+    }
+
+    function showToast(msg, type = 'success') {
+      const toast = document.createElement('div');
+      toast.className = `toast ${type}`;
+      toast.innerText = msg;
+      document.getElementById('toastContainer').appendChild(toast);
+      setTimeout(() => toast.remove(), 4000);
+    }
+
+    function saveEnv() {
+      const token = document.getElementById('envToken').value;
+      const apiKey = document.getElementById('envApiKey').value;
+      const secret = document.getElementById('envSecret').value;
+      fetch('/api/env', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ token, apiKey, secret })
+      }).then(() => showToast('Environment updated'));
+    }
+  </script>
 </body>
 </html>

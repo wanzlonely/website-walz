@@ -77,7 +77,6 @@ body {
     to { opacity: 1; transform: translateX(0); }
 }
 
-/* LOGIN */
 #login-screen {
     position: fixed;
     inset: 0;
@@ -187,14 +186,12 @@ body {
     box-shadow: 0 12px 28px -8px var(--accent);
 }
 
-/* MAIN APP */
 #app {
     display: flex;
     height: 100vh;
     background: var(--bg);
 }
 
-/* SIDEBAR (DESKTOP) */
 .sidebar {
     width: 240px;
     background: var(--surface);
@@ -267,7 +264,6 @@ body {
     box-shadow: inset 3px 0 0 var(--accent);
 }
 
-/* MAIN */
 .main {
     flex: 1;
     display: flex;
@@ -384,7 +380,6 @@ body {
     border-radius: 12px;
 }
 
-/* DASHBOARD */
 .dashboard {
     display: grid;
     grid-template-columns: 1fr 2fr;
@@ -450,7 +445,6 @@ body {
     box-shadow: 0 0 0 2px rgba(59,130,246,0.2);
 }
 
-/* TERMINAL */
 .terminal {
     background: var(--card);
     border: 1px solid var(--border);
@@ -563,7 +557,6 @@ body {
     font-size: 13px;
 }
 
-/* FILES */
 .files {
     display: flex;
     flex-direction: column;
@@ -700,7 +693,6 @@ body {
     font-size: 14px;
 }
 
-/* SUBSCRIPTION */
 .subscription {
     display: flex;
     flex-direction: column;
@@ -828,7 +820,6 @@ body {
     color: white;
 }
 
-/* BOTTOM NAVIGATION (HP) */
 .bottom-nav {
     display: none;
     height: 60px;
@@ -865,7 +856,6 @@ body {
     background: rgba(59,130,246,0.05);
 }
 
-/* MODAL */
 .modal {
     position: fixed;
     inset: 0;
@@ -1007,7 +997,6 @@ body {
     display: none !important;
 }
 
-/* RESPONSIVE HP */
 @media (max-width: 700px) {
     .sidebar {
         display: none;

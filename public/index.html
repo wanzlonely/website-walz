@@ -105,11 +105,11 @@
                                 <div class="dot y"></div>
                                 <div class="dot g"></div>
                             </div>
-                            <span class="term-title">root@nexus:\~</span>
+                            <span class="term-title">root@nexus:~</span>
                         </div>
                         <div class="terminal-logs" id="terminal-logs"></div>
                         <div class="terminal-input-area">
-                            <span class="prompt">\~#</span>
+                            <span class="prompt">~#</span>
                             <input type="text" id="cmd-input" placeholder="Enter command...">
                         </div>
                     </div>
@@ -246,14 +246,14 @@ async function loadFiles(p = '') {
             const safeName = f.name.replace(/'/g, "\\'");
             return `
                 <div class="list-item">
-                    <div class="col-name" onclick="\( {f.isDir ? `loadFiles(' \){safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
+                    <div class="col-name" onclick="${f.isDir ? `loadFiles('${safePath}')` : ''}" style="${f.isDir ? 'cursor:pointer;font-weight:600;' : ''}">
                         <i class="ri-${f.isDir ? 'folder-fill' : 'file-text-line'}"></i> ${f.name}
                     </div>
                     <div class="col-size">${f.isDir ? '--' : formatSize(f.size)}</div>
                     <div class="col-actions">
-                        \( {!f.isDir ? `<button onclick="editFile(' \){safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
-                        \( {!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
-                        <button onclick="if(confirm('Hapus \( {safeName}?')) req('/api/delete',{filename:' \){safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
+                        ${!f.isDir ? `<button onclick="editFile('${safePath}')" class="act-btn"><i class="ri-edit-2-line"></i></button>` : ''}
+                        ${!f.isDir && f.name.toLowerCase().endsWith('.zip') ? `<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-file-zip-line"></i></button>` : ''}
+                        <button onclick="if(confirm('Hapus ${safeName}?')) req('/api/delete',{filename:'${safePath}'}).then(()=>loadFiles())" class="act-btn"><i class="ri-delete-bin-line"></i></button>
                     </div>
                 </div>
             `;
@@ -309,9 +309,9 @@ class Particle{
     }
     update(){this.x+=this.speedX;this.y+=this.speedY;}
     draw(){
-        ctx.fillStyle='#67e8f9';
+        ctx.fillStyle='#bc13fe';
         ctx.shadowBlur=15;
-        ctx.shadowColor='#67e8f9';
+        ctx.shadowColor='#bc13fe';
         ctx.fillRect(this.x,this.y,this.size,this.size);
     }
 }
@@ -327,7 +327,7 @@ function connectParticles(){
             const dy=particles[i].y-particles[j].y;
             const dist=Math.sqrt(dx*dx+dy*dy);
             if(dist<140){
-                ctx.strokeStyle=`rgba(103,232,249,${1-dist/140})`;
+                ctx.strokeStyle=`rgba(188,19,254,${1-dist/140})`;
                 ctx.lineWidth=1.1;
                 ctx.beginPath();
                 ctx.moveTo(particles[i].x,particles[i].y);

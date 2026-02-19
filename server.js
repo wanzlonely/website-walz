@@ -9,13 +9,28 @@ const os = require('os');
 const AdmZip = require('adm-zip');
 const TelegramBot = require('node-telegram-bot-api');
 
-const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAF8DRgcn32Yu0gp__GVbLEM-4vs_-BsnmY';
+const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;
+const DB_FILE = path.join(__dirname, 'tokens.json');
 
 let activeTokens = {};
 const uploadDir = path.join(__dirname, 'uploads');
+
+function loadTokens() {
+    try {
+        if (fs.existsSync(DB_FILE)) activeTokens = JSON.parse(fs.readFileSync(DB_FILE, 'utf8')) || {};
+    } catch (e) {
+        activeTokens = {};
+    }
+}
+
+function saveTokens() {
+    try {
+        fs.writeFileSync(DB_FILE, JSON.stringify(activeTokens, null, 2));
+    } catch (e) {}
+}
 
 function generateHardToken() {
     const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
@@ -24,6 +39,7 @@ function generateHardToken() {
     return result;
 }
 
+loadTokens();
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir);
 
 const app = express();
@@ -55,6 +71,7 @@ try {
         const expired = Date.now() + (days * 86400000);
         
         activeTokens[token] = expired;
+        saveTokens();
         
         bot.sendMessage(chatId, `✅ <b>AKSES DIBUAT</b>\n🔑: <code>${token}</code>\n⏳: ${days} Hari\n📅: ${new Date(expired).toLocaleDateString('id-ID')}`, { parse_mode: 'HTML' });
     });
@@ -91,6 +108,7 @@ const checkAuth = (req, res, next) => {
     
     if (Date.now() > activeTokens[token]) {
         delete activeTokens[token];
+        saveTokens();
         return res.status(401).json({ success: false, msg: 'Token Expired' });
     }
     
@@ -137,6 +155,7 @@ app.post('/api/login', (req, res) => {
     if (activeTokens[token]) {
         if (Date.now() > activeTokens[token]) {
             delete activeTokens[token];
+            saveTokens();
             return res.json({ success: false, msg: 'Token Expired' });
         }
         return res.json({ success: true });
@@ -231,7 +250,11 @@ app.post('/api/start', checkAuth, (req, res) => {
     startTime = Date.now();
     broadcastStats();
     
-    currentProcess = spawn(cmd, { cwd: uploadDir, shell: true });
+    currentProcess = spawn(cmd, { 
+        cwd: uploadDir, 
+        shell: true,
+        detached: true 
+    });
     
     currentProcess.stdout.on('data', d => io.emit('log', d.toString()));
     currentProcess.stderr.on('data', d => io.emit('log', `\x1b[31m${d.toString()}\x1b[0m`));
@@ -249,7 +272,14 @@ app.post('/api/start', checkAuth, (req, res) => {
 
 app.post('/api/stop', checkAuth, (req, res) => {
     if (currentProcess) {
-        currentProcess.kill();
+        try {
+            process.kill(-currentProcess.pid);
+        } catch (e) {
+            try {
+                currentProcess.kill();
+            } catch (err) {}
+        }
+        
         currentProcess = null;
         isRunning = false;
         startTime = null;

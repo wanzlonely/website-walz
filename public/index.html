@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>NEXUS · Apple iOS UI</title>
+    <title>NEXUS · Server Panel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
 </head>
@@ -92,9 +92,9 @@
                     </div>
                 </div>
                 <div class="power">
-                    <button class="power-btn start" onclick="reqStart()" title="Start"><i class="ri-play-fill"></i></button>
-                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)" title="Restart"><i class="ri-restart-line"></i></button>
-                    <button class="power-btn stop" onclick="req('/api/stop')" title="Stop"><i class="ri-stop-fill"></i></button>
+                    <button class="power-btn start" onclick="reqStart()"><i class="ri-play-fill"></i></button>
+                    <button class="power-btn restart" onclick="req('/api/stop');setTimeout(()=>reqStart(),1000)"><i class="ri-restart-line"></i></button>
+                    <button class="power-btn stop" onclick="req('/api/stop')"><i class="ri-stop-fill"></i></button>
                 </div>
             </header>
 
@@ -254,7 +254,9 @@
                 } else {
                     toast(data.msg || 'Invalid Key', 'error');
                 }
-            } catch (e) { toast('Network Error', 'error'); }
+            } catch (e) {
+                toast('Network Error', 'error');
+            }
         }
 
         async function req(ep, body = {}) {
@@ -267,7 +269,9 @@
                 const data = await res.json();
                 if (data.msg) toast(data.msg, data.success ? 'success' : 'error');
                 return data;
-            } catch (e) { toast('Network Error', 'error'); }
+            } catch (e) {
+                toast('Network Error', 'error');
+            }
         }
 
         async function loadExpiry() {
@@ -291,10 +295,14 @@
                         progressBar.style.width = `${((total - remaining) / total) * 100}%`;
                     }
                 }
-            } catch (e) { document.getElementById('expiry-time').innerText = 'Sync Failed'; }
+            } catch (e) {
+                document.getElementById('expiry-time').innerText = 'Sync Failed';
+            }
         }
 
-        function reqStart() { req('/api/start', { command: document.getElementById('startup-cmd').value }); }
+        function reqStart() {
+            req('/api/start', { command: document.getElementById('startup-cmd').value });
+        }
 
         socket.on('stats', (d) => {
             countUp('cpu-val', parseFloat(d.cpu), '%');
@@ -352,7 +360,8 @@
                 const pathEl = document.getElementById('current-path');
                 pathEl.innerHTML = `<i class="ri-folder-3-fill"></i> ${p || '/root'}`;
                 if (!d.data || d.data.length === 0) {
-                    list.innerHTML = '<div class="empty">Folder is empty</div>'; return;
+                    list.innerHTML = '<div class="empty">Folder is empty</div>';
+                    return;
                 }
                 list.innerHTML = d.data.map(f => {
                     const safePath = f.path.replace(/'/g, "\\'");
@@ -387,7 +396,10 @@
             document.getElementById('confirm-modal').classList.remove('hidden');
         }
 
-        function closeConfirmModal() { document.getElementById('confirm-modal').classList.add('hidden'); pendingDeletePath = ''; }
+        function closeConfirmModal() {
+            document.getElementById('confirm-modal').classList.add('hidden');
+            pendingDeletePath = '';
+        }
 
         async function executeDelete() {
             if (!pendingDeletePath) return;
@@ -412,25 +424,39 @@
             if (res && res.success) closeEditor();
         }
 
-        function closeEditor() { document.getElementById('editor-modal').classList.add('hidden'); currentEditFile = ''; }
+        function closeEditor() {
+            document.getElementById('editor-modal').classList.add('hidden');
+            currentEditFile = '';
+        }
 
         async function uploadFile() {
             const f = document.getElementById('file-upload').files[0];
             if (!f) return;
-            const fd = new FormData(); fd.append('file', f);
+            const fd = new FormData();
+            fd.append('file', f);
             toast('Uploading...', 'normal');
             try {
-                const r = await fetch('/api/upload', { method: 'POST', headers: { 'Authorization': token }, body: fd });
+                const r = await fetch('/api/upload', {
+                    method: 'POST',
+                    headers: { 'Authorization': token },
+                    body: fd
+                });
                 const resData = await r.json();
-                if (resData.success) { toast('Upload Success', 'success'); loadFiles(); }
-            } catch (e) { toast('Upload Failed', 'error'); }
+                if (resData.success) {
+                    toast('Upload Success', 'success');
+                    loadFiles();
+                }
+            } catch (e) {
+                toast('Upload Failed', 'error');
+            }
             document.getElementById('file-upload').value = '';
         }
 
         function countUp(id, target, suffix) {
             const el = document.getElementById(id);
             let start = parseFloat(el.textContent) || 0;
-            const duration = 1200; const startTime = Date.now();
+            const duration = 1200;
+            const startTime = Date.now();
             const step = () => {
                 const progress = Math.min((Date.now() - startTime) / duration, 1);
                 const value = start + (target - start) * (1 - Math.pow(1 - progress, 3));

@@ -9,7 +9,7 @@ const os = require('os');
 const AdmZip = require('adm-zip');
 const TelegramBot = require('node-telegram-bot-api');
 
-const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAGJcCOkeZ0dVAWzQrbJ9J9auRzCvDHceWc';
+const TG_TOKEN = process.env.TG_TOKEN || '8227444423:AAF8DRgcn32Yu0gp__GVbLEM-4vs_-BsnmY';
 const OWNER_ID = process.env.OWNER_ID || '8062935882';
 const ADMIN_PASS = process.env.ADMIN_PASS || 'walzexploit';
 const PORT = process.env.PORT || 3000;

@@ -6,46 +6,13 @@
     <title>NEXUS · Advanced Control Panel</title>
     <link rel="stylesheet" href="style.css">
     <link href="https://cdn.jsdelivr.net/npm/remixicon@3.5.0/fonts/remixicon.css" rel="stylesheet">
-    <style>
-        .btn-danger {
-            background: rgba(255, 38, 92, 0.1);
-            color: #ff265c;
-            border: 1px solid #ff265c;
-            box-shadow: 0 0 10px rgba(255, 38, 92, 0.2);
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s ease;
-        }
-        .btn-danger:hover {
-            background: #ff265c;
-            color: #fff;
-            box-shadow: 0 0 20px rgba(255, 38, 92, 0.5);
-            transform: translateY(-2px);
-        }
-        .btn-secondary {
-            background: rgba(255, 255, 255, 0.05);
-            color: var(--text-muted);
-            border: 1px solid var(--border-light);
-            padding: 10px 24px;
-            border-radius: 12px;
-            font-weight: 600;
-            cursor: pointer;
-            transition: 0.3s ease;
-        }
-        .btn-secondary:hover {
-            background: rgba(255, 255, 255, 0.1);
-            color: #fff;
-        }
-    </style>
 </head>
 <body>
     <canvas id="bg-canvas"></canvas>
     <div id="toast-container"></div>
 
     <div id="confirm-modal" class="modal hidden">
-        <div class="modal-panel">
+        <div class="modal-panel glass">
             <div class="modal-head">
                 <div class="modal-title">
                     <i class="ri-alert-line"></i>
@@ -55,7 +22,7 @@
             </div>
             <div class="modal-body" style="padding: 32px; text-align: center;">
                 <i class="ri-delete-bin-5-line" style="font-size: 48px; color: #ff265c; text-shadow: 0 0 20px rgba(255, 38, 92, 0.4); margin-bottom: 16px; display: inline-block;"></i>
-                <p id="confirm-message" style="margin-bottom: 32px; color: var(--text); font-size: 16px; font-weight: 500;">Yakin ingin menghapus target ini?</p>
+                <p id="confirm-message" style="margin-bottom: 32px; color: var(--text); font-size: 16px; font-weight: 500;"></p>
                 <div style="display: flex; gap: 16px; justify-content: center;">
                     <button onclick="executeDelete()" class="btn-danger">Execute Purge</button>
                     <button onclick="closeConfirmModal()" class="btn-secondary">Abort</button>
@@ -65,7 +32,7 @@
     </div>
 
     <div id="login-screen">
-        <div class="login-card">
+        <div class="login-card glass">
             <div class="login-icon">
                 <i class="ri-fingerprint-line"></i>
             </div>
@@ -80,7 +47,7 @@
     </div>
 
     <div id="editor-modal" class="modal hidden">
-        <div class="modal-panel">
+        <div class="modal-panel glass">
             <div class="modal-head">
                 <div class="modal-title">
                     <i class="ri-code-s-slash-line"></i>
@@ -98,7 +65,7 @@
     </div>
 
     <div id="app" class="hidden">
-        <aside class="sidebar">
+        <aside class="sidebar glass">
             <div class="sidebar-header">
                 <i class="ri-radar-line sidebar-icon"></i>
                 <span>NEXUS</span>
@@ -117,7 +84,7 @@
         </aside>
 
         <main class="main">
-            <header class="topbar">
+            <header class="topbar glass">
                 <div class="topbar-left">
                     <span class="node-name">Mainframe · Node-01</span>
                     <div id="status-badge" class="status">
@@ -135,25 +102,25 @@
             <div class="content" id="content-scroll">
                 <div id="tab-dashboard" class="dashboard">
                     <div class="stats-grid">
-                        <div class="stat-card">
+                        <div class="stat-card glass">
                             <span class="stat-label">Execution Command</span>
                             <input type="text" id="startup-cmd" value="npm start">
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card glass">
                             <span class="stat-label">CPU Usage</span>
                             <span id="cpu-val" class="stat-value">0.00%</span>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card glass">
                             <span class="stat-label">Memory Allocated</span>
                             <span id="ram-val" class="stat-value">0 MB</span>
                         </div>
-                        <div class="stat-card">
+                        <div class="stat-card glass">
                             <span class="stat-label">System Uptime</span>
                             <span id="uptime-val" class="stat-value">00:00:00</span>
                         </div>
                     </div>
 
-                    <div class="terminal">
+                    <div class="terminal glass">
                         <div class="terminal-header">
                             <div class="terminal-dots">
                                 <span></span><span></span><span></span>
@@ -168,7 +135,7 @@
                     </div>
                 </div>
 
-                <div id="tab-files" class="files hidden">
+                <div id="tab-files" class="files hidden glass">
                     <div class="files-toolbar">
                         <div id="current-path" class="path"><i class="ri-folder-keyhole-line"></i> /root</div>
                         <label class="upload-btn">
@@ -185,7 +152,7 @@
                 </div>
 
                 <div id="tab-subscription" class="subscription hidden">
-                    <div class="sub-card">
+                    <div class="sub-card glass">
                         <div class="sub-header">
                             <i class="ri-shield-keyhole-line"></i>
                             <h3>License Status</h3>
@@ -197,34 +164,34 @@
                         <p class="sub-note">Renew your access token to maintain connection.</p>
                     </div>
 
-                    <div class="packages">
+                    <div class="packages glass">
                         <div class="package-grid">
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">3 Days</span>
                                 <span class="price">4K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">5 Days</span>
                                 <span class="price">6K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">7 Days</span>
                                 <span class="price">8K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">10 Days</span>
                                 <span class="price">12K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">15 Days</span>
                                 <span class="price">15K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
                             </div>
-                            <div class="package-item">
+                            <div class="package-item glass">
                                 <span class="days">30 Days</span>
                                 <span class="price">20K</span>
                                 <button class="buy-btn" onclick="window.open('https://t.me/walzspy', '_blank')">Acquire</button>
@@ -234,7 +201,7 @@
                 </div>
             </div>
 
-            <nav class="bottom-nav">
+            <nav class="bottom-nav glass">
                 <a href="#" class="active" onclick="switchTab('dashboard', this)">
                     <i class="ri-terminal-window-line"></i><span>Terminal</span>
                 </a>
